@@ -18,6 +18,11 @@ from geometry import compute_corner_angles
 from cross_field import compute_xi_per_halfedge
 
 
+def wrap_angle(x: float) -> float:
+    """Wrap angle to [-π, π] range."""
+    return np.arctan2(np.sin(x), np.cos(x))
+
+
 def compute_cut_jump_data(
     mesh: TriangleMesh,
     alpha: np.ndarray,
@@ -56,14 +61,14 @@ def compute_cut_jump_data(
 
     # Step 5-8: BFS traversal to propagate reference frame
     seed_face = 0
-    phi[3 * seed_face + 0] = xi[seed_face]  # reference frame = cross field direction
+    phi[3 * seed_face + 0] = wrap_angle(xi[seed_face])  # reference frame = cross field direction
 
     # Propagate phi within seed face (lines 20-21 equivalent)
     c0 = 3 * seed_face + 0
     c1 = 3 * seed_face + 1
     c2 = 3 * seed_face + 2
-    phi[3 * seed_face + 1] = phi[3 * seed_face + 0] - (np.pi - alpha[c1])
-    phi[3 * seed_face + 2] = phi[3 * seed_face + 1] - (np.pi - alpha[c2])
+    phi[3 * seed_face + 1] = wrap_angle(phi[3 * seed_face + 0] - (np.pi - alpha[c1]))
+    phi[3 * seed_face + 2] = wrap_angle(phi[3 * seed_face + 1] - (np.pi - alpha[c2]))
 
     # Edge sign lookup for each halfedge
     # s_ij at edges will be computed during traversal
@@ -96,33 +101,40 @@ def compute_cut_jump_data(
         # Get vertices i, j for orientation
         i, j = mesh.halfedge_vertices(he_ij)
 
-        # Line 11: parallel transport phi
-        phi_ij_to_ji = phi[he_ij] + np.pi
+        # Line 11: parallel transport phi (wrap to principal range)
+        phi_ij_to_ji = wrap_angle(phi[he_ij] + np.pi)
 
         # Line 12: closest cross index
-        n_star = int(np.round(2 * (phi_ij_to_ji - xi_he[he_twin]) / np.pi)) % 4
+        # Wrap the difference before rounding to avoid drift
+        angle_diff = wrap_angle(phi_ij_to_ji - xi_he[he_twin])
+        n_star = int(np.round(2 * angle_diff / np.pi)) % 4
 
         # Line 13: jump angle
         zeta[e] = (np.pi / 2) * n_star
 
         # Line 14: closest cross direction
-        xi_star = zeta[e] + xi_he[he_twin]
+        xi_star = wrap_angle(zeta[e] + xi_he[he_twin])
 
-        # Line 15: smallest rotation to neighboring cross
-        omega0[e] = phi[he_ij] - xi_star + np.pi
+        # Line 15: smallest rotation to neighboring cross (wrap to principal range)
+        omega0_raw = phi[he_ij] - xi_star + np.pi
+        omega0[e] = wrap_angle(omega0_raw)
 
-        # Determine sign bit for this edge (line 26-27)
-        if n_star % 2 == 1:  # odd n_star
-            s_edge[e] = -1
-        else:
-            s_edge[e] = +1
+        # Ensure omega0 sign is consistent with edge_to_halfedge ordering
+        # The constraint uses edge_to_halfedge[e, 0] as the "from" side
+        # If we computed from the opposite halfedge, negate omega0
+        he0 = mesh.edge_to_halfedge[e, 0]
+        if he_ij != he0:
+            omega0[e] = -omega0[e]
 
         # Check if neighbor frame not yet set (line 16)
         if phi[he_twin] == np.inf:
             # Line 17-23: set neighbor frame
             Gamma[e] = 0  # not in cut
 
-            # Line 19: set reference frame in target triangle
+            # Line 18: s_ij ← +1 (no sign change for spanning tree edges)
+            s_edge[e] = +1
+
+            # Line 19: set reference frame in target triangle (already wrapped)
             phi[he_twin] = xi_star
 
             # Lines 20-21: propagate phi within triangle
@@ -140,10 +152,10 @@ def compute_cut_jump_data(
             c_i = 3 * face_to + (local_to + 1) % 3  # corner at i
             c_l = 3 * face_to + (local_to + 2) % 3  # corner at l
 
-            # phi_il = phi_ji - (pi - alpha at i in this face)
-            phi[he_next] = phi[he_twin] - (np.pi - alpha[c_i])
-            # phi_lj = phi_il - (pi - alpha at l)
-            phi[he_prev] = phi[he_next] - (np.pi - alpha[c_l])
+            # phi_il = phi_ji - (pi - alpha at i in this face) - WRAP
+            phi[he_next] = wrap_angle(phi[he_twin] - (np.pi - alpha[c_i]))
+            # phi_lj = phi_il - (pi - alpha at l) - WRAP
+            phi[he_prev] = wrap_angle(phi[he_next] - (np.pi - alpha[c_l]))
 
             # Push other edges of this face to queue (lines 22-23)
             queue.append(he_next)
@@ -152,6 +164,12 @@ def compute_cut_jump_data(
         else:
             # Line 24-27: neighbor frame already set
             Gamma[e] = 1  # edge could be in cut
+
+            # Lines 26-27: s_ij ← (-1)^n* (sign change based on n_star parity)
+            if n_star % 2 == 1:  # odd n_star
+                s_edge[e] = -1
+            else:
+                s_edge[e] = +1
 
     # Step 29-33: Compute relative signs at corners
     for v in range(n_vertices):

@@ -2,6 +2,11 @@
 UV coordinate recovery (Algorithm 11 from supplement).
 
 Recovers final parameterization coordinates from the optimization solution.
+
+IMPORTANT: This implementation follows Algorithm 11's corner indexing convention:
+- "Corner ij^k" means the corner OPPOSITE edge ij (i.e., at vertex k)
+- Each edge ij in face (i,j,k) contributes one row to the system
+- The row is indexed by the opposite corner (vertex k in that face)
 """
 
 import numpy as np
@@ -45,6 +50,7 @@ def recover_parameterization(
     n_corners = mesh.n_corners
     n_faces = mesh.n_faces
     n_edges = mesh.n_edges
+    n_halfedges = mesh.n_halfedges
 
     # Step 1-3: Compute edge scales from log-scales
     # a_ij = exp((u_i + u_j + v_i + v_j)/2)
@@ -57,33 +63,33 @@ def recover_parameterization(
         a_edge[e] = np.exp((u[i] + u[j] + v[i] + v[j]) / 2)
         b_edge[e] = np.exp((u[i] + u[j] - v[i] - v[j]) / 2)
 
-    # Step 4-13: Compute target edge vectors μ and right-hand side b
-    # For each halfedge, compute μ (target edge vector in UV space)
-    mu = np.zeros((n_corners, 2))  # μ indexed by halfedge (= corner)
+    # Step 4-13: Compute target edge vectors μ per halfedge
+    # μ is indexed by halfedge (same as corner index)
+    mu = np.zeros((n_halfedges, 2))
 
     for f in range(n_faces):
         v0, v1, v2 = mesh.faces[f]
 
-        # Corner indices (corner c_i is at vertex v_i)
-        c0 = 3 * f + 0
-        c1 = 3 * f + 1
-        c2 = 3 * f + 2
+        # Corner indices (corner c_k is at vertex v_k)
+        c0 = 3 * f + 0  # corner at v0
+        c1 = 3 * f + 1  # corner at v1
+        c2 = 3 * f + 2  # corner at v2
 
         # Halfedge indices
-        he_01 = 3 * f + 0  # v0 -> v1
-        he_12 = 3 * f + 1  # v1 -> v2
-        he_20 = 3 * f + 2  # v2 -> v0
+        he_01 = 3 * f + 0  # v0 -> v1 (opposite corner c2)
+        he_12 = 3 * f + 1  # v1 -> v2 (opposite corner c0)
+        he_20 = 3 * f + 2  # v2 -> v0 (opposite corner c1)
 
         # Frame angle relative to first edge (line 5)
         eta = phi[he_01] + theta[f]
 
-        # Get edge indices and lengths
+        # Get edge indices
         e01 = mesh.halfedge_to_edge[he_01]
         e12 = mesh.halfedge_to_edge[he_12]
         e20 = mesh.halfedge_to_edge[he_20]
 
         # Target edge vectors (lines 9-11)
-        # μ^k_ij = ℓ_ij * (a_ij * cos(η), b_ij * sin(η)) for edge from i to j
+        # μ^k_ij = ℓ_ij * (a_ij * cos(η), b_ij * sin(η))
 
         # Edge 0->1: η_01 = η
         mu[he_01, 0] = ell[e01] * a_edge[e01] * np.cos(eta)
@@ -99,59 +105,98 @@ def recover_parameterization(
         mu[he_20, 0] = ell[e20] * a_edge[e20] * np.cos(eta_20)
         mu[he_20, 1] = ell[e20] * b_edge[e20] * np.sin(eta_20)
 
-    # Build right-hand side b (line 13)
-    # b^ij_k = (1/2) * (R_zeta * μ^k_ij + μ^l_ji)
-    b_rhs = np.zeros((n_corners, 2))
+    # Step 12-13: Build right-hand side b
+    # Subtraction formula: b = 0.5 * (R_zeta * mu[he] - mu[he_twin])
+    # mu[he] and mu[he_twin] point in opposite directions for the same edge,
+    # so subtracting gives a consistent edge vector direction
+    b_rhs = np.zeros((n_halfedges, 2))
 
-    for he in range(mesh.n_halfedges):
+    for he in range(n_halfedges):
         he_twin = mesh.halfedge_twin[he]
         e = mesh.halfedge_to_edge[he]
 
         if he_twin == -1:
-            # Boundary - just use μ
+            # Boundary halfedge - just use μ
             b_rhs[he] = mu[he]
         else:
-            # Interior edge - average with rotation
+            # Interior edge - rotate current mu by zeta, subtract twin
             z = zeta[e]
             cos_z, sin_z = np.cos(z), np.sin(z)
 
-            # Rotate μ[he] by zeta
             mu_rot = np.array([
                 cos_z * mu[he, 0] - sin_z * mu[he, 1],
                 sin_z * mu[he, 0] + cos_z * mu[he, 1]
             ])
 
-            b_rhs[he] = 0.5 * (mu_rot + mu[he_twin])
+            b_rhs[he] = 0.5 * (mu_rot - mu[he_twin])
 
-    # Build the linear system using a simpler formulation:
-    # For each face, we want: f[c1] - f[c0] ≈ μ_01, f[c2] - f[c1] ≈ μ_12, f[c0] - f[c2] ≈ μ_20
-    # This gives us edge equations within each triangle.
+    # Build the linear system following Algorithm 11's indexing
+    # For each halfedge he (edge i->j in face with opposite corner k):
+    # - Row is indexed by the OPPOSITE corner (corner k)
+    # - A[row, corner_j] = +1, A[row, corner_i] = -1
+    # - We want: f[corner_j] - f[corner_i] = b[he]
 
-    # Build gradient matrix G: (Gf)_he = f[end] - f[start]
-    G_rows = []
-    G_cols = []
-    G_data = []
+    # Build matrix A: each halfedge contributes one row
+    # Row index = halfedge index (which equals corner index in our convention)
+    # But Algorithm 11 wants row = opposite corner
+
+    # Create mapping: halfedge -> opposite corner
+    he_to_opposite_corner = np.zeros(n_halfedges, dtype=int)
+    for f in range(n_faces):
+        # he_01 (v0->v1) has opposite corner c2
+        he_to_opposite_corner[3*f + 0] = 3*f + 2
+        # he_12 (v1->v2) has opposite corner c0
+        he_to_opposite_corner[3*f + 1] = 3*f + 0
+        # he_20 (v2->v0) has opposite corner c1
+        he_to_opposite_corner[3*f + 2] = 3*f + 1
+
+    # Build A matrix with Algorithm 11's convention
+    A_rows = []
+    A_cols = []
+    A_data = []
+
+    # Also build weight matrix W using opposite corner angles
+    W_diag = np.zeros(n_halfedges)
 
     for f in range(n_faces):
+        v0, v1, v2 = mesh.faces[f]
         c0, c1, c2 = 3*f, 3*f+1, 3*f+2
-        he_01, he_12, he_20 = 3*f, 3*f+1, 3*f+2
 
-        # he_01: f[c1] - f[c0]
-        G_rows.extend([he_01, he_01])
-        G_cols.extend([c0, c1])
-        G_data.extend([-1.0, 1.0])
+        # Halfedge he_01: v0 -> v1, opposite corner c2
+        # mu points i->j, so we want f[j] - f[i] = b
+        # f[c1] - f[c0] = b[he_01]
+        row = c2
+        A_rows.extend([row, row])
+        A_cols.extend([c0, c1])
+        A_data.extend([-1.0, 1.0])  # -1 at source, +1 at target
+        W_diag[3*f + 0] = 0.5 / np.tan(alpha[c2] + 1e-10)
 
-        # he_12: f[c2] - f[c1]
-        G_rows.extend([he_12, he_12])
-        G_cols.extend([c1, c2])
-        G_data.extend([-1.0, 1.0])
+        # Halfedge he_12: v1 -> v2, opposite corner c0
+        row = c0
+        A_rows.extend([row, row])
+        A_cols.extend([c1, c2])
+        A_data.extend([-1.0, 1.0])
+        W_diag[3*f + 1] = 0.5 / np.tan(alpha[c0] + 1e-10)
 
-        # he_20: f[c0] - f[c2]
-        G_rows.extend([he_20, he_20])
-        G_cols.extend([c2, c0])
-        G_data.extend([-1.0, 1.0])
+        # Halfedge he_20: v2 -> v0, opposite corner c1
+        row = c1
+        A_rows.extend([row, row])
+        A_cols.extend([c2, c0])
+        A_data.extend([-1.0, 1.0])
+        W_diag[3*f + 2] = 0.5 / np.tan(alpha[c1] + 1e-10)
 
-    G = sparse.csr_matrix((G_data, (G_rows, G_cols)), shape=(n_corners, n_corners))
+    # Clamp weights to avoid extreme values
+    W_diag = np.clip(W_diag, 0.01, 100)
+    W = sparse.diags(W_diag)
+
+    # Reindex b_rhs to match row ordering (opposite corner)
+    b_reindexed = np.zeros((n_corners, 2))
+    for he in range(n_halfedges):
+        opp_corner = he_to_opposite_corner[he]
+        b_reindexed[opp_corner] = b_rhs[he]
+
+    # Build A as sparse matrix
+    A = sparse.csr_matrix((A_data, (A_rows, A_cols)), shape=(n_corners, n_corners))
 
     # Build corner identification constraints U
     # Corners should match across non-cut edges
@@ -170,53 +215,53 @@ def recover_parameterization(
         if he0 == -1 or he1 == -1:
             continue
 
-        # Get the corners at each endpoint of the edge in both faces
+        # Get faces and local indices
         f0, local0 = he0 // 3, he0 % 3
         f1, local1 = he1 // 3, he1 % 3
 
-        # Corner at start vertex of he0 should equal corner at end vertex of he1
+        # he0 goes from vertex at local0 to vertex at (local0+1)%3 in face f0
+        # he1 goes from vertex at local1 to vertex at (local1+1)%3 in face f1
+        # These are the same edge, so:
+        # - corner at start of he0 should match corner at end of he1
+        # - corner at end of he0 should match corner at start of he1
+
         c0_start = 3 * f0 + local0
+        c0_end = 3 * f0 + (local0 + 1) % 3
+        c1_start = 3 * f1 + local1
         c1_end = 3 * f1 + (local1 + 1) % 3
 
+        # c0_start (vertex at start of he0) = c1_end (vertex at end of he1)
         U_rows.extend([constraint_idx, constraint_idx])
         U_cols.extend([c0_start, c1_end])
         U_data.extend([1.0, -1.0])
         constraint_idx += 1
 
-        # Corner at end vertex of he0 should equal corner at start vertex of he1
-        c0_end = 3 * f0 + (local0 + 1) % 3
-        c1_start = 3 * f1 + local1
-
+        # c0_end (vertex at end of he0) = c1_start (vertex at start of he1)
         U_rows.extend([constraint_idx, constraint_idx])
         U_cols.extend([c0_end, c1_start])
         U_data.extend([1.0, -1.0])
         constraint_idx += 1
 
-    # Build mass matrix (cotan weights)
-    W_diag = 0.5 / np.tan(alpha + 1e-10)
-    W_diag = np.clip(W_diag, 0.01, 100)  # Clamp to avoid extreme weights
-    W = sparse.diags(W_diag)
-
     # Solve for each coordinate
     f = np.zeros((n_corners, 2))
 
     for coord in range(2):
-        b = b_rhs[:, coord]
+        b = b_reindexed[:, coord]
 
         if constraint_idx > 0:
             U = sparse.csr_matrix((U_data, (U_rows, U_cols)), shape=(constraint_idx, n_corners))
 
-            # Solve: min ||G f - b||^2_W  s.t. U f = 0
-            # KKT: [G^T W G, U^T; U, 0] [f; λ] = [G^T W b; 0]
-            GTWG = G.T @ W @ G
-            GTWb = G.T @ W @ b
+            # Solve: min ||A f - b||^2_W  s.t. U f = 0
+            # KKT: [A^T W A, U^T; U, 0] [f; λ] = [A^T W b; 0]
+            ATWA = A.T @ W @ A
+            ATWb = A.T @ W @ b
 
             K = sparse.bmat([
-                [GTWG, U.T],
+                [ATWA, U.T],
                 [U, sparse.csr_matrix((constraint_idx, constraint_idx))]
             ])
 
-            rhs = np.concatenate([GTWb, np.zeros(constraint_idx)])
+            rhs = np.concatenate([ATWb, np.zeros(constraint_idx)])
 
             # Regularize and solve
             K_reg = K + 1e-8 * sparse.eye(K.shape[0])
@@ -224,10 +269,14 @@ def recover_parameterization(
             f[:, coord] = sol[:n_corners]
         else:
             # No constraints - simple least squares
-            GTWG = G.T @ W @ G
-            GTWb = G.T @ W @ b
-            GTWG_reg = GTWG + 1e-8 * sparse.eye(n_corners)
-            f[:, coord] = spsolve(GTWG_reg.tocsc(), GTWb)
+            ATWA = A.T @ W @ A
+            ATWb = A.T @ W @ b
+            ATWA_reg = ATWA + 1e-8 * sparse.eye(n_corners)
+            f[:, coord] = spsolve(ATWA_reg.tocsc(), ATWb)
+
+    # Flip y-coordinate to fix global orientation
+    # The phi angles in cut_graph.py produce opposite winding, so we flip y
+    f[:, 1] = -f[:, 1]
 
     return f
 

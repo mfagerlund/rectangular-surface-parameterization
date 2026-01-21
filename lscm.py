@@ -17,7 +17,7 @@ from geometry import compute_corner_angles
 
 def lscm_parameterize(mesh: TriangleMesh) -> np.ndarray:
     """
-    Compute LSCM parameterization.
+    Compute LSCM parameterization using eigenvalue approach.
 
     Returns:
         corner_uvs: |C| x 2 UV coordinates per corner
@@ -25,15 +25,19 @@ def lscm_parameterize(mesh: TriangleMesh) -> np.ndarray:
     n_faces = mesh.n_faces
     n_vertices = mesh.n_vertices
 
-    # Build the LSCM matrix
-    # For each triangle, we have a 2x6 matrix M_t such that
-    # M_t @ [u0, v0, u1, v1, u2, v2]^T = conformal residual
+    # Check if mesh is closed (no boundary)
+    n_boundary = sum(1 for e in range(mesh.n_edges)
+                     if mesh.edge_to_halfedge[e, 0] == -1 or mesh.edge_to_halfedge[e, 1] == -1)
 
-    # Actually, let's use the simpler formulation:
-    # Minimize sum_t || (z1-z0) * conj(p2-p0) - (z2-z0) * conj(p1-p0) ||^2
-    # where z_i = u_i + i*v_i are UV coords and p_i are 3D positions projected to 2D
+    # For closed meshes, we need to "cut" by excluding one face
+    excluded_face = -1
+    if n_boundary == 0:
+        excluded_face = 0
 
-    # For each face, compute local 2D coordinates
+    active_faces = [f for f in range(n_faces) if f != excluded_face]
+    n_active = len(active_faces)
+
+    # Build the full LSCM matrix (all vertices)
     A_real_rows = []
     A_real_cols = []
     A_real_data = []
@@ -41,23 +45,18 @@ def lscm_parameterize(mesh: TriangleMesh) -> np.ndarray:
     A_imag_cols = []
     A_imag_data = []
 
-    for f in range(n_faces):
+    for row_idx, f in enumerate(active_faces):
         v0, v1, v2 = mesh.faces[f]
-        p0 = mesh.positions[v0]
-        p1 = mesh.positions[v1]
-        p2 = mesh.positions[v2]
+        p0, p1, p2 = mesh.positions[v0], mesh.positions[v1], mesh.positions[v2]
 
-        # Project triangle to 2D using local frame
         e01 = p1 - p0
         e02 = p2 - p0
 
-        # Local x = direction of e01
         len01 = np.linalg.norm(e01)
         if len01 < 1e-10:
             continue
         x_dir = e01 / len01
 
-        # Local y = perpendicular in triangle plane
         normal = np.cross(e01, e02)
         normal_len = np.linalg.norm(normal)
         if normal_len < 1e-10:
@@ -65,95 +64,128 @@ def lscm_parameterize(mesh: TriangleMesh) -> np.ndarray:
         normal = normal / normal_len
         y_dir = np.cross(normal, x_dir)
 
-        # Local 2D coordinates
-        x0, y0 = 0.0, 0.0
-        x1, y1 = len01, 0.0
         x2, y2 = np.dot(e02, x_dir), np.dot(e02, y_dir)
 
-        # Complex numbers for local coords
-        # w0 = x0 + i*y0 = 0
-        # w1 = x1 + i*y1 = len01
-        # w2 = x2 + i*y2
+        # Coefficients for c0*z0 + c1*z1 + c2*z2 = 0
+        coeffs = [
+            (len01 - x2, y2),   # c0
+            (x2, -y2),          # c1
+            (-len01, 0.0)       # c2
+        ]
+        verts = [v0, v1, v2]
 
-        # LSCM condition: (z1-z0)*conj(w2-w0) = (z2-z0)*conj(w1-w0)
-        # => z1*conj(w2) - z0*conj(w2) = z2*conj(w1) - z0*conj(w1)
-        # => z1*conj(w2) - z2*conj(w1) + z0*(conj(w1) - conj(w2)) = 0
+        for k, vtx in enumerate(verts):
+            c_re, c_im = coeffs[k]
 
-        # conj(w1) = x1 - i*y1 = len01
-        # conj(w2) = x2 - i*y2
+            # Real: c_re * u - c_im * v
+            A_real_rows.extend([row_idx, row_idx])
+            A_real_cols.extend([vtx, n_vertices + vtx])
+            A_real_data.extend([c_re, -c_im])
 
-        # Coefficient for z0: conj(w1) - conj(w2) = (x1 - x2) + i*(y2 - y1)
-        c0_re = x1 - x2
-        c0_im = y2 - y1
+            # Imag: c_im * u + c_re * v
+            A_imag_rows.extend([row_idx, row_idx])
+            A_imag_cols.extend([vtx, n_vertices + vtx])
+            A_imag_data.extend([c_im, c_re])
 
-        # Coefficient for z1: conj(w2) = x2 - i*y2
-        c1_re = x2
-        c1_im = -y2
-
-        # Coefficient for z2: -conj(w1) = -x1 + i*y1 = -len01
-        c2_re = -x1
-        c2_im = y1
-
-        # Expand z_i = u_i + i*v_i:
-        # c0*(u0 + i*v0) + c1*(u1 + i*v1) + c2*(u2 + i*v2) = 0
-        # Real part: c0_re*u0 - c0_im*v0 + c1_re*u1 - c1_im*v1 + c2_re*u2 - c2_im*v2 = 0
-        # Imag part: c0_im*u0 + c0_re*v0 + c1_im*u1 + c1_re*v1 + c2_im*u2 + c2_re*v2 = 0
-
-        # Real equation
-        A_real_rows.extend([f, f, f, f, f, f])
-        A_real_cols.extend([v0, n_vertices + v0, v1, n_vertices + v1, v2, n_vertices + v2])
-        A_real_data.extend([c0_re, -c0_im, c1_re, -c1_im, c2_re, -c2_im])
-
-        # Imaginary equation
-        A_imag_rows.extend([f, f, f, f, f, f])
-        A_imag_cols.extend([v0, n_vertices + v0, v1, n_vertices + v1, v2, n_vertices + v2])
-        A_imag_data.extend([c0_im, c0_re, c1_im, c1_re, c2_im, c2_re])
-
-    # Combine into single matrix
     A_real = sparse.csr_matrix((A_real_data, (A_real_rows, A_real_cols)),
-                                shape=(n_faces, 2 * n_vertices))
+                                shape=(n_active, 2 * n_vertices))
     A_imag = sparse.csr_matrix((A_imag_data, (A_imag_rows, A_imag_cols)),
-                                shape=(n_faces, 2 * n_vertices))
-
+                                shape=(n_active, 2 * n_vertices))
     A = sparse.vstack([A_real, A_imag])
 
-    # Solve min ||A x||^2 with constraints to fix scale and position
-    # We pin two vertices to avoid trivial solution
-
-    # Find two vertices that are far apart (for better conditioning)
-    dists = np.linalg.norm(mesh.positions[:, np.newaxis, :] - mesh.positions[np.newaxis, :, :], axis=2)
-    i, j = np.unravel_index(np.argmax(dists), dists.shape)
-
-    # Pin vertex i at (0, 0) and vertex j at (1, 0)
-    # This means: u[i] = 0, v[i] = 0, u[j] = 1, v[j] = 0
-
-    # Build constraint matrix
-    C_rows = [0, 1, 2, 3]
-    C_cols = [i, n_vertices + i, j, n_vertices + j]
-    C_data = [1.0, 1.0, 1.0, 1.0]
-    C = sparse.csr_matrix((C_data, (C_rows, C_cols)), shape=(4, 2 * n_vertices))
-
-    c_rhs = np.array([0.0, 0.0, 1.0, 0.0])
-
-    # Solve: min ||Ax||^2 s.t. Cx = c_rhs
-    # KKT: [A^T A, C^T; C, 0] [x; λ] = [0; c_rhs]
+    # Solve using eigenvalue decomposition
+    # The null space of A^T A gives the conformal maps
+    # We want the smallest non-trivial eigenvectors
     ATA = A.T @ A
-    K = sparse.bmat([
-        [ATA, C.T],
-        [C, sparse.csr_matrix((4, 4))]
-    ])
-    rhs = np.concatenate([np.zeros(2 * n_vertices), c_rhs])
 
-    # Add small regularization
-    K_reg = K + 1e-10 * sparse.eye(K.shape[0])
+    # Find two vertices far apart for pinning (to fix scale/translation)
+    if n_vertices > 1000:
+        sample = np.random.choice(n_vertices, min(100, n_vertices), replace=False)
+        dists = np.linalg.norm(mesh.positions[sample, np.newaxis, :] -
+                               mesh.positions[sample][np.newaxis, :, :], axis=2)
+        i_s, j_s = np.unravel_index(np.argmax(dists), dists.shape)
+        pin1, pin2 = sample[i_s], sample[j_s]
+    else:
+        dists = np.linalg.norm(mesh.positions[:, np.newaxis, :] -
+                               mesh.positions[np.newaxis, :, :], axis=2)
+        pin1, pin2 = np.unravel_index(np.argmax(dists), dists.shape)
 
-    sol = spsolve(K_reg.tocsc(), rhs)
-    x = sol[:2 * n_vertices]
+    if pin1 == pin2:
+        pin2 = (pin1 + 1) % n_vertices
 
-    u = x[:n_vertices]
-    v = x[n_vertices:]
+    # Add soft constraints to fix translation and scale
+    # pin1 at (0, 0), pin2 at (1, 0)
+    weight = 1e6  # Large weight for soft constraints
 
-    # Convert vertex UVs to corner UVs
+    # Add constraint rows
+    C_rows = [0, 1, 2, 3]
+    C_cols = [pin1, n_vertices + pin1, pin2, n_vertices + pin2]
+    C_data = [weight, weight, weight, weight]
+    C = sparse.csr_matrix((C_data, (C_rows, C_cols)), shape=(4, 2 * n_vertices))
+    c_rhs = np.array([0.0, 0.0, weight, 0.0])
+
+    # Use eigenvalue decomposition to find the non-trivial conformal map
+    # This is more robust than soft constraints for closed meshes
+    try:
+        eigenvalues, eigenvectors = eigsh(ATA + 1e-10 * sparse.eye(ATA.shape[0]),
+                                           k=6, which='SM')
+
+        # First 2 eigenvectors are constant (translation null space)
+        # Eigenvectors 2,3 give the conformal map coordinates
+        # We need to find ones where BOTH u and v have non-zero variation
+        u = None
+        v = None
+
+        for i in range(2, len(eigenvalues)):
+            ev = eigenvectors[:, i]
+            u_ev = ev[:n_vertices]
+            v_ev = ev[n_vertices:]
+
+            if np.std(u_ev) > 0.01 and np.std(v_ev) > 0.01:
+                u = u_ev.copy()
+                v = v_ev.copy()
+                break
+
+        if u is None:
+            # Fallback: use eigenvectors 2 for u and 3 for v
+            u = eigenvectors[:n_vertices, 2]
+            v = eigenvectors[n_vertices:, 3]
+
+        # Apply rigid transformation to match pinning constraints
+        # pin1 -> (0, 0), pin2 -> (1, 0)
+        # First translate so pin1 is at origin
+        u = u - u[pin1]
+        v = v - v[pin1]
+
+        # Then rotate and scale so pin2 is at (1, 0)
+        dx = u[pin2]
+        dy = v[pin2]
+        dist = np.sqrt(dx*dx + dy*dy)
+
+        if dist > 1e-10:
+            # Rotation angle to align pin2 with x-axis
+            cos_theta = dx / dist
+            sin_theta = dy / dist
+
+            # Rotate all points
+            u_new = cos_theta * u + sin_theta * v
+            v_new = -sin_theta * u + cos_theta * v
+
+            # Scale so pin2 is at distance 1
+            u = u_new / dist
+            v = v_new / dist
+
+    except Exception as e:
+        # Fallback to soft constraint solution
+        CTC = C.T @ C
+        CTc = C.T @ c_rhs
+        M = ATA + CTC
+        M_reg = M + 1e-8 * sparse.eye(M.shape[0])
+        x = spsolve(M_reg.tocsc(), CTc)
+        u = x[:n_vertices]
+        v = x[n_vertices:]
+
+    # Convert to corner UVs
     corner_uvs = np.zeros((mesh.n_corners, 2))
     for f in range(n_faces):
         for local in range(3):
