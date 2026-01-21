@@ -1,3 +1,7 @@
+# Generated output
+*.png
+*.obj
+
 __pycache__/
 *.pyc
 *.pyo
