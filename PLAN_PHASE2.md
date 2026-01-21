@@ -1,0 +1,91 @@
+# Phase 2: Testing & Quad Extraction
+
+## Current Status
+
+Rectangular parameterization is working on sphere320.obj:
+- 0 flipped triangles
+- 14.04° mean angle error
+- 5 iteration convergence
+
+## Phase 2A: Test on More Meshes
+
+### Test Meshes
+
+| Mesh | Location | V | F | Topology | Purpose |
+|------|----------|---|---|----------|---------|
+| sphere320.obj | Colonel/Data/Meshes | 162 | 320 | Genus 0 | ✓ Done |
+| stanford-bunny.obj | Colonel/Data/Meshes | ~35k | ~70k | Genus 0 | Large mesh test |
+| torus.obj | Colonel/Data/Meshes | ~5k | ~10k | Genus 1 | Non-trivial topology |
+
+### Success Criteria
+
+- [ ] Bunny: 0 flipped triangles, converges in <50 iterations
+- [ ] Torus: 0 flipped triangles, cut graph forms two loops
+
+### Commands
+
+```bash
+python corman_crane.py "C:/Dev/Colonel/Data/Meshes/stanford-bunny.obj" -o output/bunny_uv.obj -v
+python corman_crane.py "C:/Dev/Colonel/Data/Meshes/torus.obj" -o output/torus_uv.obj -v
+```
+
+---
+
+## Phase 2B: Quad Mesh Extraction
+
+The rectangular parameterization produces UV coordinates aligned with a cross field. To get actual quad meshes, we need:
+
+### Step 1: Integer-Grid Mapping
+
+Snap UV coordinates to an integer grid while preserving:
+- Orthogonality of iso-lines
+- Alignment with cross field singularities
+- Minimal distortion
+
+**Approach**: Scale UVs so average quad has unit size, then round to integers at singularities.
+
+### Step 2: Iso-Line Tracing
+
+Extract curves where u=const and v=const on the surface:
+- Start from singularities and boundaries
+- Trace along the surface following the parameterization gradient
+- Handle crossings at integer coordinates
+
+### Step 3: Quad Extraction
+
+Build quad mesh from iso-line intersections:
+- Vertices: intersection points of u=const and v=const lines
+- Edges: segments of iso-lines between intersections
+- Faces: regions bounded by four edges
+
+### References
+
+- Bommes et al., "Integer-Grid Maps for Reliable Quad Meshing", SIGGRAPH 2013
+- Bommes et al., "Mixed-Integer Quadrangulation", SIGGRAPH 2009
+- Campen et al., "Quantized Global Parametrization", SIGGRAPH 2015
+
+### Output
+
+New file: `quad_extract.py`
+- Input: triangle mesh + corner UVs
+- Output: quad mesh (V, F where F is Nx4)
+
+---
+
+## Files to Create
+
+```
+quad_extract.py     # Quad mesh extraction from parameterization
+test_meshes.py      # Automated tests on bunny, torus, etc.
+```
+
+## Milestones
+
+| Task | Status |
+|------|--------|
+| Test bunny | Pending |
+| Test torus | Pending |
+| Integer-grid mapping | Pending |
+| Iso-line tracing | Pending |
+| Quad extraction | Pending |
+| End-to-end quad mesh | Pending |

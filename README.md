@@ -37,8 +37,10 @@ Options:
 
 Example:
 ```bash
-python corman_crane.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o sphere_uv.obj -v
+python corman_crane.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o output/sphere_uv.obj -v
 ```
+
+Output files (visualizations) are saved to the `output/` folder.
 
 ## Algorithm Phases
 

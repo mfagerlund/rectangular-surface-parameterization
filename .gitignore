@@ -1,6 +1,6 @@
 # Generated output
-*.png
-*.obj
+output/*.png
+output/*.obj
 
 __pycache__/
 *.pyc

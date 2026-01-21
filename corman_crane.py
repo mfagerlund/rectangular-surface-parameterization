@@ -126,13 +126,15 @@ def main():
         import matplotlib.pyplot as plt
 
         base = Path(args.input).stem
+        output_dir = Path(__file__).parent / "output"
+        output_dir.mkdir(exist_ok=True)
 
         # UV layout
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
         plot_mesh_2d(mesh, corner_uvs, ax=axes[0], title="UV Layout")
         plot_uv_checkerboard(mesh, corner_uvs, ax=axes[1])
         plt.tight_layout()
-        viz_path = f"{base}_uv.png"
+        viz_path = output_dir / f"{base}_uv.png"
         plt.savefig(viz_path, dpi=150)
         if not args.quiet:
             print(f"Saved: {viz_path}")
