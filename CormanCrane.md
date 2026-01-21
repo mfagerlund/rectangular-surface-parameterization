@@ -1,0 +1,1 @@
+I want to re-implement the Corman-Crane method (see "D:\Data\GDrive\FlatrPDFs\INDEX.md") in python. Can you write a fairly comprehensive phased implementation plan? We need testable substeps along the way. You can work on the stanford bunny, see C:\Dev\Colonel\Data\Meshes
