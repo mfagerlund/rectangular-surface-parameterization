@@ -68,8 +68,11 @@ Build quad mesh from iso-line intersections:
 
 ### References
 
-- Bommes et al., "Integer-Grid Maps for Reliable Quad Meshing", SIGGRAPH 2013
-- Bommes et al., "Mixed-Integer Quadrangulation", SIGGRAPH 2009
+Available locally:
+- `D:\Data\GDrive\FlatrPDFs\2461912.2462014_integer-grid-maps-reliable-quad-meshing.pdf` - Bommes et al., SIGGRAPH 2013
+- `D:\Data\GDrive\FlatrPDFs\1531326.1531383_mixed-integer-quadrangulation.pdf` - Bommes et al., SIGGRAPH 2009
+
+Also relevant:
 - Campen et al., "Quantized Global Parametrization", SIGGRAPH 2015
 
 ### Output
