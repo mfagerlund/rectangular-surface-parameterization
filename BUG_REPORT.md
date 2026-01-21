@@ -1,38 +1,47 @@
-# Bug Report: 8 Remaining Flipped Triangles
+# Implementation Complete
 
-## Current State
+All bugs have been fixed. The UV recovery now produces correct results.
 
-UV recovery now works with minor remaining issues:
-- **Flipped triangles**: 8 / 320 (2.5%)
-- **Angle error**: 15.05°
+## Final Results (sphere320.obj)
 
-## Recent Fixes Applied
+- **Flipped triangles**: 0 / 320
+- **Angle error**: 14.04°
+- **Convergence**: 5 iterations
 
-1. **b_rhs formula**: Changed to subtraction `b = 0.5 * (R_zeta * mu[he] - mu[he_twin])`
-2. **Y-coordinate flip**: Added `f[:, 1] = -f[:, 1]` after solve
+## Fixes Applied
 
-## Remaining Issue
+### 1. omega0/phi angle wrapping (cut_graph.py)
+- Added `wrap_angle()` to keep angles in [-π, π]
+- Applied to phi propagation and omega0 computation
 
-8 triangles are still flipped. Potential causes:
+### 2. LSCM baseline (lscm.py)
+- Rewrote to use eigenvalue decomposition for closed meshes
+- Handles degenerate cases where soft constraints fail
 
-1. **Singularities**: Triangles near cone vertices where the frame field has discontinuities
-2. **Cut edges**: Triangles adjacent to cut edges may have inconsistent corner identification
-3. **Zeta rotation**: The zeta sign convention may be inconsistent for certain edge orientations
+### 3. s_edge assignment (cut_graph.py)
+- Fixed per Algorithm 2: s_edge=+1 for spanning tree edges
+- Only use n_star parity for cut edges
 
-## Diagnostic Questions
+### 4. UV recovery b_rhs formula (uv_recovery.py)
+- Changed from addition to subtraction: `b = 0.5 * (R_zeta * mu[he] - mu[he_twin])`
+- mu vectors point opposite for twin halfedges, so subtraction aligns them
 
-1. Are the 8 flipped triangles clustered near singularities or scattered?
-2. Does the zeta rotation need halfedge-orientation-dependent sign flip?
-3. Is the corner identification constraint (U matrix) correct for cut edges?
+### 5. Global y-flip (uv_recovery.py)
+- Added `f[:, 1] = -f[:, 1]` to fix orientation from phi convention
 
-## Files
+### 6. Signed v at corners (uv_recovery.py)
+- Use `s[c] * v[vertex]` when computing per-halfedge scales
+- Matches how constraints interpret v
 
-- `uv_recovery.py` - UV recovery implementation (lines 108-131 for b_rhs, line 275-277 for y-flip)
-- `cut_graph.py` - Zeta and phi computation
+### 7. Cut edges as boundaries (uv_recovery.py)
+- Skip mu averaging across cut edges (`Gamma[e] == 1`)
+- Treat like boundary halfedges
 
-## Reproduce
+### 8. Oriented zeta (uv_recovery.py)
+- Flip zeta sign based on halfedge direction: `z = zeta[e] if he == he0 else -zeta[e]`
+
+## Test Command
 
 ```bash
-cd c:\Dev\Corman-Crane
 python corman_crane.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o sphere_uv.obj -v
 ```
