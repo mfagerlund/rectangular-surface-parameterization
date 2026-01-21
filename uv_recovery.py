@@ -26,6 +26,7 @@ def recover_parameterization(
     alpha: np.ndarray,
     phi: np.ndarray,
     theta: np.ndarray,
+    s: np.ndarray,
     u: np.ndarray,
     v: np.ndarray
 ) -> np.ndarray:
@@ -42,6 +43,7 @@ def recover_parameterization(
         alpha: |C| corner angles
         phi: |H| reference frame angles
         theta: |F| frame angles
+        s: |C| sign bits {-1, +1}
         u, v: |V| log scale factors
 
     Returns:
@@ -52,16 +54,36 @@ def recover_parameterization(
     n_edges = mesh.n_edges
     n_halfedges = mesh.n_halfedges
 
-    # Step 1-3: Compute edge scales from log-scales
+    # Step 1-3: Compute scales per halfedge using corner signs
     # a_ij = exp((u_i + u_j + v_i + v_j)/2)
     # b_ij = exp((u_i + u_j - v_i - v_j)/2)
-    a_edge = np.zeros(n_edges)
-    b_edge = np.zeros(n_edges)
+    # v is signed per corner (s * v) in the constraints, so match that here.
+    a_he = np.zeros(n_halfedges)
+    b_he = np.zeros(n_halfedges)
 
-    for e in range(n_edges):
-        i, j = mesh.edge_vertices[e]
-        a_edge[e] = np.exp((u[i] + u[j] + v[i] + v[j]) / 2)
-        b_edge[e] = np.exp((u[i] + u[j] - v[i] - v[j]) / 2)
+    for f in range(n_faces):
+        v0, v1, v2 = mesh.faces[f]
+        c0 = 3 * f + 0
+        c1 = 3 * f + 1
+        c2 = 3 * f + 2
+
+        # Signed v values at corners
+        v0_s = s[c0] * v[v0]
+        v1_s = s[c1] * v[v1]
+        v2_s = s[c2] * v[v2]
+
+        he_01 = 3 * f + 0
+        he_12 = 3 * f + 1
+        he_20 = 3 * f + 2
+
+        a_he[he_01] = np.exp((u[v0] + u[v1] + v0_s + v1_s) / 2)
+        b_he[he_01] = np.exp((u[v0] + u[v1] - v0_s - v1_s) / 2)
+
+        a_he[he_12] = np.exp((u[v1] + u[v2] + v1_s + v2_s) / 2)
+        b_he[he_12] = np.exp((u[v1] + u[v2] - v1_s - v2_s) / 2)
+
+        a_he[he_20] = np.exp((u[v2] + u[v0] + v2_s + v0_s) / 2)
+        b_he[he_20] = np.exp((u[v2] + u[v0] - v2_s - v0_s) / 2)
 
     # Step 4-13: Compute target edge vectors μ per halfedge
     # μ is indexed by halfedge (same as corner index)
@@ -92,18 +114,18 @@ def recover_parameterization(
         # μ^k_ij = ℓ_ij * (a_ij * cos(η), b_ij * sin(η))
 
         # Edge 0->1: η_01 = η
-        mu[he_01, 0] = ell[e01] * a_edge[e01] * np.cos(eta)
-        mu[he_01, 1] = ell[e01] * b_edge[e01] * np.sin(eta)
+        mu[he_01, 0] = ell[e01] * a_he[he_01] * np.cos(eta)
+        mu[he_01, 1] = ell[e01] * b_he[he_01] * np.sin(eta)
 
         # Edge 1->2: η_12 = η - (π - α_1)
         eta_12 = eta - (np.pi - alpha[c1])
-        mu[he_12, 0] = ell[e12] * a_edge[e12] * np.cos(eta_12)
-        mu[he_12, 1] = ell[e12] * b_edge[e12] * np.sin(eta_12)
+        mu[he_12, 0] = ell[e12] * a_he[he_12] * np.cos(eta_12)
+        mu[he_12, 1] = ell[e12] * b_he[he_12] * np.sin(eta_12)
 
         # Edge 2->0: η_20 = η_12 - (π - α_2)
         eta_20 = eta_12 - (np.pi - alpha[c2])
-        mu[he_20, 0] = ell[e20] * a_edge[e20] * np.cos(eta_20)
-        mu[he_20, 1] = ell[e20] * b_edge[e20] * np.sin(eta_20)
+        mu[he_20, 0] = ell[e20] * a_he[he_20] * np.cos(eta_20)
+        mu[he_20, 1] = ell[e20] * b_he[he_20] * np.sin(eta_20)
 
     # Step 12-13: Build right-hand side b
     # Subtraction formula: b = 0.5 * (R_zeta * mu[he] - mu[he_twin])
@@ -115,12 +137,13 @@ def recover_parameterization(
         he_twin = mesh.halfedge_twin[he]
         e = mesh.halfedge_to_edge[he]
 
-        if he_twin == -1:
-            # Boundary halfedge - just use μ
+        if he_twin == -1 or Gamma[e] == 1:
+            # Boundary or cut edge - use local μ (no averaging across the edge)
             b_rhs[he] = mu[he]
         else:
-            # Interior edge - rotate current mu by zeta, subtract twin
-            z = zeta[e]
+            # Interior edge - rotate current mu by oriented zeta, subtract twin
+            he0 = mesh.edge_to_halfedge[e, 0]
+            z = zeta[e] if he == he0 else -zeta[e]
             cos_z, sin_z = np.cos(z), np.sin(z)
 
             mu_rot = np.array([
@@ -169,21 +192,21 @@ def recover_parameterization(
         A_rows.extend([row, row])
         A_cols.extend([c0, c1])
         A_data.extend([-1.0, 1.0])  # -1 at source, +1 at target
-        W_diag[3*f + 0] = 0.5 / np.tan(alpha[c2] + 1e-10)
+        W_diag[row] = 0.5 / np.tan(alpha[c2] + 1e-10)
 
         # Halfedge he_12: v1 -> v2, opposite corner c0
         row = c0
         A_rows.extend([row, row])
         A_cols.extend([c1, c2])
         A_data.extend([-1.0, 1.0])
-        W_diag[3*f + 1] = 0.5 / np.tan(alpha[c0] + 1e-10)
+        W_diag[row] = 0.5 / np.tan(alpha[c0] + 1e-10)
 
         # Halfedge he_20: v2 -> v0, opposite corner c1
         row = c1
         A_rows.extend([row, row])
         A_cols.extend([c2, c0])
         A_data.extend([-1.0, 1.0])
-        W_diag[3*f + 2] = 0.5 / np.tan(alpha[c1] + 1e-10)
+        W_diag[row] = 0.5 / np.tan(alpha[c1] + 1e-10)
 
     # Clamp weights to avoid extreme values
     W_diag = np.clip(W_diag, 0.01, 100)

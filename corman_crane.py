@@ -77,7 +77,7 @@ def compute_rectangular_parameterization(
     if verbose:
         print("[7] Recovering UV coordinates...")
     corner_uvs = recover_parameterization(
-        mesh, Gamma, zeta, ell, alpha, phi, theta, u, v
+        mesh, Gamma, zeta, ell, alpha, phi, theta, s, u, v
     )
 
     # Normalize
