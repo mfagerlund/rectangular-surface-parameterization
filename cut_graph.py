@@ -17,6 +17,13 @@ from mesh import TriangleMesh
 from geometry import compute_corner_angles
 from cross_field import compute_xi_per_halfedge
 
+# Cone detection threshold (radians)
+# A vertex is a cone if its cone index deviates from a multiple of π/2 by more than this
+# Lower = more cones detected = less pruning = more cut edges = more fragmented UV
+# Higher = fewer cones = more pruning = fewer cut edges = may cause flips
+# Recommended range: 0.4-0.7
+CONE_THRESHOLD = 0.5
+
 
 def wrap_angle(x: float) -> float:
     """Wrap angle to [-π, π] range."""
@@ -206,9 +213,7 @@ def compute_cut_jump_data(
 
     # Step 46-57: Prune cut graph (remove degree-1 non-cone vertices)
     # A vertex is a cone if c_vertex is not close to a multiple of pi/2
-    # Use threshold of 0.5 radians (~29 deg) to handle mesh discretization errors
-    # This detects real singularities (index = pi/2, pi, etc.) but ignores numerical noise
-    is_cone = np.abs(np.mod(c_vertex + np.pi/4, np.pi/2) - np.pi/4) > 0.5
+    is_cone = np.abs(np.mod(c_vertex + np.pi/4, np.pi/2) - np.pi/4) > CONE_THRESHOLD
 
     pruning = True
     while pruning:

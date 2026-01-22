@@ -137,10 +137,12 @@ def recover_parameterization(
         he_twin = mesh.halfedge_twin[he]
         e = mesh.halfedge_to_edge[he]
 
-        if he_twin == -1 or Gamma[e] == 1:
-            # Boundary or cut edge - use local μ (no averaging across the edge)
+        if he_twin == -1:
+            # Boundary edge only - no twin to average with
             b_rhs[he] = mu[he]
         else:
+            # ALL interior edges (cut or not) - average with rotation
+            # Algorithm 11 line 13: b = (1/2)(R_ζ μ^k_ij + μ^l_ji)
             # Interior edge - rotate current mu by oriented zeta, subtract twin
             he0 = mesh.edge_to_halfedge[e, 0]
             z = zeta[e] if he == he0 else -zeta[e]
