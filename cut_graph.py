@@ -205,8 +205,10 @@ def compute_cut_jump_data(
         c_vertex[j] -= omega0[e]
 
     # Step 46-57: Prune cut graph (remove degree-1 non-cone vertices)
-    # A vertex is a cone if c_vertex is not a multiple of 2*pi (with tolerance)
-    is_cone = np.abs(np.mod(c_vertex + np.pi/4, np.pi/2) - np.pi/4) > 0.01
+    # A vertex is a cone if c_vertex is not close to a multiple of pi/2
+    # Use threshold of 0.5 radians (~29 deg) to handle mesh discretization errors
+    # This detects real singularities (index = pi/2, pi, etc.) but ignores numerical noise
+    is_cone = np.abs(np.mod(c_vertex + np.pi/4, np.pi/2) - np.pi/4) > 0.5
 
     pruning = True
     while pruning:

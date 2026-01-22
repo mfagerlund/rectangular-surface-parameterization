@@ -280,7 +280,6 @@ def initialize_smooth_cross_field(mesh: TriangleMesh, n_iters: int = 100) -> np.
                     continue
 
                 # Transport W[neighbor] to face f
-                w_neighbor = angles_to_cross_field(mesh, xi[neighbor:neighbor+1])[0]
                 w_neighbor = np.cos(xi[neighbor]) * T1[neighbor] + np.sin(xi[neighbor]) * T2[neighbor]
                 w_transported = parallel_transport(w_neighbor, N[neighbor], N[f])
 

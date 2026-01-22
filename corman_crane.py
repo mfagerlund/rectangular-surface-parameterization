@@ -16,7 +16,7 @@ from pathlib import Path
 from mesh import TriangleMesh, build_connectivity, euler_characteristic, genus
 from io_obj import load_obj, save_obj, mesh_info
 from geometry import compute_corner_angles, compute_edge_lengths, MeshGeometry
-from cross_field import propagate_cross_field, cross_field_to_angles
+from cross_field import propagate_cross_field, cross_field_to_angles, initialize_smooth_cross_field
 from cut_graph import compute_cut_jump_data, count_cut_edges
 from optimization import solve_constraints_only
 from uv_recovery import recover_parameterization, compute_uv_quality, normalize_uvs
@@ -55,7 +55,12 @@ def compute_rectangular_parameterization(
 
     if verbose:
         print("[2] Generating cross field...")
-    W = propagate_cross_field(mesh)
+    # Use smooth initialization for genus > 0 to reduce holonomy errors
+    mesh_genus = genus(mesh)
+    if mesh_genus > 0:
+        W = initialize_smooth_cross_field(mesh, n_iters=100)
+    else:
+        W = propagate_cross_field(mesh)
     xi = cross_field_to_angles(mesh, W)
 
     # Phase 3: Cut graph
@@ -103,6 +108,9 @@ def main():
                         help="Save visualization images")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="Suppress output")
+    parser.add_argument("--quads", type=int, default=0,
+                        help="Extract quad mesh with approximately this many quads")
+    parser.add_argument("--quad-output", help="Output path for quad mesh OBJ")
 
     args = parser.parse_args()
 
@@ -118,21 +126,38 @@ def main():
         if not args.quiet:
             print(f"\nSaved: {args.output}")
 
+    # Quad extraction
+    if args.quads > 0:
+        from quad_extract import extract_quads
+        quad_output = args.quad_output or args.input.replace('.obj', '_quads.obj')
+        # Use periodic mode for genus > 0 surfaces (torus, etc.)
+        mesh_genus = genus(mesh)
+        quad_mesh = extract_quads(
+            mesh, corner_uvs,
+            target_quads=args.quads,
+            output_path=quad_output,
+            periodic=(mesh_genus > 0),
+            verbose=not args.quiet
+        )
+        if not args.quiet:
+            print(f"Quad mesh: {quad_mesh.n_vertices} vertices, {quad_mesh.n_faces} faces")
+
     # Visualizations
     if args.visualize:
         import matplotlib
         matplotlib.use('Agg')
-        from visualize import plot_mesh_2d, plot_uv_checkerboard
+        from visualize import plot_mesh_2d, plot_uv_checkerboard, plot_uv_flipped
         import matplotlib.pyplot as plt
 
         base = Path(args.input).stem
         output_dir = Path(__file__).parent / "output"
         output_dir.mkdir(exist_ok=True)
 
-        # UV layout
-        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+        # UV layout with 3 panels: plain, checkerboard, and flipped faces
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
         plot_mesh_2d(mesh, corner_uvs, ax=axes[0], title="UV Layout")
         plot_uv_checkerboard(mesh, corner_uvs, ax=axes[1])
+        plot_uv_flipped(mesh, corner_uvs, ax=axes[2])
         plt.tight_layout()
         viz_path = output_dir / f"{base}_uv.png"
         plt.savefig(viz_path, dpi=150)
