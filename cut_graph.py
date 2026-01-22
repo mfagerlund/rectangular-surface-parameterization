@@ -33,7 +33,8 @@ def wrap_angle(x: float) -> float:
 def compute_cut_jump_data(
     mesh: TriangleMesh,
     alpha: np.ndarray,
-    xi: np.ndarray
+    xi: np.ndarray,
+    singularities: np.ndarray = None
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Algorithm 2: ComputeCutJumpData
@@ -42,6 +43,8 @@ def compute_cut_jump_data(
         mesh: Triangle mesh
         alpha: |C| corner angles
         xi: |F| cross field angles (relative to first edge of each face)
+        singularities: |V| cone indices from cross-field (optional)
+                       If provided, uses MATLAB convention: cones where abs(sing) > 0.1
 
     Returns:
         Gamma: |E| cut edge indicator {0, 1}
@@ -212,8 +215,14 @@ def compute_cut_jump_data(
         c_vertex[j] -= omega0[e]
 
     # Step 46-57: Prune cut graph (remove degree-1 non-cone vertices)
-    # A vertex is a cone if c_vertex is not close to a multiple of pi/2
-    is_cone = np.abs(np.mod(c_vertex + np.pi/4, np.pi/2) - np.pi/4) > CONE_THRESHOLD
+    # Detect cones - prefer using cross-field singularities (MATLAB convention)
+    if singularities is not None:
+        # MATLAB convention: idcone = param.idx_int(abs(sing(param.idx_int)) > 0.1)
+        is_cone = np.abs(singularities) > 0.1
+    else:
+        # Fall back to original threshold-based method
+        # A vertex is a cone if c_vertex is not close to a multiple of pi/2
+        is_cone = np.abs(np.mod(c_vertex + np.pi/4, np.pi/2) - np.pi/4) > CONE_THRESHOLD
 
     pruning = True
     while pruning:

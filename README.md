@@ -8,10 +8,10 @@ This tool computes orthogonal (but not necessarily isotropic) UV parameterizatio
 
 ## Status
 
-**Working** - All phases implemented and tested on sphere320.obj:
+**In Progress** - Core algorithm implemented, UV quality issues being resolved:
 - Constraint solver converges in 5 iterations
-- UV recovery produces 0 flipped triangles
-- Mean angle error: 14.04°
+- UV recovery has flipped triangles and fragmentation issues
+- See `verification-plan.md` for current status
 
 ## Requirements
 
@@ -68,9 +68,32 @@ lscm.py             # LSCM baseline for comparison
 visualize.py        # Visualization utilities
 ```
 
-## Reference
+## Why Compact UVs Matter
 
-Based on: **Corman & Crane, "Rectangular Parameterization", SIGGRAPH 2025**
+**This is for quad meshing, NOT origami unfolding.**
+
+For origami/texture atlas applications, any valid UV layout works - the mesh just needs to flatten to 2D without flips.
+
+For quad meshing, the UV domain must be **compact** (high fill ratio, ~100%):
+- Integer iso-lines (u=k, v=k for k ∈ Z) become quad edges
+- A fragmented "octopus" UV layout means integer iso-lines miss large parts of the mesh
+- Result: sparse quad coverage instead of full surface coverage
+
+**Goal**: 0 flipped triangles AND compact UV layout (high fill ratio)
+
+## References
+
+**Main paper:**
+- Corman & Crane, "Rectangular Parameterization", SIGGRAPH 2025
+- Local: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025.pdf`
+- Supplement: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025-supplement.pdf`
+
+**Quad extraction:**
+- Bommes et al., "Integer-Grid Maps for Reliable Quad Meshing", SIGGRAPH 2013
+- Local: `D:\Data\GDrive\FlatrPDFs\2461912.2462014_integer-grid-maps-reliable-quad-meshing.pdf`
+
+- Bommes et al., "Mixed-Integer Quadrangulation", SIGGRAPH 2009
+- Local: `D:\Data\GDrive\FlatrPDFs\1531326.1531383_mixed-integer-quadrangulation.pdf`
 
 The algorithm produces parameterizations where:
 - Iso-lines align with a user-specified cross field

@@ -16,7 +16,10 @@ from pathlib import Path
 from mesh import TriangleMesh, build_connectivity, euler_characteristic, genus
 from io_obj import load_obj, save_obj, mesh_info
 from geometry import compute_corner_angles, compute_edge_lengths, MeshGeometry
-from cross_field import propagate_cross_field, cross_field_to_angles, initialize_smooth_cross_field
+from cross_field import (
+    propagate_cross_field, cross_field_to_angles, initialize_smooth_cross_field,
+    compute_smooth_cross_field, compute_cross_field_singularities
+)
 from cut_graph import compute_cut_jump_data, count_cut_edges
 from optimization import solve_constraints_only
 from uv_recovery import recover_parameterization, compute_uv_quality, normalize_uvs
@@ -55,18 +58,20 @@ def compute_rectangular_parameterization(
 
     if verbose:
         print("[2] Generating cross field...")
-    # Use smooth initialization for genus > 0 to reduce holonomy errors
-    mesh_genus = genus(mesh)
-    if mesh_genus > 0:
-        W = initialize_smooth_cross_field(mesh, n_iters=100)
-    else:
-        W = propagate_cross_field(mesh)
-    xi = cross_field_to_angles(mesh, W)
+    # Use connection Laplacian method for globally smooth field
+    W, xi = compute_smooth_cross_field(mesh, smoothing_iters=50, verbose=verbose)
+
+    # Compute singularities (always needed for cut graph)
+    cone_indices, is_singular = compute_cross_field_singularities(mesh, xi, alpha)
+    if verbose:
+        n_sing = np.sum(is_singular)
+        print(f"    Singularities: {n_sing} (sum of indices: {cone_indices.sum():.2f})")
 
     # Phase 3: Cut graph
     if verbose:
         print("[3] Computing cut graph...")
-    Gamma, zeta, s, phi, omega0 = compute_cut_jump_data(mesh, alpha, xi)
+    # Pass singularities to cut graph (MATLAB convention)
+    Gamma, zeta, s, phi, omega0 = compute_cut_jump_data(mesh, alpha, xi, singularities=cone_indices)
     if verbose:
         print(f"    Cut edges: {count_cut_edges(Gamma)}")
 
@@ -146,18 +151,17 @@ def main():
     if args.visualize:
         import matplotlib
         matplotlib.use('Agg')
-        from visualize import plot_mesh_2d, plot_uv_checkerboard, plot_uv_flipped
+        from visualize import plot_mesh_2d, plot_uv_checkerboard
         import matplotlib.pyplot as plt
 
         base = Path(args.input).stem
         output_dir = Path(__file__).parent / "output"
         output_dir.mkdir(exist_ok=True)
 
-        # UV layout with 3 panels: plain, checkerboard, and flipped faces
-        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        # UV layout with 2 panels: plain and checkerboard
+        fig, axes = plt.subplots(1, 2, figsize=(12, 6))
         plot_mesh_2d(mesh, corner_uvs, ax=axes[0], title="UV Layout")
         plot_uv_checkerboard(mesh, corner_uvs, ax=axes[1])
-        plot_uv_flipped(mesh, corner_uvs, ax=axes[2])
         plt.tight_layout()
         viz_path = output_dir / f"{base}_uv.png"
         plt.savefig(viz_path, dpi=150)

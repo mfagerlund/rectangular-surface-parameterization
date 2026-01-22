@@ -156,10 +156,9 @@ def solve_constraints_only(
         v = v + tau * dx[n_vertices:2*n_vertices]
         theta = theta + tau * dx[2*n_vertices:]
 
-    # Normalize to avoid scale blowup
-    # Center u and v to have zero mean (removes global scale ambiguity)
-    u = u - np.mean(u)
-    v = v - np.mean(v)
+    # NOTE: Do NOT center u,v here - it breaks constraint satisfaction
+    # due to sign bits s that can be +1 or -1
+    # The constraint terms involve s[c]*v[i], so shifting v doesn't cancel
 
     return u, v, theta
 
