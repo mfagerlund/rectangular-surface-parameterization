@@ -18,3 +18,6 @@ env/
 .DS_Store
 Thumbs.db
 Results/
+
+# README.md is a symlink to CLAUDE.md - don't track separately
+README.md
