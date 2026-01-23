@@ -1,0 +1,6 @@
+Pre-built binaries for quad extraction (libQEx) - Windows x64 only
+
+Contents (to be added after build):
+- libQEx.dll
+- qex_extract.exe
+- OpenMesh.dll
