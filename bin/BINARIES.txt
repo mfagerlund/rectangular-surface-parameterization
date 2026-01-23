@@ -4,6 +4,7 @@ Windows x64 only. Built with Visual Studio 2022, CMake 3.28.
 
 ## Contents
 
+- qex_extract.exe - Command-line quad extraction tool (for Python wrapper)
 - QEx.dll         - libQEx shared library (links OpenMesh statically)
 - QExStatic.lib   - libQEx static library
 - OpenMeshCore.lib - OpenMesh core (static)
@@ -51,11 +52,19 @@ If you need to rebuild these binaries:
      -DCMAKE_CXX_FLAGS="-D_USE_MATH_DEFINES"
    cmake --build . --config Release
 
-6. Copy binaries to bin/:
+6. Copy libQEx binaries to bin/:
    copy Release\QEx.dll C:\Dev\Corman-Crane\bin\
    copy Release\QExStatic.lib C:\Dev\Corman-Crane\bin\
    copy ..\..\..\OpenMesh-src\install\lib\OpenMeshCore.lib C:\Dev\Corman-Crane\bin\
    copy ..\..\..\OpenMesh-src\install\lib\OpenMeshTools.lib C:\Dev\Corman-Crane\bin\
+
+7. Build qex_extract.exe (command-line tool for Python wrapper):
+   cd C:\Slask\libqex_build
+   mkdir qex_tool\build && cd qex_tool\build
+   cmake .. -G "Visual Studio 17 2022" -A x64 ^
+     -DOpenMesh_DIR=C:/Slask/libqex_build/OpenMesh-src/install/share/OpenMesh/cmake
+   cmake --build . --config Release
+   copy Release\qex_extract.exe C:\Dev\Corman-Crane\bin\
 
 ## Source Repositories
 
