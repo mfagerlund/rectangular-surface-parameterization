@@ -177,8 +177,10 @@ def main():
     # Extract quads
     print("Extracting quad mesh with libQEx...")
     try:
-        quad_verts, quad_faces = extract_quads(X, T, uv_per_tri)
-        print(f"Result: {len(quad_verts)} vertices, {len(quad_faces)} quads")
+        quad_verts, quad_faces, tri_faces = extract_quads(X, T, uv_per_tri)
+        n_tris = len(tri_faces) if tri_faces is not None else 0
+        print(f"Result: {len(quad_verts)} vertices, {len(quad_faces)} quads" +
+              (f", {n_tris} hole-fill triangles" if n_tris > 0 else ""))
 
         if len(quad_faces) == 0:
             print("Warning: No quads extracted. UV range may be too small.")
@@ -187,7 +189,7 @@ def main():
 
         # Save quad mesh
         output_path = output_dir / f"{mesh_name}_quads.obj"
-        save_quad_obj(output_path, quad_verts, quad_faces)
+        save_quad_obj(output_path, quad_verts, quad_faces, tri_faces)
         print(f"Saved quad mesh to: {output_path}")
 
     except Exception as e:

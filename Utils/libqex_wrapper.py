@@ -38,7 +38,125 @@ def _find_qex_exe():
     )
 
 
-def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None):
+def _fill_holes_with_triangles(vertices, quads, verbose=True):
+    """
+    Fill holes in a quad mesh with triangles.
+
+    Finds boundary edges, builds loops, and fan-triangulates each hole.
+
+    Parameters
+    ----------
+    vertices : ndarray, shape (n_verts, 3)
+        Vertex positions.
+    quads : ndarray, shape (n_quads, 4)
+        Quad face indices (0-based).
+    verbose : bool
+        Print information about holes filled.
+
+    Returns
+    -------
+    triangles : list of [i, j, k]
+        Triangle indices to fill holes.
+    """
+    from collections import defaultdict
+
+    # Build edge counts - each edge in a quad appears once per face
+    # For a closed mesh, interior edges appear twice (in two adjacent faces)
+    edge_count = defaultdict(int)
+    edge_to_face = defaultdict(list)
+
+    for fi, quad in enumerate(quads):
+        for i in range(4):
+            v0, v1 = quad[i], quad[(i + 1) % 4]
+            edge = (min(v0, v1), max(v0, v1))
+            edge_count[edge] += 1
+            edge_to_face[edge].append(fi)
+
+    # Boundary edges appear only once
+    boundary_edges = {e for e, c in edge_count.items() if c == 1}
+
+    if not boundary_edges:
+        if verbose:
+            print("  No holes to fill (mesh is watertight)")
+        return []
+
+    # Build adjacency for boundary vertices
+    boundary_adj = defaultdict(list)
+    for v0, v1 in boundary_edges:
+        boundary_adj[v0].append(v1)
+        boundary_adj[v1].append(v0)
+
+    # Find boundary loops by walking
+    visited_edges = set()
+    loops = []
+
+    for start_edge in boundary_edges:
+        if start_edge in visited_edges:
+            continue
+
+        # Start a new loop
+        v0, v1 = start_edge
+        loop = [v0, v1]
+        visited_edges.add(start_edge)
+
+        current = v1
+        prev = v0
+
+        while True:
+            # Find next vertex in loop
+            neighbors = boundary_adj[current]
+            next_v = None
+            for n in neighbors:
+                if n != prev:
+                    edge = (min(current, n), max(current, n))
+                    if edge not in visited_edges:
+                        next_v = n
+                        visited_edges.add(edge)
+                        break
+
+            if next_v is None or next_v == loop[0]:
+                break
+
+            loop.append(next_v)
+            prev = current
+            current = next_v
+
+        if len(loop) >= 3:
+            loops.append(loop)
+
+    if verbose:
+        print(f"  Found {len(loops)} holes with {len(boundary_edges)} boundary edges")
+
+    # Triangulate each loop using fan triangulation from centroid
+    triangles = []
+    n_verts = len(vertices)
+    new_vertices = []
+
+    for loop in loops:
+        if len(loop) < 3:
+            continue
+
+        # Compute centroid of loop
+        loop_verts = vertices[loop]
+        centroid = loop_verts.mean(axis=0)
+
+        # Add centroid as new vertex
+        centroid_idx = n_verts + len(new_vertices)
+        new_vertices.append(centroid)
+
+        # Create fan triangles
+        for i in range(len(loop)):
+            v0 = loop[i]
+            v1 = loop[(i + 1) % len(loop)]
+            triangles.append([v0, v1, centroid_idx])
+
+    if verbose and triangles:
+        print(f"  Added {len(triangles)} triangles to fill holes ({len(new_vertices)} new vertices)")
+
+    return triangles, np.array(new_vertices) if new_vertices else np.zeros((0, 3))
+
+
+def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None, fill_holes=True, verbose=True):
     """
     Extract a quad mesh from a triangle mesh with UV parameterization.
 
@@ -53,6 +171,10 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None):
         uv_per_triangle[i, j, :] is the UV for the j-th corner of triangle i.
     vertex_valences : ndarray, shape (n_verts,), optional
         Expected valence at each vertex. Currently ignored (not passed to exe).
+    fill_holes : bool
+        If True (default), fill holes at irregular vertices with triangles.
+    verbose : bool
+        Print information about hole filling.
 
     Returns
     -------
@@ -60,6 +182,8 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None):
         3D vertex positions of the output quad mesh.
     quad_faces : ndarray, shape (n_quads, 4)
         Quad indices (0-based).
+    tri_faces : ndarray, shape (n_tris, 3) or None
+        Triangle indices for hole fills (0-based), or None if fill_holes=False.
     """
     exe_path = _find_qex_exe()
 
@@ -144,12 +268,21 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None):
 
     quad_faces = np.array(valid_quads, dtype=np.int32) if valid_quads else np.zeros((0, 4), dtype=np.int32)
 
-    return quad_vertices, quad_faces
+    # Fill holes with triangles if requested
+    tri_faces = None
+    if fill_holes and len(quad_faces) > 0:
+        hole_tris, new_verts = _fill_holes_with_triangles(quad_vertices, quad_faces, verbose=verbose)
+        if hole_tris:
+            tri_faces = np.array(hole_tris, dtype=np.int32)
+            if len(new_verts) > 0:
+                quad_vertices = np.vstack([quad_vertices, new_verts])
+
+    return quad_vertices, quad_faces, tri_faces
 
 
-def save_quad_obj(filepath, vertices, quads):
+def save_quad_obj(filepath, vertices, quads, tris=None):
     """
-    Save a quad mesh to OBJ format.
+    Save a quad/tri mesh to OBJ format.
 
     Parameters
     ----------
@@ -159,14 +292,21 @@ def save_quad_obj(filepath, vertices, quads):
         Vertex positions.
     quads : ndarray, shape (n_quads, 4)
         Quad face indices (0-based, will be converted to 1-based for OBJ).
+    tris : ndarray, shape (n_tris, 3), optional
+        Triangle face indices for hole fills (0-based).
     """
     with open(filepath, 'w') as f:
         f.write("# Quad mesh extracted by libQEx\n")
+        if tris is not None and len(tris) > 0:
+            f.write(f"# {len(quads)} quads + {len(tris)} triangles (hole fills)\n")
         for v in vertices:
             f.write(f"v {v[0]} {v[1]} {v[2]}\n")
         for q in quads:
             # OBJ uses 1-based indexing
             f.write(f"f {q[0]+1} {q[1]+1} {q[2]+1} {q[3]+1}\n")
+        if tris is not None:
+            for t in tris:
+                f.write(f"f {t[0]+1} {t[1]+1} {t[2]+1}\n")
 
 
 if __name__ == "__main__":
@@ -196,10 +336,14 @@ if __name__ == "__main__":
             [[-0.1, -0.1], [1, 1], [-0.1, 1.1]]
         ], dtype=np.float64)
 
-        quad_verts, quad_faces = extract_quads(vertices, triangles, uv_per_triangle)
+        quad_verts, quad_faces, tri_faces = extract_quads(vertices, triangles, uv_per_triangle)
 
         print(f"Input: {len(vertices)} vertices, {len(triangles)} triangles")
-        print(f"Output: {len(quad_verts)} vertices, {len(quad_faces)} quads")
+        print(f"Output: {len(quad_verts)} vertices, {len(quad_faces)} quads", end="")
+        if tri_faces is not None and len(tri_faces) > 0:
+            print(f", {len(tri_faces)} hole-fill triangles")
+        else:
+            print()
         print(f"Quad vertices:\n{quad_verts}")
         print(f"Quad faces:\n{quad_faces}")
 
