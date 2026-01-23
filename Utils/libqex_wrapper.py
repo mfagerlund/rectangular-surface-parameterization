@@ -124,7 +124,7 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None):
         quad_vertices[i, 1] = float(parts[1])
         quad_vertices[i, 2] = float(parts[2])
 
-    # Read quads (filter out degenerate quads like 0 0 0 0)
+    # Read quads (filter out invalid quads)
     valid_quads = []
     for i in range(n_quads):
         parts = output_lines[1 + n_quad_verts + i].split()
@@ -136,9 +136,13 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None):
         if len(set(q)) < 4:
             continue  # Skip quads with duplicate vertices
 
+        # Skip quads with out-of-range vertex indices
+        if any(idx < 0 or idx >= n_quad_verts for idx in q):
+            continue
+
         valid_quads.append(q)
 
-    quad_faces = np.array(valid_quads, dtype=np.int32)
+    quad_faces = np.array(valid_quads, dtype=np.int32) if valid_quads else np.zeros((0, 4), dtype=np.int32)
 
     return quad_vertices, quad_faces
 
