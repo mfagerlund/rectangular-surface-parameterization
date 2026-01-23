@@ -219,9 +219,13 @@ def mesh_to_disk_seamless(
         # assert(all(abs(ide_cut(1:2:end-1)) == abs(ide_cut(2:2:end))), 'Cut failed.');
 
         # Check that pairs of cut edges map to the same original edge
+        # MATLAB slicing: ide_cut(1:2:end-1) and ide_cut(2:2:end) produce equal-length arrays
+        # If odd count, last element is silently dropped (matching MATLAB behavior)
         ide_cut_odd = np.abs(ide_cut[0::2])
         ide_cut_even = np.abs(ide_cut[1::2])
-        assert np.all(ide_cut_odd[:len(ide_cut_even)] == ide_cut_even), "Cut failed."
+        # Slice to equal length (MATLAB behavior - drops last if odd)
+        min_len = min(len(ide_cut_odd), len(ide_cut_even))
+        assert np.all(ide_cut_odd[:min_len] == ide_cut_even[:min_len]), "Cut failed."
 
         # ide_cut_cor = [abs(ide_cut(1:2:end-1)), sign(ide_cut(1:2:end-1)).*edge_bound_cut(id(1:2:end-1),1), sign(ide_cut(2:2:end)).*edge_bound_cut(id(2:2:end),1)];
 
@@ -276,12 +280,14 @@ def mesh_to_disk_seamless(
         R3 = R1 @ R1 @ R1
 
         # Stack flattened rotation matrices as rows
-        # R[k] = k-th rotation matrix flattened (row-major in numpy)
+        # IMPORTANT: Use column-major (Fortran) order to match MATLAB's R(:) convention.
+        # MATLAB's matrix_vector_multiplication effectively applies R^T when given
+        # column-major flattened matrices. Python must do the same for consistency.
         R_all = np.array([
-            R0.ravel(),  # k21=1: identity
-            R1.ravel(),  # k21=2: 90 degree rotation
-            R2.ravel(),  # k21=3: 180 degree rotation
-            R3.ravel(),  # k21=4: 270 degree rotation
+            R0.ravel('F'),  # k21=1: identity
+            R1.ravel('F'),  # k21=2: 90 degree rotation
+            R2.ravel('F'),  # k21=3: 180 degree rotation
+            R3.ravel('F'),  # k21=4: 270 degree rotation
         ])
 
         # R = matrix_vector_multiplication(R(k21(ide_cut_cor(:,1)),:));
@@ -370,19 +376,23 @@ def mesh_to_disk_seamless(
                         tri_fix_cut_dict[t] = i
 
                 # For each element in tri_fix_param, find its index in tri_fix_cut
-                # MATLAB uses 0 for not-found; we use -1 (will filter out later)
+                # MATLAB uses 0 for not-found, which causes error when used for indexing
                 ia = np.array([tri_fix_cut_dict.get(t, -1) for t in tri_fix_param], dtype=int)
 
                 # assert(length(ia) == length(tri_fix_cut))
-                # This checks that param.tri_fix and tri_fix_cut have the same length
-                # (they should be a bijection - all triangles match)
+                # MATLAB's ismember returns ia with length(param.tri_fix), so this checks equality
                 assert len(tri_fix_param) == len(tri_fix_cut), \
                     f"ismember length mismatch: {len(tri_fix_param)} vs {len(tri_fix_cut)}"
 
-                # Filter to only found elements (where ia >= 0)
-                found_mask = ia >= 0
-                ia = ia[found_mask]
-                tri_fix_param = tri_fix_param[found_mask]
+                # MATLAB would error on ide_fix_cut(ia) if any ia element is 0
+                # We match that behavior by erroring if any element is not found
+                if np.any(ia < 0):
+                    not_found = tri_fix_param[ia < 0]
+                    raise IndexError(
+                        f"ismember: {np.sum(ia < 0)} elements from param.tri_fix not found in "
+                        f"tri_fix_cut. First few: {not_found[:5].tolist()}. "
+                        "MATLAB would error on indexing with 0."
+                    )
 
                 # ide_fix_cut = [ide_fix_cut; ide_fix_cut];
                 # ide_fix_cut = ide_fix_cut(id);
@@ -390,15 +400,12 @@ def mesh_to_disk_seamless(
 
                 ide_fix_cut_doubled = np.concatenate([ide_fix_cut, ide_fix_cut])
                 ide_fix_cut_masked = ide_fix_cut_doubled[id_mask]
-                if len(ia) > 0 and len(ide_fix_cut_masked) > 0:
-                    ide_fix_cut_final = ide_fix_cut_masked[ia]
-                else:
-                    ide_fix_cut_final = np.array([], dtype=int)
+                ide_fix_cut_final = ide_fix_cut_masked[ia]
 
                 if len(ide_fix_cut_final) > 0:
                     # dir_fix = round(abs(wrapToPi(2*ang(param.tri_fix))/pi) + 1);
-
-                    ang_at_fix = ang[tri_fix_param]
+                    # MATLAB uses param.tri_fix directly (not filtered)
+                    ang_at_fix = ang[tri_fix_param]  # tri_fix_param == param.tri_fix here (no filtering)
                     dir_fix = np.round(np.abs(wrap_to_pi(2 * ang_at_fix) / np.pi) + 1).astype(int)
 
                     # Align = sparse(1:length(ide_fix_cut), ide_fix_cut + (2 - dir_fix)*SrcCut.ne, 1, length(ide_fix_cut), 2*SrcCut.ne)*blkdiag(dec_cut.d0p, dec_cut.d0p);

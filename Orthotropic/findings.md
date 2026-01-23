@@ -59,11 +59,11 @@ The remaining xfail is `test_cut_graph_topology.py::TestUVQuality::test_zero_fli
 
 ## Gaps / follow-ups
 - No direct unit tests for `Orthotropic/oracle_integrability_condition.py` (outside of indirect usage).
-- **UV recovery still produces flipped triangles** - needs deep investigation:
-  - `uv_recovery.py` (Algorithm 11 from paper): 9 flips on sphere320.obj
-  - `parametrization_from_scales.py` (MATLAB port): needs verification
-  - Both paths have issues - may be upstream problem in cut mesh or seamless constraints
-  - Need line-by-line comparison with MATLAB reference for `parametrization_from_scales.py`, `mesh_to_disk_seamless.py`, and `cut_mesh.py`
+- ~~**UV recovery still produces 46 flipped triangles**~~ **FIXED 2025-01-23**:
+  - Bug was in `mesh_to_disk_seamless.py`: rotation matrices were flattened with row-major
+    order (`ravel()`) instead of column-major (`ravel('F')`) to match MATLAB's `R(:)` convention.
+  - Fix: Changed `R.ravel()` to `R.ravel('F')` on lines 287-290.
+  - Result: **0 flipped triangles** on sphere320.obj, matching MATLAB reference.
 
 ## MATLAB conversion checklist notes
 - Signed edge encoding and column-major flattening are handled consistently in Orthotropic (e.g., `omega_from_scale`, `reduction_from_ff2d`, `optimize_RSP`), aligning with `MATLAB_CONVERSION.md`.

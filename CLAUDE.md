@@ -25,10 +25,9 @@ Entry point for production use. Line-by-line translation from official MATLAB co
 - `ComputeParam/` - cut_mesh, mesh_to_disk_seamless, parametrization_from_scales
 - `Utils/` - I/O, visualization
 
-### Old implementation (DEPRECATED) - `corman_crane.py`
-Done without MATLAB reference. Contains hacks/cheats to reduce flips - DO NOT USE as reference.
-- `mesh.py`, `geometry.py`, `cross_field.py`, `cut_graph.py`, `optimization.py`, `sparse_ops.py`, `uv_recovery.py`
-- Lower flip count achieved through algorithm deviations, not correct fixes
+### Old implementation (DELETED)
+There was an old implementation done without MATLAB reference. It was deleted because it never worked correctly.
+**DO NOT reference any "fixes" from the old code - they were all garbage.**
 
 ## Requirements
 Python 3.8+, NumPy, SciPy, Matplotlib. Install: `pip install numpy scipy matplotlib`
@@ -80,15 +79,26 @@ See `verification-plan.md`. Summary:
 | 2. Cross Field | VERIFIED (8 singularities, sum=chi, matches MATLAB) |
 | 3. Cut Graph | VERIFIED (41 cut edges, 7 tests pass) |
 | 4. Optimization | VERIFIED (normalization bug fixed, 2 tests pass) |
-| 5. UV Recovery | IN PROGRESS |
+| 5. UV Recovery | VERIFIED (**0 flips** - rotation matrix bug fixed) |
 
-**Flip count:** 46 flips (14.4%) on sphere320 - this is the real bug to fix.
+**ALL STAGES VERIFIED.** Pipeline produces 0 flipped triangles, matching MATLAB reference.
 
-The old implementation shows fewer flips but through algorithm deviations (cheating), not correct fixes.
-The MATLAB code is proven to work, so the bug is in the Python translation.
+## Visual Verification
+
+Run `python Utils/verify_pipeline.py <mesh> -o output/` to generate per-stage visualizations:
+
+| Stage | Output Files | What to Check |
+|-------|--------------|---------------|
+| 1. Geometry | `stage1_mesh.png`, `stage1_curvature.png` | Mesh intact, curvature at vertices |
+| 2. Cross Field | `stage2_cross_field.png`, `stage2_singularities.png` | Crosses aligned, 8 singularities for sphere |
+| 3. Cut Graph | `stage3_cut_graph.png` | Cut edges connect all cones |
+| 4. Optimization | `stage4_scale_u.png`, `stage4_scale_v.png` | Smooth scale fields |
+| 5. UV Recovery | `stage5_uv_layout.png`, `stage5_checkerboard.png` | 0 flipped triangles (no red) |
+
+See `verification-visualisation-plan.md` for implementation details.
 
 ## Docs
-`verification-plan.md`, `PLAN_UV_FIXES.md`, `bug-report.md`, `docs/algo_integer_grid_maps.md`
+`verification-plan.md`, `verification-visualisation-plan.md`, `docs/algo_integer_grid_maps.md`
 
 ## License
 MIT
