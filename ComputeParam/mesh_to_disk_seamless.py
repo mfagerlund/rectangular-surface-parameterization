@@ -218,14 +218,24 @@ def mesh_to_disk_seamless(
 
         # assert(all(abs(ide_cut(1:2:end-1)) == abs(ide_cut(2:2:end))), 'Cut failed.');
 
+        # Cut edges must come in pairs (each internal cut creates two boundary edges).
+        # An odd count indicates a malformed cut graph.
+        if len(ide_cut) % 2 != 0:
+            raise ValueError(
+                f"Cut edge pairing failed: found {len(ide_cut)} cut boundary edges (odd count). "
+                f"Each internal cut edge should create exactly 2 boundary edges. "
+                f"This indicates a malformed cut graph."
+            )
+
         # Check that pairs of cut edges map to the same original edge
-        # MATLAB slicing: ide_cut(1:2:end-1) and ide_cut(2:2:end) produce equal-length arrays
-        # If odd count, last element is silently dropped (matching MATLAB behavior)
         ide_cut_odd = np.abs(ide_cut[0::2])
         ide_cut_even = np.abs(ide_cut[1::2])
-        # Slice to equal length (MATLAB behavior - drops last if odd)
-        min_len = min(len(ide_cut_odd), len(ide_cut_even))
-        assert np.all(ide_cut_odd[:min_len] == ide_cut_even[:min_len]), "Cut failed."
+        if not np.all(ide_cut_odd == ide_cut_even):
+            mismatches = np.where(ide_cut_odd != ide_cut_even)[0]
+            raise ValueError(
+                f"Cut failed: {len(mismatches)} edge pairs don't match. "
+                f"First mismatch at pair {mismatches[0]}: edges {ide_cut_odd[mismatches[0]]} vs {ide_cut_even[mismatches[0]]}"
+            )
 
         # ide_cut_cor = [abs(ide_cut(1:2:end-1)), sign(ide_cut(1:2:end-1)).*edge_bound_cut(id(1:2:end-1),1), sign(ide_cut(2:2:end)).*edge_bound_cut(id(2:2:end),1)];
 
