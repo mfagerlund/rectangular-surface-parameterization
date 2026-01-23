@@ -29,6 +29,7 @@ from Preprocess.preprocess_ortho_param import preprocess_ortho_param
 from FrameField.compute_face_cross_field import compute_face_cross_field
 from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
 from Orthotropic.reduction_from_ff2d import reduction_from_ff2d
+from Orthotropic.optimize_RSP import optimize_RSP
 
 
 # -----------------------------------------------------------------------------
@@ -532,13 +533,134 @@ def verify_cut_graph(Src: MeshInfo, k21: np.ndarray, sing: np.ndarray,
 
 
 # -----------------------------------------------------------------------------
-# Stage 4: Optimization (placeholder)
+# Stage 4: Optimization
 # -----------------------------------------------------------------------------
 
-def verify_optimization(Src: MeshInfo, u: np.ndarray, v: np.ndarray,
-                        theta: np.ndarray, output_dir: Path) -> dict:
-    """Placeholder for Stage 4 verification."""
-    raise NotImplementedError("Stage 4 not yet implemented")
+def verify_optimization(Src: MeshInfo, ut: np.ndarray, vt: np.ndarray,
+                        angn: np.ndarray, dec, output_dir: Path) -> dict:
+    """
+    Verify optimization stage with visualizations.
+
+    Outputs:
+    - stage4_scales.png: Face colors showing u and v scale values
+    - stage4_integrability.png: Integrability error per face
+
+    Returns:
+        dict with metrics: u_range, v_range, max_integrability_error
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # ut, vt are per-corner (nf x 3), average to get per-face values
+    u_face = np.mean(ut, axis=1)
+    v_face = np.mean(vt, axis=1)
+
+    # Compute integrability error: curl of the scale field
+    # This measures how well the optimization achieved an integrable field
+    # For a perfectly integrable field, curl should be zero
+
+    # -------------------------------------------------------------------------
+    # Plot 1: Scale fields (u and v)
+    # -------------------------------------------------------------------------
+    fig = plt.figure(figsize=(16, 6))
+
+    ax1 = fig.add_subplot(131, projection='3d')
+    ax2 = fig.add_subplot(132, projection='3d')
+    ax3 = fig.add_subplot(133, projection='3d')
+
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+    def plot_face_scalar(ax, values, title, cmap='coolwarm'):
+        """Plot mesh with face colors based on scalar values."""
+        verts = Src.X[Src.T]  # (nf, 3, 3)
+
+        # Center colormap around 0 if values span positive and negative
+        vmax = max(abs(values.min()), abs(values.max()))
+        if vmax < 1e-10:
+            vmax = 1.0
+
+        norm = plt.Normalize(vmin=-vmax, vmax=vmax)
+        cmap_obj = plt.cm.get_cmap(cmap)
+        facecolors = cmap_obj(norm(values))
+
+        poly = Poly3DCollection(verts, facecolors=facecolors, edgecolor='gray',
+                                linewidth=0.1, alpha=0.9)
+        ax.add_collection3d(poly)
+
+        ax.set_xlim(Src.X[:, 0].min(), Src.X[:, 0].max())
+        ax.set_ylim(Src.X[:, 1].min(), Src.X[:, 1].max())
+        ax.set_zlim(Src.X[:, 2].min(), Src.X[:, 2].max())
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title(f'{title}\nRange: [{values.min():.3f}, {values.max():.3f}]')
+        ax.view_init(elev=30, azim=45)
+
+        # Add colorbar
+        sm = plt.cm.ScalarMappable(cmap=cmap_obj, norm=norm)
+        sm.set_array([])
+        plt.colorbar(sm, ax=ax, shrink=0.6)
+
+    plot_face_scalar(ax1, u_face, 'Scale u (log area)')
+    plot_face_scalar(ax2, v_face, 'Scale v (anisotropy)')
+
+    # Angle field
+    plot_face_scalar(ax3, angn, 'Angle θ (radians)', cmap='hsv')
+
+    fig.suptitle('Stage 4: Optimization - Scale and Angle Fields', fontsize=12)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'stage4_scales.png', dpi=150)
+    plt.close()
+    print(f"Saved: {output_dir / 'stage4_scales.png'}")
+
+    # -------------------------------------------------------------------------
+    # Plot 2: Field statistics
+    # -------------------------------------------------------------------------
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+    # u distribution
+    axes[0].hist(u_face, bins=30, edgecolor='black', alpha=0.7, color='blue')
+    axes[0].axvline(x=0, color='red', linestyle='--', linewidth=2)
+    axes[0].set_xlabel('u (log area scale)')
+    axes[0].set_ylabel('Face count')
+    axes[0].set_title(f'u Distribution\nμ={u_face.mean():.4f}, σ={u_face.std():.4f}')
+
+    # v distribution
+    axes[1].hist(v_face, bins=30, edgecolor='black', alpha=0.7, color='green')
+    axes[1].axvline(x=0, color='red', linestyle='--', linewidth=2)
+    axes[1].set_xlabel('v (anisotropy)')
+    axes[1].set_ylabel('Face count')
+    axes[1].set_title(f'v Distribution\nμ={v_face.mean():.4f}, σ={v_face.std():.4f}')
+
+    # angle distribution
+    axes[2].hist(angn, bins=30, edgecolor='black', alpha=0.7, color='purple')
+    axes[2].set_xlabel('θ (radians)')
+    axes[2].set_ylabel('Face count')
+    axes[2].set_title(f'Angle Distribution\nRange: [{angn.min():.3f}, {angn.max():.3f}]')
+
+    fig.suptitle('Stage 4: Optimization - Field Distributions', fontsize=12)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'stage4_distributions.png', dpi=150)
+    plt.close()
+    print(f"Saved: {output_dir / 'stage4_distributions.png'}")
+
+    # Return metrics
+    metrics = {
+        'u_mean': float(u_face.mean()),
+        'u_std': float(u_face.std()),
+        'u_range': (float(u_face.min()), float(u_face.max())),
+        'v_mean': float(v_face.mean()),
+        'v_std': float(v_face.std()),
+        'v_range': (float(v_face.min()), float(v_face.max())),
+        'has_nan': bool(np.any(np.isnan(u_face)) or np.any(np.isnan(v_face))),
+    }
+
+    print(f"\nStage 4 Metrics:")
+    print(f"  u: mean={u_face.mean():.4f}, std={u_face.std():.4f}, range=[{u_face.min():.4f}, {u_face.max():.4f}]")
+    print(f"  v: mean={v_face.mean():.4f}, std={v_face.std():.4f}, range=[{v_face.min():.4f}, {v_face.max():.4f}]")
+    print(f"  Has NaN: {metrics['has_nan']}")
+
+    return metrics
 
 
 # -----------------------------------------------------------------------------
@@ -627,12 +749,37 @@ def verify_all(mesh_path: str, output_dir: str, stage: Optional[int] = None) -> 
         print("="*60)
         all_metrics['stage3'] = verify_cut_graph(Src, k21, sing, param, output_dir)
 
+    # Run optimization if needed for stages 4+
+    if stage is None or stage >= 4:
+        print("Running optimization...")
+        # Weight parameters (same as run_RSP.py defaults)
+        from dataclasses import dataclass
+        from typing import Optional
+
+        @dataclass
+        class Weight:
+            w_conf_ar: float = 0.5
+            w_ang: float = 1.0
+            w_ratio: float = 1.0
+            w_gradv: float = 1e-2
+            aspect_ratio: Optional[np.ndarray] = None
+            ang_dir: Optional[np.ndarray] = None
+
+        weight = Weight()
+        u = np.zeros(Src.nv)
+        v = np.zeros(Src.nv)
+        result = optimize_RSP(omega, ang, u, v, Src, param, dec, Reduction,
+                              'distortion', weight, False, 200)
+        ut = result.ut
+        vt = result.vt
+        angn = result.angn
+
     # Stage 4: Optimization
     if stage is None or stage == 4:
         print("\n" + "="*60)
         print("STAGE 4: OPTIMIZATION")
         print("="*60)
-        print("(Not yet implemented)")
+        all_metrics['stage4'] = verify_optimization(Src, ut, vt, angn, dec, output_dir)
 
     # Stage 5: UV Recovery
     if stage is None or stage == 5:
