@@ -240,11 +240,23 @@ def extract_scale_from_param(
         # In MATLAB this creates (#F, 6) with [u(T(:,1)), u(T(:,2)), u(T(:,3)), v(T(:,1)), v(T(:,2)), v(T(:,3))]
         # Note: MATLAB uses v(T) which indexes v by T, but v is defined over T_cut vertices
         # This may be intentional - mapping back through the original connectivity
+
+        # Validate index ranges to catch T/T_cut mismatches
+        max_T_idx = int(np.max(T))
+        if max_T_idx >= len(u):
+            raise ValueError(
+                f"T references vertex index {max_T_idx} but u only has {len(u)} entries. "
+                f"T/T_cut mismatch detected."
+            )
+        if max_T_idx >= len(v):
+            raise ValueError(
+                f"T references vertex index {max_T_idx} but v only has {len(v)} entries "
+                f"(from T_cut with {nv_cut} vertices). T/T_cut mismatch detected."
+            )
+
         ut = np.column_stack([
             u[T[:, 0]], u[T[:, 1]], u[T[:, 2]],
-            v[T[:, 0]] if np.max(T) < len(v) else np.zeros(nf),
-            v[T[:, 1]] if np.max(T) < len(v) else np.zeros(nf),
-            v[T[:, 2]] if np.max(T) < len(v) else np.zeros(nf)
+            v[T[:, 0]], v[T[:, 1]], v[T[:, 2]]
         ])
 
     return disto, ut, theta, u_tri
