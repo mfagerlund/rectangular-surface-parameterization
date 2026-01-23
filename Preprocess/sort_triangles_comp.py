@@ -369,9 +369,6 @@ def sort_triangles_comp(
     elif n_triangles == 2 and ifbound:
         # Boundary vertex with exactly 2 triangles: edge ordering is just the edge between them
         # tri_ord = [t1, t2, -1], we want edge between t1 and t2
-        path = np.column_stack([tri_ord, np.roll(tri_ord, 1)])
-
-        # Find edges incident to the triangles
         t1, t2 = tri_ord[0], tri_ord[1]
         matches = np.where(
             ((E2T[:, 0] == t1) & (E2T[:, 1] == t2)) |
@@ -379,19 +376,15 @@ def sort_triangles_comp(
         )[0]
 
         if len(matches) > 0:
-            # We have 3 entries in tri_ord [t1, t2, -1], need 3 edges
-            # Edge 0: between t1 and t2 (the shared edge)
-            # Edge 1: between t2 and -1 (boundary edge at t2)
-            # Edge 2: between -1 and t1 (boundary edge at t1)
-            # But -1 doesn't have edges, so we just return the shared edge and empty for boundaries
-            edge_ord = np.full(len(tri_ord), -1, dtype=int)
-            edge_ord[0] = matches[0]  # Edge between t1 and t2
+            # Only return the single valid edge (between t1 and t2)
+            # The boundary "edges" (t2 to -1, -1 to t1) are not real edges
+            edge_ord = np.array([matches[0]], dtype=int)
 
-            sign_edge = np.zeros(len(tri_ord), dtype=int)
-            sign_edge[0] = (
-                (t1 == E2T[matches[0], 0]).astype(int) * E2T[matches[0], 2] +
-                (t1 == E2T[matches[0], 1]).astype(int) * E2T[matches[0], 3]
+            sign_val = (
+                int(t1 == E2T[matches[0], 0]) * E2T[matches[0], 2] +
+                int(t1 == E2T[matches[0], 1]) * E2T[matches[0], 3]
             )
+            sign_edge = np.array([sign_val], dtype=int)
         else:
             edge_ord = np.array([], dtype=int)
             sign_edge = np.array([], dtype=int)
@@ -399,9 +392,9 @@ def sort_triangles_comp(
     elif n_triangles == 1:
         # Single triangle (boundary vertex with only 1 triangle)
         # No ring of edges to sort - edges are incident to the vertex, not between triangles
-        # For single triangle, we don't compute meaningful edge ordering between triangles
-        edge_ord = None
-        sign_edge = None
+        # Return empty arrays (not None) for consistency with the API
+        edge_ord = np.array([], dtype=int)
+        sign_edge = np.array([], dtype=int)
 
     else:
         # n_triangles == 0 or other edge case

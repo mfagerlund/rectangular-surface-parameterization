@@ -1,110 +1,97 @@
 # CLAUDE.md
 
-Instructions for Claude Code when working on this project.
+## DO NOT RUSH
+- Read `verification-plan.md` before anything.
+- Verify each pipeline stage with tests + visualizations; get explicit signoff before next stage.
+- If a stage fails, fix it before touching downstream.
 
-## CRITICAL: DO NOT RUSH
+## Overview / Goal
+- Corman & Crane rectangular parameterization (SIGGRAPH 2025) for quad meshing.
+- Orthogonal (not necessarily isotropic) UVs aligned to a cross field.
+- Not origami unfolding: need **compact** UVs (high fill) so integer iso-lines become quad edges.
+- Goal: 0 flipped triangles + compact UV layout.
 
-**Read `verification-plan.md` before doing ANYTHING.**
+## Pipeline
+Stages: `Geometry -> Cross Field -> Cut Graph -> Optimization -> UV Recovery`
+Phases: Load mesh -> geometry -> cross field -> cut graph -> sparse ops -> optimization -> UV recovery.
 
-Previous work rushed ahead as soon as one thing appeared to work. We have NOTHING that's a proven foundation. The rule:
+## Two Implementations
 
-1. Verify each pipeline stage with tests AND visualizations
-2. Get explicit signoff before moving to the next stage
-3. NO rushing ahead when something "looks like it works"
-4. If a stage fails, fix it BEFORE touching anything downstream
+### MATLAB-ported (PRIMARY) - `run_RSP.py`
+Entry point for production use. Line-by-line translation from official MATLAB code.
+- `Preprocess/` - MeshInfo, angles, curvature, connectivity, DEC operators
+- `FrameField/` - trivial connection, cross field computation
+- `Orthotropic/` - optimization (reduce_corner_var_2d, optimize_RSP)
+- `ComputeParam/` - cut_mesh, mesh_to_disk_seamless, parametrization_from_scales
+- `Utils/` - I/O, visualization
 
-## Project Overview
+### Old implementation (DEPRECATED) - `corman_crane.py`
+Done without MATLAB reference. Contains hacks/cheats to reduce flips - DO NOT USE as reference.
+- `mesh.py`, `geometry.py`, `cross_field.py`, `cut_graph.py`, `optimization.py`, `sparse_ops.py`, `uv_recovery.py`
+- Lower flip count achieved through algorithm deviations, not correct fixes
 
-Python implementation of Corman & Crane's rectangular parameterization (SIGGRAPH 2025) for **quad meshing**.
-
-**This is for quad meshing, NOT origami unfolding.**
-
-- Origami: any valid UV layout works (just flatten without flips)
-- Quad meshing: UV domain must be **compact** (high fill ratio ~100%)
-  - Integer iso-lines (u=k, v=k) become quad edges
-  - Fragmented "octopus" UV = sparse quad coverage
-
-**Goal**: 0 flipped triangles AND compact UV layout (high fill ratio)
-
-## Pipeline Stages
-
-```
-1. Geometry → 2. Cross Field → 3. Cut Graph → 4. Optimization → 5. UV Recovery
-```
-
-Each stage must be verified independently. A bug in stage N corrupts all stages N+1 onward.
-
-## Key Files
-
-```
-corman_crane.py     # Main CLI entry point
-mesh.py             # Half-edge mesh data structure
-geometry.py         # Geometric computations (angles, areas, cotans)
-cross_field.py      # Cross field propagation
-cut_graph.py        # Cut graph and jump data (Algorithm 2)
-sparse_ops.py       # Sparse matrix operators (Algorithms 5-10)
-optimization.py     # Constraint solver (Algorithms 3-4)
-uv_recovery.py      # UV coordinate recovery (Algorithm 11)
-verify_pipeline.py  # Stage-by-stage verification
-visualize.py        # Visualization utilities
-```
+## Requirements
+Python 3.8+, NumPy, SciPy, Matplotlib. Install: `pip install numpy scipy matplotlib`
 
 ## Commands
 
-Run full pipeline:
+### MATLAB-ported pipeline (PRIMARY)
 ```bash
-python corman_crane.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o output/sphere_uv.obj -v
-```
+# Basic run
+python run_RSP.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o Results/ -v
 
-Verify a stage:
+# With UV visualization PNGs (shows flipped faces in red)
+python run_RSP.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o Results/ -v --save-viz
+
+# Interactive plots
+python run_RSP.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o Results/ -v --plot
+```
+Output files: `Results/<mesh>_param.obj`, `Results/uv_layout.png`, `Results/mesh_flips.png`, `Results/distortion.png`
+
+### Verification
 ```bash
 python verify_pipeline.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" --stage geometry
+pytest tests/ -v
 ```
 
-Test meshes:
-- `C:/Dev/Colonel/Data/Meshes/sphere320.obj` - genus 0, should have ~4 cones
-- `C:/Dev/Colonel/Data/Meshes/torus.obj` - genus 1
+Test meshes: `C:/Dev/Colonel/Data/Meshes/sphere320.obj` (genus 0), `C:/Dev/Colonel/Data/Meshes/torus.obj` (genus 1).
 
-## References (READ THE PAPERS)
+## References (READ)
+MATLAB impl: https://github.com/etcorman/RectangularSurfaceParameterization (local: `C:\Slask\RectangularSurfaceParameterization`)
+Paper: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025.pdf`
+Supplement: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025-supplement.pdf`
+Quad extraction: `D:\Data\GDrive\FlatrPDFs\2461912.2462014_integer-grid-maps-reliable-quad-meshing.pdf`,
+`D:\Data\GDrive\FlatrPDFs\1531326.1531383_mixed-integer-quadrangulation.pdf`
 
-**Official MATLAB implementation:**
-- GitHub: https://github.com/etcorman/RectangularSurfaceParameterization
-- **Local copy: `C:\Slask\RectangularSurfaceParameterization`** - USE THIS FOR LINE-BY-LINE TRANSLATION
-
-**Main paper:**
-- Corman & Crane, "Rectangular Parameterization", SIGGRAPH 2025
-- Local: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025.pdf`
-- Supplement: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025-supplement.pdf`
-
-**Quad extraction:**
-- Bommes et al., "Integer-Grid Maps for Reliable Quad Meshing", SIGGRAPH 2013
-- Local: `D:\Data\GDrive\FlatrPDFs\2461912.2462014_integer-grid-maps-reliable-quad-meshing.pdf`
-
-- Bommes et al., "Mixed-Integer Quadrangulation", SIGGRAPH 2009
-- Local: `D:\Data\GDrive\FlatrPDFs\1531326.1531383_mixed-integer-quadrangulation.pdf`
+## Visualization Utilities
+`Utils/visualize_uv.py` - works with MATLAB-ported implementation:
+- `plot_uv_with_flips(Xp, T, detJ)` - UV layout with flipped triangles in red
+- `plot_uv_checkerboard(Xp, T, detJ)` - checkerboard pattern, flips in red
+- `plot_mesh_with_flips(X, T, detJ)` - 3D mesh with flipped faces highlighted
+- `save_uv_visualization(Xp, T, detJ, path)` - save 2-panel PNG
+- `visualize_run_RSP_result(Src, SrcCut, Xp, disto, output_dir)` - full visualization suite
+- `compute_uv_quality(Xp, T, X, T_orig)` - quality metrics (flip count, angle error)
 
 ## Current Status
-
-See `verification-plan.md` for detailed status. Summary:
-
+See `verification-plan.md`. Summary:
 | Stage | Status |
 |-------|--------|
-| 1. Geometry | ✓ VERIFIED (54 pytest tests pass) |
-| 2. Cross Field | ✓ VERIFIED (8 singularities, sum=chi, matches MATLAB) |
-| 3. Cut Graph | ✓ VERIFIED (41 cut edges, 7 tests pass) |
-| 4. Optimization | ✓ VERIFIED (normalization bug fixed, 2 tests pass) |
-| 5. UV Recovery | ~ IN PROGRESS (10 flips, bugs fixed, needs retest) |
+| 1. Geometry | VERIFIED (54 pytest tests pass) |
+| 2. Cross Field | VERIFIED (8 singularities, sum=chi, matches MATLAB) |
+| 3. Cut Graph | VERIFIED (41 cut edges, 7 tests pass) |
+| 4. Optimization | VERIFIED (normalization bug fixed, 2 tests pass) |
+| 5. UV Recovery | IN PROGRESS |
 
-**UV Recovery bugs FIXED (2025-01-23):**
-- BUG 1: Cut edges now use RHS rotation averaging (commit e2d5524)
-- BUG 2: Cut edges no longer have incorrect constraints (commit fa26f1f)
-- BUG 3: RHS averaging now uses addition not subtraction (uncommitted)
+**Flip count:** 46 flips (14.4%) on sphere320 - this is the real bug to fix.
 
-**Remaining work:** Re-run pipeline to verify flip count reduced to 0
+The old implementation shows fewer flips but through algorithm deviations (cheating), not correct fixes.
+The MATLAB code is proven to work, so the bug is in the Python translation.
 
-## Documentation
+## Docs
+`verification-plan.md`, `PLAN_UV_FIXES.md`, `bug-report.md`, `docs/algo_integer_grid_maps.md`
 
-- `verification-plan.md` - Current verification status and action items
-- `PLAN_UV_FIXES.md` - Planned fixes for UV issues
-- `bug-report.md` - Analysis of fragmentation issue
-- `docs/algo_integer_grid_maps.md` - Extracted algorithm from Bommes 2013
+## License
+MIT
+
+## Note
+`README.md` is a symlink to this file.

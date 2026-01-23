@@ -36,6 +36,7 @@ from Utils.readOBJ import readOBJ
 from Utils.writeObj import writeObj
 from Utils.save_param import save_param
 from Utils.extract_scale_from_param import extract_scale_from_param
+from Utils.visualize_uv import save_uv_visualization, visualize_run_RSP_result
 
 from Preprocess.MeshInfo import MeshInfo, mesh_info
 from Preprocess.dec_tri import dec_tri
@@ -114,6 +115,8 @@ Examples:
     # Visualization
     parser.add_argument('--plot', action='store_true',
                         help='Show visualization plots')
+    parser.add_argument('--save-viz', action='store_true',
+                        help='Save UV visualization PNGs to output directory')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose output')
 
@@ -401,6 +404,12 @@ def main():
     if verbose:
         print(f"  Flipped triangles: {n_flipped}")
         print(f"  Max integrability error: {np.max(curl_dX):.2e}")
+
+    # Save visualization PNGs
+    if args.save_viz:
+        if verbose:
+            print(f"Saving visualizations to {path_save}...")
+        visualize_run_RSP_result(Src, SrcCut, Xp, disto, output_dir=path_save)
 
     # %% Plot results
     if ifplot:

@@ -114,10 +114,12 @@ def reduce_corner_var_2d_cut(
             ifbound = True
 
             # Boundary edges are not cut edges - decode signed edge index
-            first_edge = np.abs(edge_ord_signed[0]) - 1
-            last_edge = np.abs(edge_ord_signed[-1]) - 1
-            ide_cut[first_edge] = False
-            ide_cut[last_edge] = False
+            # Only process if we have edges (single-triangle vertices have no inter-triangle edges)
+            if len(edge_ord_signed) > 0:
+                first_edge = np.abs(edge_ord_signed[0]) - 1
+                last_edge = np.abs(edge_ord_signed[-1]) - 1
+                ide_cut[first_edge] = False
+                ide_cut[last_edge] = False
 
             # Remove boundary sentinel
             tri_ord = tri_ord[:-1]
@@ -195,7 +197,10 @@ def reduce_corner_var_2d_cut(
             if j == 0:
                 path_vx[i] = np.column_stack([idvx, np.full(len(idvx), i)])
             else:
-                path_vx[nv + j] = np.column_stack([idvx, np.full(len(idvx), nv + j)])
+                # New vertex index: nv + (j-1) since j starts at 1 for first new vertex
+                # but new vertex indices should start at nv (the current vertex count)
+                new_vx_idx = nv + (j - 1)
+                path_vx[new_vx_idx] = np.column_stack([idvx, np.full(len(idvx), new_vx_idx)])
 
             # % edge path linking vertices
             # I = repelem(idvx(2:end), (1:length(idvx)-1)');
@@ -236,12 +241,14 @@ def reduce_corner_var_2d_cut(
                 if j == 0:
                     path_edge[i] = np.column_stack([I, J])
                 else:
-                    path_edge[nv + j] = np.column_stack([I, J])
+                    new_vx_idx = nv + (j - 1)
+                    path_edge[new_vx_idx] = np.column_stack([I, J])
             else:
                 if j == 0:
                     path_edge[i] = np.zeros((0, 2), dtype=int)
                 else:
-                    path_edge[nv + j] = np.zeros((0, 2), dtype=int)
+                    new_vx_idx = nv + (j - 1)
+                    path_edge[new_vx_idx] = np.zeros((0, 2), dtype=int)
 
             # % base triangle
             # base_tri(idvx) = idt(1);

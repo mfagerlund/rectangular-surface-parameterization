@@ -31,16 +31,12 @@ from Preprocess.MeshInfo import mesh_info
 from Preprocess.sort_triangles import clear_cache
 
 
-# Known bug markers for documentation
-BOUNDARY_MESH_BUG = pytest.mark.xfail(
-    reason="BUG: sort_triangles_comp returns None for edge_ord on single-triangle boundary vertices",
-    strict=False
-)
-
-VERTEX_SPLIT_BUG = pytest.mark.xfail(
-    reason="BUG: v2t sparse matrix dimensions don't account for new vertices from cuts",
-    strict=False
-)
+# NOTE: These bugs have been FIXED:
+# - BOUNDARY_MESH_BUG: Fixed in sort_triangles_comp.py and reduce_corner_var_2d_cut.py
+# - VERTEX_SPLIT_BUG: Fixed in reduce_corner_var_2d_cut.py (nv + j -> nv + j - 1)
+# The markers below are no-ops that allow tests to run normally
+BOUNDARY_MESH_BUG = lambda f: f  # No-op decorator
+VERTEX_SPLIT_BUG = lambda f: f   # No-op decorator
 
 
 # =============================================================================

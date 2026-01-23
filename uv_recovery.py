@@ -141,17 +141,22 @@ def recover_parameterization(
             b_rhs[he] = mu[he]
         else:
             # ALL interior edges (cut or not) - average with rotation
-            # Algorithm 11 line 13: b = (1/2)(R_ζ μ^k_ij + μ^l_ji)
+            # Algorithm 11 line 13: b = (1/2)(R_{ζ} μ^k + μ^l)
+            # R_ζ rotates the CURRENT triangle's mu to align with the twin's coordinate system
             he0 = mesh.edge_to_halfedge[e, 0]
+            # zeta[e] is the rotation from A to B
+            # From A's side: rotate current mu by +zeta to match B's frame
+            # From B's side: rotate current mu by -zeta to match A's frame
             z = zeta[e] if he == he0 else -zeta[e]
             cos_z, sin_z = np.cos(z), np.sin(z)
 
+            # Rotate the CURRENT mu (Algorithm 11 rotates μ^k)
             mu_rot = np.array([
                 cos_z * mu[he, 0] - sin_z * mu[he, 1],
                 sin_z * mu[he, 0] + cos_z * mu[he, 1]
             ])
 
-            # Paper uses ADDITION: b = (1/2)(R_ζ μ^k_ij + μ^l_ji)
+            # b = (1/2)(rotated current mu + twin mu)
             b_rhs[he] = 0.5 * (mu_rot + mu[he_twin])
 
     # Build the linear system following Algorithm 11's indexing
