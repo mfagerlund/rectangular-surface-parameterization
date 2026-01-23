@@ -94,8 +94,8 @@ Examples:
                         help='Disable boundary alignment')
     parser.add_argument('--no-seamless', action='store_true',
                         help='Disable seamlessness constraint')
-    parser.add_argument('--no-quantization', action='store_true',
-                        help='Disable integer quantization')
+    parser.add_argument('--quantization', action='store_true',
+                        help='Enable integer quantization (requires external QuantizationYoann binary)')
 
     # Energy options
     parser.add_argument('--energy', type=str, default='distortion',
@@ -143,7 +143,7 @@ def main():
     ifhardedge = not args.no_hardedge
     ifboundary = not args.no_boundary
     ifseamless_const = not args.no_seamless
-    ifquantization = not args.no_quantization
+    ifquantization = args.quantization
 
     energy_type = args.energy
     tol_dihedral_deg = args.dihedral_tol

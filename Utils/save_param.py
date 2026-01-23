@@ -90,22 +90,27 @@ def save_param(
     if ifquantization:
         quantize_exe = './QuantizationYoann/build/Quantization'
 
-        if os.path.exists(quantize_exe):
-            quantiz_path = os.path.join(path_save, f'{mesh_name}_quantiz.obj')
-            cmd = [
-                quantize_exe,
-                '-s', 'a',
-                '-sa', '1',
-                '-r',
-                '-o', quantiz_path,
-                param_path
-            ]
+        if not os.path.exists(quantize_exe):
+            warnings.warn(
+                'Quantization executable not found at ./QuantizationYoann/build/Quantization. '
+                'Skipping quantization step. '
+                'To enable, build the QuantizationYoann program (requires Gurobi).'
+            )
+            return
 
-            try:
-                result = subprocess.run(cmd, check=False)
-                if result.returncode != 0:
-                    warnings.warn('Quantization: Yoann failed me :(')
-            except Exception as e:
-                warnings.warn(f'Quantization failed: {e}')
-        else:
-            raise RuntimeError('Must compile the Quantization program. Go to folder QuantizationYoann/')
+        quantiz_path = os.path.join(path_save, f'{mesh_name}_quantiz.obj')
+        cmd = [
+            quantize_exe,
+            '-s', 'a',
+            '-sa', '1',
+            '-r',
+            '-o', quantiz_path,
+            param_path
+        ]
+
+        try:
+            result = subprocess.run(cmd, check=False)
+            if result.returncode != 0:
+                warnings.warn('Quantization: Yoann failed me :(')
+        except Exception as e:
+            warnings.warn(f'Quantization failed: {e}')
