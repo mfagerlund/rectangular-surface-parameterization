@@ -5,66 +5,83 @@ libQEx is used for robust quad mesh extraction from integer-grid maps.
 > **Note:** Quad extraction is **beyond the scope of the Corman-Crane paper**.
 > The paper produces seamless UV parameterization; libQEx extracts quads from it.
 
-## Pre-built Binaries (Recommended)
+## Pre-built Binaries
 
-Pre-built Windows x64 binaries are included in the `bin/` directory. No build required.
+Pre-built Windows x64 binaries will be in the `bin/` directory after building.
+
+**Status:** Binaries not yet built. Run the build script first (see below).
 
 ```
 bin/
-  libQEx.dll        # Main library
-  qex_extract.exe   # Command-line tool
-  OpenMesh.dll      # Dependency
+  libQEx.dll        # Main library (after build)
+  qex_demo.exe      # Demo/CLI tool (after build)
+  OpenMeshCore.dll  # Dependency (after build)
 ```
 
-### Usage
-
-```bash
-# From Python (via subprocess)
-python quad_extract.py input_param.obj -o output_quads.obj
-
-# Direct CLI
-bin/qex_extract.exe input_param.obj output_quads.obj
-```
-
-## Building from Source (Optional)
-
-If you need to build from source (e.g., for a different platform):
+## Building (Required First Time)
 
 ### Prerequisites
 
-1. **CMake** 2.6 or higher
-2. **Visual Studio** 2019 or higher (Windows)
-3. **OpenMesh** library
-   - Download: https://www.graphics.rwth-aachen.de/software/openmesh/
-   - Or via vcpkg: `vcpkg install openmesh`
+1. **CMake** 3.10 or higher - https://cmake.org/download/ (add to PATH)
+2. **Visual Studio 2019 or 2022** with "Desktop development with C++" workload
+3. **Git** (for cloning dependencies)
 
 ### Build Steps
 
-```bash
-# Clone libQEx
-git clone https://github.com/hcebke/libQEx.git
-cd libQEx
+**Option 1: Automated script (recommended)**
+```powershell
+# From repo root
+.\scripts\build_libqex.ps1
+```
 
-# Create build directory
+Or double-click `scripts\build_libqex.bat`
+
+The script will:
+1. Clone OpenMesh source from GitLab
+2. Build OpenMesh with CMake
+3. Clone libQEx from GitHub
+4. Build libQEx
+5. Copy binaries to `bin/`
+
+Build directory: `C:\Slask\libqex_build` (sources already downloaded there)
+
+**Option 2: Manual build**
+```powershell
+cd C:\Slask\libqex_build
+
+# Build OpenMesh
+cd OpenMesh-src
 mkdir build && cd build
+cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_INSTALL_PREFIX=../install -DBUILD_APPS=OFF
+cmake --build . --config Release
+cmake --install . --config Release
+cd ../..
 
-# Configure (adjust OpenMesh path as needed)
-cmake .. -DCMAKE_BUILD_TYPE=Release -DOpenMesh_DIR=<path-to-openmesh>
-
-# Build
+# Build libQEx
+cd libQEx
+mkdir build && cd build
+cmake .. -G "Visual Studio 17 2022" -A x64 -DOpenMesh_INCLUDE_DIR=../../OpenMesh-src/install/include -DOpenMesh_LIBRARY=../../OpenMesh-src/install/lib/OpenMeshCore.lib
 cmake --build . --config Release
 
-# Copy binaries to this repo's bin/ directory
-copy Release\*.dll ..\..\bin\
-copy Release\*.exe ..\..\bin\
+# Copy to repo
+copy Release\*.dll C:\Dev\Corman-Crane\bin\
+copy Release\*.exe C:\Dev\Corman-Crane\bin\
+copy ..\..\OpenMesh-src\install\bin\*.dll C:\Dev\Corman-Crane\bin\
 ```
 
 ### Dependencies
 
 | Library | Version | Notes |
 |---------|---------|-------|
-| OpenMesh | 8.0+ | Mesh data structures |
-| CMake | 2.6+ | Build system |
+| OpenMesh | 11.0 | Mesh data structures (cloned from GitLab) |
+| CMake | 3.10+ | Build system |
+| Visual Studio | 2019/2022 | C++ compiler with SSE support |
+
+### Downloaded Sources
+
+Sources are already downloaded to `C:\Slask\libqex_build\`:
+- `libQEx/` - libQEx source from GitHub
+- `OpenMesh-src/` - OpenMesh source from GitLab
 
 ## Algorithm Overview
 
