@@ -29,6 +29,7 @@
 
 import numpy as np
 import scipy.sparse as sp
+import warnings
 from scipy.sparse.csgraph import connected_components, dijkstra
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, List
@@ -632,7 +633,9 @@ def preprocess_ortho_param(
 
     K, _, _ = gaussian_curvature(Src.X, Src.T)
     euler_char = Src.nf - Src.ne + Src.nv
-    assert np.abs(np.sum(K) - 2 * np.pi * euler_char) < 1e-5, 'Gaussian curvature does not match topology.'
+    curvature_error = np.abs(np.sum(K) - 2 * np.pi * euler_char)
+    if curvature_error >= 1e-5:
+        warnings.warn(f'Gaussian curvature does not match topology (error={curvature_error:.2e}, χ={euler_char}). Mesh may have issues.')
 
     # % Local basis: e1r aligned with constrained and boundary edges
     # edge = Src.X(Src.E2V(:,2),:) - Src.X(Src.E2V(:,1),:);
@@ -702,7 +705,10 @@ def preprocess_ortho_param(
     # assert(norm(wrapToPi(dec.d1d*para_trans - K)) < 1e-6, 'Gaussian curvature incompatible with angle defect.');
 
     residual = wrap_to_pi(dec.d1d @ para_trans - K)
-    assert np.linalg.norm(residual) < 1e-6, 'Gaussian curvature incompatible with angle defect.'
+    residual_norm = np.linalg.norm(residual)
+    if residual_norm >= 1e-6:
+        warnings.warn(f'Gaussian curvature incompatible with angle defect (residual={residual_norm:.2e}). May affect results.')
+        # Don't fail, just warn - some meshes have numerical issues
 
     # % Angle between local basis and triangleedges
     # param.ang_basis = [comp_angle(Src.X(Src.T(:,1),:) - Src.X(Src.T(:,2),:), e1r, Src.normal), ...

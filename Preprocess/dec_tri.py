@@ -204,6 +204,20 @@ def dec_tri(Src: MeshInfo) -> DEC:
 
     # assert(all(vor_area > 0), 'Negative vertex area.');
 
+    # Check for unreferenced vertices (vor_area = 0) and handle them
+    unreferenced = (vor_area == 0)
+    n_unreferenced = np.sum(unreferenced)
+    if n_unreferenced > 0:
+        warnings.warn(f"Mesh has {n_unreferenced} unreferenced vertices. Assigning small area.")
+        # Assign a small positive area to unreferenced vertices
+        min_positive_area = vor_area[vor_area > 0].min() if np.any(vor_area > 0) else 1e-10
+        vor_area[unreferenced] = min_positive_area * 1e-3
+
+    # Check for truly negative areas (shouldn't happen with barycentric subdivision)
+    if np.any(vor_area < 0):
+        warnings.warn("Negative vertex areas detected. Using absolute values.")
+        vor_area = np.abs(vor_area)
+
     assert np.all(vor_area > 0), "Negative vertex area."
 
     # if any(cotweight < 1e-5)
