@@ -27,6 +27,8 @@ from Preprocess.MeshInfo import MeshInfo, mesh_info
 from Preprocess.dec_tri import dec_tri
 from Preprocess.preprocess_ortho_param import preprocess_ortho_param
 from FrameField.compute_face_cross_field import compute_face_cross_field
+from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
+from Orthotropic.reduction_from_ff2d import reduction_from_ff2d
 
 
 # -----------------------------------------------------------------------------
@@ -429,13 +431,104 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
 
 
 # -----------------------------------------------------------------------------
-# Stage 3: Cut Graph (placeholder)
+# Stage 3: Cut Graph
 # -----------------------------------------------------------------------------
 
-def verify_cut_graph(Src: MeshInfo, cut_edges: np.ndarray, cones: np.ndarray,
-                     output_dir: Path) -> dict:
-    """Placeholder for Stage 3 verification."""
-    raise NotImplementedError("Stage 3 not yet implemented")
+def verify_cut_graph(Src: MeshInfo, k21: np.ndarray, sing: np.ndarray,
+                     param, output_dir: Path) -> dict:
+    """
+    Verify cut graph stage with visualizations.
+
+    Outputs:
+    - stage3_cut_graph.png: Mesh with cut edges highlighted in red, cones marked
+
+    Returns:
+        dict with metrics: cut_edge_count, cone_count
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Identify cut edges (where k21 != 1, meaning non-trivial rotation)
+    cut_edge_mask = (k21 != 1)
+    cut_edge_indices = np.where(cut_edge_mask)[0]
+    n_cut_edges = len(cut_edge_indices)
+
+    # Identify cone singularities (interior vertices with |sing| > 0.1)
+    idx_int = np.asarray(param.idx_int) if hasattr(param, 'idx_int') else np.arange(Src.nv)
+    cone_mask = np.abs(sing) > 0.1
+    # For interior vertices only
+    interior_cone_mask = np.zeros(Src.nv, dtype=bool)
+    interior_cone_mask[idx_int] = cone_mask[idx_int]
+    cone_vertices = np.where(interior_cone_mask)[0]
+    n_cones = len(cone_vertices)
+
+    # -------------------------------------------------------------------------
+    # Plot: Cut graph visualization
+    # -------------------------------------------------------------------------
+    fig = plt.figure(figsize=(16, 7))
+
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122, projection='3d')
+
+    # Lift cut edges slightly outward so they render on top
+    mesh_center = np.mean(Src.X, axis=0)
+    lift_factor = 1.03  # 3% outward
+
+    def lift_point(p):
+        """Move point slightly outward from mesh center."""
+        direction = p - mesh_center
+        return mesh_center + direction * lift_factor
+
+    for ax, elev, azim, title in [(ax1, 30, 45, 'View 1 (elev=30, azim=45)'),
+                                   (ax2, 30, 135, 'View 2 (elev=30, azim=135)')]:
+        # Draw mesh as wireframe only (no filled faces for better visibility)
+        ax.plot_trisurf(Src.X[:, 0], Src.X[:, 1], Src.X[:, 2],
+                        triangles=Src.T,
+                        color='lightblue', edgecolor='darkgray', linewidth=0.2, alpha=0.3)
+
+        # Draw cut edges as thick red lines, lifted outward
+        for e in cut_edge_indices:
+            v0, v1 = Src.E2V[e]
+            p0 = lift_point(Src.X[v0])
+            p1 = lift_point(Src.X[v1])
+            ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]],
+                    color='red', linewidth=3.5, solid_capstyle='round')
+
+        # Mark cone vertices with large dots, also lifted
+        if len(cone_vertices) > 0:
+            cone_pos = np.array([lift_point(Src.X[v]) for v in cone_vertices])
+            ax.scatter(cone_pos[:, 0], cone_pos[:, 1], cone_pos[:, 2],
+                       c='yellow', s=200, marker='o', edgecolors='black',
+                       linewidths=2, depthshade=False, label=f'Cones ({n_cones})',
+                       zorder=10)
+
+        ax.view_init(elev=elev, azim=azim)
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.set_title(title)
+        if len(cone_vertices) > 0:
+            ax.legend(loc='upper right')
+
+    fig.suptitle(f'Stage 3: Cut Graph\n'
+                 f'Red lines = cut edges ({n_cut_edges}), Orange dots = cone singularities ({n_cones})',
+                 fontsize=12)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'stage3_cut_graph.png', dpi=150)
+    plt.close()
+    print(f"Saved: {output_dir / 'stage3_cut_graph.png'}")
+
+    # Return metrics
+    metrics = {
+        'cut_edge_count': int(n_cut_edges),
+        'cone_count': int(n_cones),
+    }
+
+    print(f"\nStage 3 Metrics:")
+    print(f"  Cut edges: {n_cut_edges}")
+    print(f"  Cone singularities: {n_cones}")
+
+    return metrics
 
 
 # -----------------------------------------------------------------------------
@@ -516,12 +609,23 @@ def verify_all(mesh_path: str, output_dir: str, stage: Optional[int] = None) -> 
         omega, ang, sing = compute_face_cross_field(Src, param, dec, smoothing_iter=10)
         all_metrics['stage2'] = verify_cross_field(Src, param, ang, sing, output_dir)
 
+    # Compute cross field if needed for stages 3+
+    if (stage is None or stage >= 3) and 'omega' not in dir():
+        print("Computing smooth cross field...")
+        omega, ang, sing = compute_face_cross_field(Src, param, dec, smoothing_iter=10)
+
+    # Compute k21 if needed for stages 3+
+    if stage is None or stage >= 3:
+        print("Computing edge jumps...")
+        Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
+        k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
+
     # Stage 3: Cut Graph
     if stage is None or stage == 3:
         print("\n" + "="*60)
         print("STAGE 3: CUT GRAPH")
         print("="*60)
-        print("(Not yet implemented)")
+        all_metrics['stage3'] = verify_cut_graph(Src, k21, sing, param, output_dir)
 
     # Stage 4: Optimization
     if stage is None or stage == 4:
