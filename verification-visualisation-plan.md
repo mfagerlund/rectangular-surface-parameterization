@@ -172,13 +172,13 @@ def verify_uv_recovery(Xp, T, detJ, output_dir):
 
 ## Implementation Tasks
 
-1. [ ] Create `Utils/verify_pipeline.py` with CLI argument parsing
-2. [ ] Implement `verify_geometry()` - wireframe + curvature
-3. [ ] Implement `verify_cross_field()` - cross glyphs + singularities
-4. [ ] Implement `verify_cut_graph()` - cut edges + cones
-5. [ ] Implement `verify_optimization()` - u, v, integrability heatmaps
-6. [ ] Implement `verify_uv_recovery()` - wrap existing visualize_uv functions
-7. [ ] Implement `verify_all()` - run full pipeline and call all verify functions
+1. [x] Create `Utils/verify_pipeline.py` with CLI argument parsing
+2. [x] Implement `verify_geometry()` - wireframe + curvature
+3. [x] Implement `verify_cross_field()` - streamlines + singularities
+4. [x] Implement `verify_cut_graph()` - cut edges + cones
+5. [x] Implement `verify_optimization()` - u, v scale fields + distributions
+6. [x] Implement `verify_uv_recovery()` - UV layout + checkerboard + quality metrics
+7. [x] Implement `verify_all()` - run full pipeline and call all verify functions
 8. [ ] Add test: `test_verify_pipeline.py` - runs on sphere320, checks files exist
 9. [ ] Generate reference images for sphere320 and commit to `docs/reference_images/`
 
