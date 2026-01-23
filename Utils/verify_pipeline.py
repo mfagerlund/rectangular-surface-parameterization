@@ -30,6 +30,9 @@ from FrameField.compute_face_cross_field import compute_face_cross_field
 from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
 from Orthotropic.reduction_from_ff2d import reduction_from_ff2d
 from Orthotropic.optimize_RSP import optimize_RSP
+from ComputeParam.mesh_to_disk_seamless import mesh_to_disk_seamless
+from ComputeParam.parametrization_from_scales import parametrization_from_scales
+from Utils.extract_scale_from_param import extract_scale_from_param
 
 
 # -----------------------------------------------------------------------------
@@ -664,13 +667,135 @@ def verify_optimization(Src: MeshInfo, ut: np.ndarray, vt: np.ndarray,
 
 
 # -----------------------------------------------------------------------------
-# Stage 5: UV Recovery (placeholder)
+# Stage 5: UV Recovery
 # -----------------------------------------------------------------------------
 
 def verify_uv_recovery(Xp: np.ndarray, T: np.ndarray, detJ: np.ndarray,
                        output_dir: Path) -> dict:
-    """Placeholder for Stage 5 verification."""
-    raise NotImplementedError("Stage 5 not yet implemented")
+    """
+    Verify UV recovery stage with visualizations.
+
+    Outputs:
+    - stage5_uv_layout.png: 2D UV layout with flipped triangles in red
+    - stage5_checkerboard.png: Checkerboard pattern showing distortion
+
+    Returns:
+        dict with metrics: flipped_count, flipped_fraction, total_area
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    nf = T.shape[0]
+
+    # Compute detJ if not provided (signed area in UV space)
+    if detJ is None:
+        detJ = np.zeros(nf)
+        for f in range(nf):
+            uv0, uv1, uv2 = Xp[T[f, 0]], Xp[T[f, 1]], Xp[T[f, 2]]
+            e1 = uv1 - uv0
+            e2 = uv2 - uv0
+            detJ[f] = e1[0] * e2[1] - e1[1] * e2[0]
+
+    n_flipped = np.sum(detJ <= 0)
+    flip_fraction = n_flipped / nf if nf > 0 else 0
+
+    # -------------------------------------------------------------------------
+    # Plot 1: UV layout with flipped triangles highlighted
+    # -------------------------------------------------------------------------
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+    # Left: UV layout
+    ax = axes[0]
+    triangles = []
+    colors = []
+    for f in range(nf):
+        tri = [Xp[T[f, 0]], Xp[T[f, 1]], Xp[T[f, 2]]]
+        triangles.append(tri)
+        colors.append('red' if detJ[f] <= 0 else 'lightblue')
+
+    collection = PolyCollection(triangles, facecolors=colors, edgecolors='black',
+                                linewidth=0.3, alpha=0.8)
+    ax.add_collection(collection)
+    ax.autoscale()
+    ax.set_aspect('equal')
+    ax.set_xlabel('U')
+    ax.set_ylabel('V')
+    ax.set_title(f'UV Layout\nFlipped: {n_flipped}/{nf} ({100*flip_fraction:.1f}%)')
+
+    # Right: Checkerboard pattern
+    ax = axes[1]
+    checker_scale = 0.1
+    triangles = []
+    colors = []
+    for f in range(nf):
+        tri = [Xp[T[f, 0]], Xp[T[f, 1]], Xp[T[f, 2]]]
+        triangles.append(tri)
+
+        if detJ[f] <= 0:
+            colors.append('red')
+        else:
+            centroid = (Xp[T[f, 0]] + Xp[T[f, 1]] + Xp[T[f, 2]]) / 3
+            checker = (int(centroid[0] / checker_scale) + int(centroid[1] / checker_scale)) % 2
+            colors.append('white' if checker == 0 else 'gray')
+
+    collection = PolyCollection(triangles, facecolors=colors, edgecolors='darkgray',
+                                linewidth=0.2, alpha=0.9)
+    ax.add_collection(collection)
+    ax.autoscale()
+    ax.set_aspect('equal')
+    ax.set_xlabel('U')
+    ax.set_ylabel('V')
+    ax.set_title(f'Checkerboard Pattern\n(red = flipped)')
+
+    fig.suptitle('Stage 5: UV Recovery - Parameterization Result', fontsize=12)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'stage5_uv_layout.png', dpi=150)
+    plt.close()
+    print(f"Saved: {output_dir / 'stage5_uv_layout.png'}")
+
+    # -------------------------------------------------------------------------
+    # Plot 2: Quality metrics
+    # -------------------------------------------------------------------------
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Jacobian determinant distribution
+    ax = axes[0]
+    ax.hist(detJ, bins=50, edgecolor='black', alpha=0.7)
+    ax.axvline(x=0, color='red', linestyle='--', linewidth=2, label='Zero (flip threshold)')
+    ax.set_xlabel('Jacobian determinant')
+    ax.set_ylabel('Face count')
+    ax.set_title(f'Jacobian Distribution\n{n_flipped} faces with detJ ≤ 0')
+    ax.legend()
+
+    # UV area distribution
+    uv_areas = np.abs(detJ) / 2
+    ax = axes[1]
+    ax.hist(uv_areas, bins=50, edgecolor='black', alpha=0.7, color='green')
+    ax.set_xlabel('Triangle area (UV space)')
+    ax.set_ylabel('Face count')
+    ax.set_title(f'UV Area Distribution\nTotal: {np.sum(uv_areas):.4f}')
+
+    fig.suptitle('Stage 5: UV Recovery - Quality Metrics', fontsize=12)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'stage5_quality.png', dpi=150)
+    plt.close()
+    print(f"Saved: {output_dir / 'stage5_quality.png'}")
+
+    # Return metrics
+    metrics = {
+        'flipped_count': int(n_flipped),
+        'flipped_fraction': float(flip_fraction),
+        'total_uv_area': float(np.sum(uv_areas)),
+        'detJ_min': float(detJ.min()),
+        'detJ_max': float(detJ.max()),
+    }
+
+    print(f"\nStage 5 Metrics:")
+    print(f"  Flipped triangles: {n_flipped}/{nf} ({100*flip_fraction:.1f}%)")
+    print(f"  Jacobian range: [{detJ.min():.6f}, {detJ.max():.6f}]")
+    print(f"  Total UV area: {np.sum(uv_areas):.4f}")
+
+    return metrics
 
 
 # -----------------------------------------------------------------------------
@@ -781,12 +906,25 @@ def verify_all(mesh_path: str, output_dir: str, stage: Optional[int] = None) -> 
         print("="*60)
         all_metrics['stage4'] = verify_optimization(Src, ut, vt, angn, dec, output_dir)
 
+    # Compute UV recovery if needed for stage 5
+    if stage is None or stage >= 5:
+        print("Computing UV parameterization...")
+        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+            Src, param, angn, sing, k21,
+            ifseamless_const=True, ifboundary=True, ifhardedge=True
+        )
+        Xp, dX = parametrization_from_scales(
+            Src, SrcCut, dec_cut, param, angn,
+            result.om, ut, vt, Align, Rot
+        )
+        disto, _, _, _ = extract_scale_from_param(Xp, Src.X, Src.T, param, SrcCut.T, angn)
+
     # Stage 5: UV Recovery
     if stage is None or stage == 5:
         print("\n" + "="*60)
         print("STAGE 5: UV RECOVERY")
         print("="*60)
-        print("(Not yet implemented)")
+        all_metrics['stage5'] = verify_uv_recovery(Xp, SrcCut.T, disto.detJ, output_dir)
 
     return all_metrics
 
