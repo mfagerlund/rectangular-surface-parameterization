@@ -42,7 +42,8 @@ def _fill_holes_with_triangles(vertices, quads, verbose=True):
     """
     Fill holes in a quad mesh with triangles.
 
-    Finds boundary edges, builds loops, and fan-triangulates each hole.
+    Finds boundary edges, groups into connected components, and fan-triangulates
+    each hole from its centroid. Handles complex boundaries where holes share vertices.
 
     Parameters
     ----------
@@ -57,97 +58,82 @@ def _fill_holes_with_triangles(vertices, quads, verbose=True):
     -------
     triangles : list of [i, j, k]
         Triangle indices to fill holes.
+    new_vertices : ndarray
+        New centroid vertices added for hole filling.
     """
     from collections import defaultdict
 
     # Build edge counts - each edge in a quad appears once per face
     # For a closed mesh, interior edges appear twice (in two adjacent faces)
     edge_count = defaultdict(int)
-    edge_to_face = defaultdict(list)
 
-    for fi, quad in enumerate(quads):
+    for quad in quads:
         for i in range(4):
             v0, v1 = quad[i], quad[(i + 1) % 4]
             edge = (min(v0, v1), max(v0, v1))
             edge_count[edge] += 1
-            edge_to_face[edge].append(fi)
 
     # Boundary edges appear only once
-    boundary_edges = {e for e, c in edge_count.items() if c == 1}
+    boundary_edges = [(v0, v1) for (v0, v1), c in edge_count.items() if c == 1]
 
     if not boundary_edges:
         if verbose:
             print("  No holes to fill (mesh is watertight)")
-        return []
+        return [], np.zeros((0, 3))
 
-    # Build adjacency for boundary vertices
-    boundary_adj = defaultdict(list)
+    # Find connected components of boundary edges using union-find
+    parent = {}
+
+    def find(x):
+        if x not in parent:
+            parent[x] = x
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+
+    def union(x, y):
+        px, py = find(x), find(y)
+        if px != py:
+            parent[px] = py
+
+    # Union vertices connected by boundary edges
     for v0, v1 in boundary_edges:
-        boundary_adj[v0].append(v1)
-        boundary_adj[v1].append(v0)
+        union(v0, v1)
 
-    # Find boundary loops by walking
-    visited_edges = set()
-    loops = []
-
-    for start_edge in boundary_edges:
-        if start_edge in visited_edges:
-            continue
-
-        # Start a new loop
-        v0, v1 = start_edge
-        loop = [v0, v1]
-        visited_edges.add(start_edge)
-
-        current = v1
-        prev = v0
-
-        while True:
-            # Find next vertex in loop
-            neighbors = boundary_adj[current]
-            next_v = None
-            for n in neighbors:
-                if n != prev:
-                    edge = (min(current, n), max(current, n))
-                    if edge not in visited_edges:
-                        next_v = n
-                        visited_edges.add(edge)
-                        break
-
-            if next_v is None or next_v == loop[0]:
-                break
-
-            loop.append(next_v)
-            prev = current
-            current = next_v
-
-        if len(loop) >= 3:
-            loops.append(loop)
+    # Group edges by component
+    components = defaultdict(list)
+    for v0, v1 in boundary_edges:
+        root = find(v0)
+        components[root].append((v0, v1))
 
     if verbose:
-        print(f"  Found {len(loops)} holes with {len(boundary_edges)} boundary edges")
+        print(f"  Found {len(components)} holes with {len(boundary_edges)} boundary edges")
 
-    # Triangulate each loop using fan triangulation from centroid
+    # Triangulate each component using fan triangulation from centroid
     triangles = []
     n_verts = len(vertices)
     new_vertices = []
 
-    for loop in loops:
-        if len(loop) < 3:
+    for comp_edges in components.values():
+        if len(comp_edges) < 3:
             continue
 
-        # Compute centroid of loop
-        loop_verts = vertices[loop]
-        centroid = loop_verts.mean(axis=0)
+        # Get all vertices in this component
+        comp_verts = set()
+        for v0, v1 in comp_edges:
+            comp_verts.add(v0)
+            comp_verts.add(v1)
+
+        # Compute centroid of component vertices
+        comp_vert_list = list(comp_verts)
+        centroid = vertices[comp_vert_list].mean(axis=0)
 
         # Add centroid as new vertex
         centroid_idx = n_verts + len(new_vertices)
         new_vertices.append(centroid)
 
-        # Create fan triangles
-        for i in range(len(loop)):
-            v0 = loop[i]
-            v1 = loop[(i + 1) % len(loop)]
+        # Create a triangle for each boundary edge
+        for v0, v1 in comp_edges:
             triangles.append([v0, v1, centroid_idx])
 
     if verbose and triangles:
