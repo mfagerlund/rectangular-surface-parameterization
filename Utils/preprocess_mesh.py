@@ -23,6 +23,7 @@ def preprocess_mesh(
     input_path: str,
     output_path: Optional[str] = None,
     target_edge_length: Optional[float] = None,
+    target_faces: Optional[int] = None,
     remesh_iterations: int = 5,
     verbose: bool = True
 ) -> str:
@@ -37,6 +38,9 @@ def preprocess_mesh(
         Path for output mesh. If None, appends '_clean' to input name.
     target_edge_length : float, optional
         Target edge length for remeshing. If None, uses average edge length.
+    target_faces : int, optional
+        Target number of faces for decimation. Recommended for meshes >10K faces.
+        If specified, decimation is used instead of remeshing.
     remesh_iterations : int
         Number of remeshing iterations (default: 5)
     verbose : bool
@@ -96,15 +100,63 @@ def preprocess_mesh(
     except Exception:
         pass
 
-    # Step 5: Close holes (small holes only to preserve features)
+    # Step 5: Close ALL holes to make mesh watertight
     if verbose:
-        print("  Closing small holes...")
+        print("  Closing holes...")
     try:
-        ms.meshing_close_holes(maxholesize=30)
+        # Close holes iteratively with increasing max size
+        for max_size in [100, 1000, 10000, 100000, 1000000]:
+            ms.meshing_close_holes(maxholesize=max_size)
+            try:
+                info = ms.get_topological_measures()
+                if info['boundary_edges'] == 0:
+                    break
+            except Exception:
+                pass
     except Exception:
         pass
 
-    # Step 6: Re-orient faces consistently
+    # Step 6: Close remaining small holes (e.g., triangular holes that pymeshlab misses)
+    try:
+        info = ms.get_topological_measures()
+        if info['boundary_edges'] > 0 and info['boundary_edges'] <= 10:
+            if verbose:
+                print(f"  Closing small remaining hole ({info['boundary_edges']} boundary edges)...")
+            # Save temp, use trimesh to close triangular hole
+            try:
+                import trimesh
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix='.obj', delete=False) as f:
+                    temp_path = f.name
+                ms.save_current_mesh(temp_path)
+
+                tmesh = trimesh.load(temp_path)
+                from collections import Counter
+                edge_counts = Counter(tuple(sorted(e)) for e in tmesh.edges)
+                boundary_edges = [e for e, c in edge_counts.items() if c == 1]
+
+                if len(boundary_edges) == 3:
+                    # Triangular hole - add one face
+                    boundary_verts = list(set(v for e in boundary_edges for v in e))
+                    new_faces = np.vstack([tmesh.faces, boundary_verts])
+                    tmesh = trimesh.Trimesh(vertices=tmesh.vertices, faces=new_faces, process=True)
+                    tmesh.fix_normals()
+                    tmesh.export(temp_path)
+
+                    # Reload in pymeshlab
+                    ms = pymeshlab.MeshSet()
+                    ms.load_new_mesh(temp_path)
+                    if verbose:
+                        print("    Closed triangular hole")
+
+                Path(temp_path).unlink()
+            except ImportError:
+                if verbose:
+                    print("    trimesh not available for small hole fix")
+    except Exception:
+        pass
+
+    # Step 7: Re-orient faces consistently
     if verbose:
         print("  Re-orienting faces...")
     try:
@@ -112,52 +164,50 @@ def preprocess_mesh(
     except Exception:
         pass
 
-    # Step 7: Isotropic remeshing for better triangle quality
-    if verbose:
-        print("  Remeshing for better triangle quality...")
+    # Step 8: Decimation or remeshing
+    current_faces = ms.current_mesh().face_number()
 
-    # Compute target edge length if not specified
-    if target_edge_length is None:
-        # Use bounding box diagonal / 100 as default
-        bbox = mesh.bounding_box()
-        diagonal = np.sqrt(
-            (bbox.max()[0] - bbox.min()[0])**2 +
-            (bbox.max()[1] - bbox.min()[1])**2 +
-            (bbox.max()[2] - bbox.min()[2])**2
-        )
-        target_edge_length = diagonal / 50  # Reasonable default
+    if target_faces is not None and target_faces < current_faces:
+        # Use decimation for large meshes
+        if verbose:
+            print(f"  Decimating from {current_faces} to ~{target_faces} faces...")
+        try:
+            ms.meshing_decimation_quadric_edge_collapse(targetfacenum=target_faces)
+            # Re-close any holes that appeared from decimation
+            ms.meshing_close_holes(maxholesize=1000)
+        except Exception as e:
+            if verbose:
+                print(f"    Decimation failed: {e}")
+    elif target_edge_length is not None or target_faces is None:
+        # Isotropic remeshing for better triangle quality
+        if verbose:
+            print("  Remeshing for better triangle quality...")
 
-    if verbose:
-        print(f"    Target edge length: {target_edge_length:.6f}")
+        # Compute target edge length if not specified
+        if target_edge_length is None:
+            bbox = mesh.bounding_box()
+            diagonal = np.sqrt(
+                (bbox.max()[0] - bbox.min()[0])**2 +
+                (bbox.max()[1] - bbox.min()[1])**2 +
+                (bbox.max()[2] - bbox.min()[2])**2
+            )
+            target_edge_length = diagonal / 50
 
-    try:
-        # Try different API versions for remeshing
+        if verbose:
+            print(f"    Target edge length: {target_edge_length:.6f}")
+
         try:
             ms.meshing_isotropic_explicit_remeshing(
-                targetlen=pymeshlab.AbsoluteValue(target_edge_length),
+                targetlen=pymeshlab.PercentageValue(1.0),  # 1% of bbox diagonal
                 iterations=remesh_iterations,
                 adaptive=True
             )
-        except AttributeError:
-            # Newer PyMeshLab API
-            ms.meshing_isotropic_explicit_remeshing(
-                iterations=remesh_iterations,
-                adaptive=True,
-                targetlen=target_edge_length
-            )
-    except Exception as e:
-        if verbose:
-            print(f"    Remeshing failed: {e}")
-            print("    Trying surface reconstruction instead...")
-
-        # Fallback: use Poisson surface reconstruction
-        try:
-            ms.generate_surface_reconstruction_screened_poisson(depth=8)
-        except Exception as e2:
+        except Exception as e:
             if verbose:
-                print(f"    Surface reconstruction also failed: {e2}")
+                print(f"    Remeshing failed: {e}")
+                print("    Skipping remeshing step...")
 
-    # Step 8: Final cleanup
+    # Step 9: Final cleanup
     ms.meshing_remove_duplicate_vertices()
     ms.meshing_remove_unreferenced_vertices()
 
@@ -315,25 +365,40 @@ def make_delaunay(mesh_path: str, output_path: Optional[str] = None, verbose: bo
 
 if __name__ == "__main__":
     import sys
+    import argparse
 
-    if len(sys.argv) < 2:
-        print("Usage: python preprocess_mesh.py <input.obj> [output.obj]")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(
+        description='Preprocess mesh for RSP pipeline',
+        epilog='''
+Examples:
+  python preprocess_mesh.py bunny.obj bunny_clean.obj
+  python preprocess_mesh.py bunny.obj bunny_clean.obj --target-faces 10000
+        '''
+    )
+    parser.add_argument('input', help='Input mesh file')
+    parser.add_argument('output', nargs='?', help='Output mesh file (default: input_clean.obj)')
+    parser.add_argument('--target-faces', type=int, help='Target face count for decimation')
+    parser.add_argument('-q', '--quiet', action='store_true', help='Suppress output')
 
-    input_path = sys.argv[1]
-    output_path = sys.argv[2] if len(sys.argv) > 2 else None
+    args = parser.parse_args()
+
+    input_path = args.input
+    output_path = args.output
+    verbose = not args.quiet
 
     # Check quality first
-    print("=" * 50)
-    print("QUALITY CHECK (before)")
-    print("=" * 50)
-    check_mesh_quality(input_path)
+    if verbose:
+        print("=" * 50)
+        print("QUALITY CHECK (before)")
+        print("=" * 50)
+        check_mesh_quality(input_path)
 
     # Preprocess
-    print("\n" + "=" * 50)
-    print("PREPROCESSING")
-    print("=" * 50)
-    result_path = preprocess_mesh(input_path, output_path)
+    if verbose:
+        print("\n" + "=" * 50)
+        print("PREPROCESSING")
+        print("=" * 50)
+    result_path = preprocess_mesh(input_path, output_path, target_faces=args.target_faces, verbose=verbose)
 
     # Check quality after
     print("\n" + "=" * 50)
