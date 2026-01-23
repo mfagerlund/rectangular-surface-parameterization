@@ -218,7 +218,7 @@ def preprocess_ortho_param(
         # tri_fix = [tri_hard(:); tri_bound]; % Corresponding faces
 
         ide_fix = np.concatenate([ide_hard, ide_bound])
-        tri_fix = np.concatenate([tri_hard.ravel(), tri_bound])
+        tri_fix = np.concatenate([tri_hard.ravel('F'), tri_bound])  # MATLAB tri_hard(:)
 
         # % If a face appears twice it is over constrained
         # % -> must be split in 3
@@ -273,7 +273,7 @@ def preprocess_ortho_param(
             # tri_fix = [tri_hard(:); tri_bound];
 
             ide_fix = np.concatenate([ide_hard, ide_bound])
-            tri_fix = np.concatenate([tri_hard.ravel(), tri_bound])
+            tri_fix = np.concatenate([tri_hard.ravel('F'), tri_bound])  # MATLAB tri_hard(:)
 
         # % Check that the remeshing worked
         # assert(numel(tri_fix) == length(unique(tri_fix)), 'Multiple constraints on a triangle.');
@@ -1093,13 +1093,13 @@ def preprocess_ortho_param(
 
     if ifboundary and ifhardedge:
         ide_fix_final = np.concatenate([ide_hard, ide_bound])
-        tri_fix_final = np.concatenate([tri_hard.ravel(), tri_bound])
+        tri_fix_final = np.concatenate([tri_hard.ravel('F'), tri_bound])  # MATLAB tri_hard(:)
     elif ifboundary:
         ide_fix_final = ide_bound
         tri_fix_final = tri_bound
     elif ifhardedge:
         ide_fix_final = ide_hard
-        tri_fix_final = tri_hard.ravel()
+        tri_fix_final = tri_hard.ravel('F')  # MATLAB tri_hard(:)
     else:
         ide_fix_final = np.array([], dtype=int)
         tri_fix_final = np.array([], dtype=int)

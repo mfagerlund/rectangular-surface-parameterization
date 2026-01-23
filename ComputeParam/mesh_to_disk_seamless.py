@@ -1,6 +1,6 @@
 # === ISSUES ===
 # - wrapToPi: use np.arctan2(np.sin(x), np.cos(x)) or custom wrap function
-# - cut_mesh: import from cut_mesh_with_python.py
+# - cut_mesh: import from cut_mesh.py
 # - dec_tri: import from Preprocess.dec_tri
 # - ismember: use numpy set operations and row matching
 # - blkdiag: use scipy.sparse.block_diag
@@ -67,7 +67,7 @@ import os
 # Add parent directory for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from .cut_mesh_with_python import cut_mesh, MeshInfo as CutMeshInfo
+from .cut_mesh import cut_mesh, MeshInfo as CutMeshInfo
 from .matrix_vector_multiplication import matrix_vector_multiplication
 from Preprocess.dec_tri import dec_tri, DEC
 from Preprocess.MeshInfo import MeshInfo
@@ -357,24 +357,32 @@ def mesh_to_disk_seamless(
 
                 # [~,ia] = ismember(param.tri_fix, tri_fix_cut);
 
-                # Find indices where param.tri_fix appears in tri_fix_cut
-                # This is like finding the inverse permutation
+                # MATLAB ismember(A, B) returns:
+                #   lia: logical array, lia[k] = true if A[k] is in B
+                #   locb: index array, locb[k] = first index of A[k] in B (0 if not found)
+                # Here we need locb, which gives the index mapping.
                 tri_fix_param = np.asarray(tri_fix)
-                _, ia = np.unique(tri_fix_cut, return_inverse=True)
 
-                # Actually, ismember returns the index in tri_fix_cut for each element of tri_fix
-                # Let's do this properly
-                tri_fix_cut_set = set(tri_fix_cut.tolist())
-                ia = []
-                for t in tri_fix_param:
-                    if t in tri_fix_cut_set:
-                        idx = np.where(tri_fix_cut == t)[0]
-                        if len(idx) > 0:
-                            ia.append(idx[0])
-                ia = np.array(ia)
+                # Build lookup dict: value -> first occurrence index in tri_fix_cut
+                tri_fix_cut_dict = {}
+                for i, t in enumerate(tri_fix_cut):
+                    if t not in tri_fix_cut_dict:  # First occurrence only (MATLAB semantics)
+                        tri_fix_cut_dict[t] = i
+
+                # For each element in tri_fix_param, find its index in tri_fix_cut
+                # MATLAB uses 0 for not-found; we use -1 (will filter out later)
+                ia = np.array([tri_fix_cut_dict.get(t, -1) for t in tri_fix_param], dtype=int)
 
                 # assert(length(ia) == length(tri_fix_cut))
-                # This assertion may not hold exactly due to indexing differences
+                # This checks that param.tri_fix and tri_fix_cut have the same length
+                # (they should be a bijection - all triangles match)
+                assert len(tri_fix_param) == len(tri_fix_cut), \
+                    f"ismember length mismatch: {len(tri_fix_param)} vs {len(tri_fix_cut)}"
+
+                # Filter to only found elements (where ia >= 0)
+                found_mask = ia >= 0
+                ia = ia[found_mask]
+                tri_fix_param = tri_fix_param[found_mask]
 
                 # ide_fix_cut = [ide_fix_cut; ide_fix_cut];
                 # ide_fix_cut = ide_fix_cut(id);

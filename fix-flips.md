@@ -2,15 +2,17 @@
 
 ## Problem Statement
 
-The UV recovery phase produces flipped triangles (~0.78%) on genus > 0 surfaces (e.g., torus).
+The UV recovery phase was producing flipped triangles on genus > 0 surfaces (e.g., torus).
 
-**Root cause (identified in Stage 1):** Two bugs in `uv_recovery.py`:
+**Root cause (identified in Stage 1):** Three bugs in `uv_recovery.py`:
 
-1. **Bug 1 (line 140):** Cut edges skip RHS averaging - should average with rotation like non-cut edges
-2. **Bug 2 (lines 275-284):** Adds edge-vector constraints for cut edges - paper adds NO constraints
+1. **Bug 1 (line 140):** Cut edges skip RHS averaging - FIXED in commit e2d5524
+2. **Bug 2 (lines 275-284):** Adds edge-vector constraints for cut edges - FIXED in commit fa26f1f
+3. **Bug 3 (line 155):** RHS averaging uses subtraction instead of addition - FIXED (uncommitted)
 
-**Original hypothesis (WRONG):**
-> The paper requires `e_A = R_zeta * e_B`, which couples u/v and requires a coupled solve.
+**STATUS: ALL BUGS FIXED (2025-01-23)**
+- Regression tests added in `tests/test_parametrization_from_scales.py`
+- Remaining: re-run pipeline to verify flip count is now 0
 
 **Actual fix (from Algorithm 11):**
 - Apply rotated averaging `b = (1/2)(R_ζ μ_A + μ_B)` to ALL interior edges (cut and non-cut)
@@ -398,11 +400,19 @@ else:  # Cut edge (Gamma[e] == 1)
 ### 2.4 Implementation Steps
 
 1. [x] ~~Verify zeta direction from paper~~ (A→B direction confirmed)
-2. [ ] Fix RHS: remove `Gamma[e] == 1` from boundary check (line 140)
-3. [ ] Fix RHS: change `-` to `+` in averaging (line 154)
-4. [ ] Remove edge-vector constraints for cut edges (lines 275-284)
+2. [x] ~~Fix RHS: remove `Gamma[e] == 1` from boundary check~~ (Fixed in commit fa26f1f)
+3. [x] ~~Fix RHS: change `-` to `+` in averaging~~ (Fixed in working directory - line 155 now uses addition)
+4. [x] ~~Remove edge-vector constraints for cut edges~~ (Fixed in commit fa26f1f - code uses `if Gamma[e] == 1: continue`)
 5. [ ] Test on torus - expect 0 flips
 6. [ ] Test on sphere - verify no regression (should still have 0 flips)
+
+**Status Update (2026-01-23):**
+- BUG 1 (RHS averaging uses subtraction) was fixed in working directory (uncommitted)
+- BUG 2 (edge-vector constraints for cut edges) was fixed in commit fa26f1f
+- The current uv_recovery.py correctly skips cut edges in U matrix construction (lines 233-234)
+- The current uv_recovery.py uses ADDITION in RHS averaging (line 155: `mu_rot + mu[he_twin]`)
+- Test added: `test_parametrization_from_scales.py::TestCutEdgeConstraints::test_u_matrix_has_no_rows_for_cut_edges`
+- Test added: `test_parametrization_from_scales.py::TestRHSAveragingFormula::test_rhs_formula_uses_addition_not_subtraction`
 
 ---
 

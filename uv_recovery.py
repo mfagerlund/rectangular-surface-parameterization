@@ -128,9 +128,8 @@ def recover_parameterization(
         mu[he_20, 1] = ell[e20] * b_he[he_20] * np.sin(eta_20)
 
     # Step 12-13: Build right-hand side b
-    # Subtraction formula: b = 0.5 * (R_zeta * mu[he] - mu[he_twin])
-    # mu[he] and mu[he_twin] point in opposite directions for the same edge,
-    # so subtracting gives a consistent edge vector direction
+    # Algorithm 11 line 13: b = (1/2)(R_ζ μ^k_ij + μ^l_ji)
+    # Uses ADDITION to average the rotated mu vectors from both sides of the edge
     b_rhs = np.zeros((n_halfedges, 2))
 
     for he in range(n_halfedges):
@@ -143,7 +142,6 @@ def recover_parameterization(
         else:
             # ALL interior edges (cut or not) - average with rotation
             # Algorithm 11 line 13: b = (1/2)(R_ζ μ^k_ij + μ^l_ji)
-            # Interior edge - rotate current mu by oriented zeta, subtract twin
             he0 = mesh.edge_to_halfedge[e, 0]
             z = zeta[e] if he == he0 else -zeta[e]
             cos_z, sin_z = np.cos(z), np.sin(z)
@@ -153,7 +151,8 @@ def recover_parameterization(
                 sin_z * mu[he, 0] + cos_z * mu[he, 1]
             ])
 
-            b_rhs[he] = 0.5 * (mu_rot - mu[he_twin])
+            # Paper uses ADDITION: b = (1/2)(R_ζ μ^k_ij + μ^l_ji)
+            b_rhs[he] = 0.5 * (mu_rot + mu[he_twin])
 
     # Build the linear system following Algorithm 11's indexing
     # For each halfedge he (edge i->j in face with opposite corner k):

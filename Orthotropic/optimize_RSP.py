@@ -546,25 +546,56 @@ def _zero_rows(mat: sp.spmatrix, row_indices: np.ndarray) -> sp.spmatrix:
 
 def _solve_qp_equality_constrained(
     H: sp.spmatrix,
-    A: sp.spmatrix,
-    b: np.ndarray
+    A_kkt: sp.spmatrix,
+    b_kkt: np.ndarray
 ) -> np.ndarray:
     """
-    Fallback QP solver with equality constraints.
+    Fallback QP solver when direct KKT solve fails.
 
-    Solves A @ x = b using least squares with H as regularizer.
-    This is a simplified approach when direct KKT solve fails.
+    Solves the KKT system using regularized least squares with the
+    provided regularization matrix H to improve conditioning.
+
+    The MATLAB code uses quadprog as fallback:
+        x = quadprog(H, f, [], [], A, b)
+    which solves: min 0.5*x'*H*x + f'*x  s.t. A*x = b
+
+    Since f=0 in the MATLAB code, this is equivalent to solving the
+    regularized KKT system with H providing numerical stability.
 
     Args:
-        H: Regularization matrix (positive semi-definite)
-        A: Constraint matrix
-        b: RHS vector
+        H: Regularization matrix (positive semi-definite) - NOT CURRENTLY USED
+            but kept for API compatibility and future improvement
+        A_kkt: KKT system matrix
+        b_kkt: KKT RHS vector
 
     Returns:
         x: Solution vector
     """
-    from scipy.sparse.linalg import lsqr
+    from scipy.sparse.linalg import lsqr, lsmr
 
-    # Use LSQR for least-squares solution
-    result = lsqr(A, b)
+    # Try LSMR first (often more stable than LSQR for ill-conditioned systems)
+    # LSMR is mathematically equivalent to applying MINRES to the normal equations
+    result = lsmr(A_kkt, b_kkt, atol=1e-10, btol=1e-10, maxiter=10000)
+    x = result[0]
+
+    # Check residual
+    residual = np.linalg.norm(A_kkt @ x - b_kkt)
+    if residual < 1e-5:
+        return x
+
+    # If LSMR fails, try adding regularization to diagonal
+    # This mimics what quadprog would do with positive definite H
+    n = A_kkt.shape[0]
+    reg_factor = 1e-8
+    A_reg = A_kkt + reg_factor * sp.eye(n, format='csr')
+    try:
+        x = spsolve(A_reg, b_kkt)
+        residual = np.linalg.norm(A_kkt @ x - b_kkt)
+        if residual < 1e-5:
+            return x
+    except Exception:
+        pass
+
+    # Last resort: use LSQR with damping
+    result = lsqr(A_kkt, b_kkt, damp=1e-6, atol=1e-10, btol=1e-10, iter_lim=10000)
     return result[0]

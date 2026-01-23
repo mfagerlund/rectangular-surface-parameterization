@@ -90,13 +90,17 @@ See `verification-plan.md` for detailed status. Summary:
 | Stage | Status |
 |-------|--------|
 | 1. Geometry | ✓ VERIFIED (54 pytest tests pass) |
-| 2. Cross Field | ~ PARTIAL (math correct, 14 singularities vs optimal 4) |
-| 3. Cut Graph | ? INVESTIGATE (cone/singularity mismatch suspected) |
-| 4. Optimization | ? UNKNOWN (depends on 2-3) |
-| 5. UV Recovery | ✗ BROKEN (28 flips, overlapping/inverted) |
+| 2. Cross Field | ✓ VERIFIED (8 singularities, sum=chi, matches MATLAB) |
+| 3. Cut Graph | ✓ VERIFIED (41 cut edges, 7 tests pass) |
+| 4. Optimization | ✓ VERIFIED (normalization bug fixed, 2 tests pass) |
+| 5. UV Recovery | ~ IN PROGRESS (10 flips, bugs fixed, needs retest) |
 
-**Key insight:** MATLAB passes cross-field singularities directly to cut_mesh.
-Python recomputes cones differently, which may cause the mismatch.
+**UV Recovery bugs FIXED (2025-01-23):**
+- BUG 1: Cut edges now use RHS rotation averaging (commit e2d5524)
+- BUG 2: Cut edges no longer have incorrect constraints (commit fa26f1f)
+- BUG 3: RHS averaging now uses addition not subtraction (uncommitted)
+
+**Remaining work:** Re-run pipeline to verify flip count reduced to 0
 
 ## Documentation
 

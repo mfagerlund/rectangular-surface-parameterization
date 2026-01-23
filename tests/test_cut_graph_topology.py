@@ -226,6 +226,47 @@ class TestUVQuality:
             f"Too many flipped triangles: {quality['flipped_count']} > {max_flips:.0f} (5%)"
         )
 
+    @pytest.mark.xfail(reason="BUG: UV recovery produces 10 flipped triangles on sphere320 - should be 0. See fix-flips.md for root cause (BUG 1-2 in uv_recovery.py)")
+    def test_zero_flips(self):
+        """UV should have ZERO flipped triangles for quad meshing.
+
+        This is the strict requirement for quad meshing - any flips break
+        integer-grid extraction. The current implementation has bugs in
+        uv_recovery.py (see fix-flips.md BUG 1-2):
+        - BUG 1: Cut edges skip RHS rotation averaging
+        - BUG 2: Adds incorrect edge-vector constraints for cut edges
+
+        Current state:
+        - Old code path (cut_graph.py + uv_recovery.py): 10 flips (3.1%)
+        - MATLAB-ported path (run_RSP.py): 46 flips (14.4%)
+        """
+        from optimization import solve_constraints_only
+        from uv_recovery import recover_parameterization, compute_uv_quality
+        from geometry import compute_edge_lengths
+
+        mesh, Gamma, cone_indices, _ = compute_cut_data_for_mesh(get_test_mesh_path())
+
+        # Get cut data
+        from geometry import compute_corner_angles
+        from cross_field import compute_smooth_cross_field
+        alpha = compute_corner_angles(mesh)
+        W, xi = compute_smooth_cross_field(mesh, smoothing_iters=50, verbose=False)
+        from cut_graph import compute_cut_jump_data
+        Gamma, zeta, s, phi, omega0 = compute_cut_jump_data(mesh, alpha, xi, singularities=cone_indices)
+
+        # Solve and recover UV
+        u, v, theta = solve_constraints_only(mesh, alpha, phi, omega0, s, verbose=False)
+        ell = compute_edge_lengths(mesh)
+        corner_uvs = recover_parameterization(mesh, Gamma, zeta, ell, alpha, phi, theta, s, u, v)
+
+        # Check quality - MUST be exactly 0 for quad meshing
+        quality = compute_uv_quality(mesh, corner_uvs)
+
+        assert quality['flipped_count'] == 0, (
+            f"UV recovery produces {quality['flipped_count']} flipped triangles - must be 0 for quad meshing. "
+            f"See fix-flips.md for root cause analysis."
+        )
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

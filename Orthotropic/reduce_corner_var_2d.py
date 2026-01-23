@@ -13,17 +13,24 @@ from Preprocess.sort_triangles import sort_triangles
 
 # function [Edge_jump,v2t,base_tri] = reduce_corner_var_2d(Src)
 
-def reduce_corner_var_2d(Src) -> Tuple[sp.csr_matrix, sp.csr_matrix, np.ndarray]:
+def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_matrix, sp.csr_matrix, np.ndarray]:
     """
     Reduce corner variables to vertex variables without cut edges.
 
     Builds a reduction matrix that maps vertex variables to corner variables
     by accumulating edge jumps around each vertex.
 
+    WARNING: This function is designed for CLOSED meshes only. For meshes with
+    boundaries, use reduce_corner_var_2d_cut instead, which properly handles
+    cut edges and boundary vertices.
+
     Parameters
     ----------
     Src : mesh data structure
         Contains nv, nf, ne, T, E2T, T2T, E2V, T2E
+    allow_open_mesh : bool, default False
+        If False, raises ValueError for meshes with boundary edges.
+        Set to True only if you understand the limitations on open meshes.
 
     Returns
     -------
@@ -33,7 +40,21 @@ def reduce_corner_var_2d(Src) -> Tuple[sp.csr_matrix, sp.csr_matrix, np.ndarray]
         Vertex to corner mapping matrix
     base_tri : ndarray (nv,)
         Base triangle for each vertex
+
+    Raises
+    ------
+    ValueError
+        If mesh has boundary edges and allow_open_mesh is False.
     """
+    # Check for boundary edges (E2T[:, 1] == -1 indicates boundary)
+    if hasattr(Src, 'E2T'):
+        has_boundary = np.any(Src.E2T[:, 1] < 0)
+        if has_boundary and not allow_open_mesh:
+            raise ValueError(
+                "reduce_corner_var_2d is designed for closed meshes only. "
+                "For meshes with boundaries, use reduce_corner_var_2d_cut instead, "
+                "or set allow_open_mesh=True if you understand the limitations."
+            )
     # base_tri = zeros(Src.nv,1);
     # path_vx = cell(Src.nv,1);
     # path_edge = cell(Src.nv,1);

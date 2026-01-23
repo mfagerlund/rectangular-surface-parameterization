@@ -4,8 +4,7 @@ Scope: Review of `MATLAB_CONVERSION.md` guidance and all Python files that still
 
 ## File Inventory (MATLAB-commented sources)
 
-- `ComputeParam/cut_mesh.py`
-- `ComputeParam/cut_mesh_with_python.py`
+- `ComputeParam/cut_mesh.py` (was cut_mesh_with_python.py)
 - `ComputeParam/parametrization_from_scales.py`
 - `ComputeParam/matrix_vector_multiplication.py`
 - `ComputeParam/mesh_to_disk_seamless.py`
@@ -79,14 +78,8 @@ Recommendation: verify downstream logic does not still treat `0` as sentinel. Se
 ## File-by-File Findings
 
 ### `ComputeParam/cut_mesh.py`
-- Status: MATLAB-only comments; no Python implementation present.
-- Issues block: missing.
-- Impact: If `cut_mesh.py` is imported anywhere, it will be non-functional. The project seems to use `cut_mesh_with_python.py` instead, but this file is misleadingly named as a Python module.
-- Recommendation: either implement the Python translation here, or remove/rename the file to avoid accidental import.
-
-### `ComputeParam/cut_mesh_with_python.py`
-- Status: Full Python implementation with interleaved MATLAB comments.
-- Issues block: missing.
+- Status: Full Python implementation with interleaved MATLAB comments. **(FIXED: consolidated from cut_mesh_with_python.py)**
+- Issues block: present. **(FIXED)**
 - Indexing handling:
   - Detects 1-based inputs and shifts indices to 0-based for internal use.
   - Converts 0-sentinel to `-1` for boundary adjacency (`E2T`, `T2T`).
@@ -202,15 +195,32 @@ Recommendation: verify downstream logic does not still treat `0` as sentinel. Se
 
 ## Cross-Cutting Risks / Gaps
 
-1) Missing `ISSUES` headers in `cut_mesh.py` and `cut_mesh_with_python.py`. This violates the documented conversion rule and makes it harder to audit missing MATLAB functions.
-2) One MATLAB source (`cut_mesh.py`) has no Python translation and could mislead consumers or cause import errors.
-3) Some row-major `.ravel()` calls likely do not matter, but any instance standing in for MATLAB `vec()` should be upgraded to `ravel('F')` or `Utils/vec.py`.
+1) ~~Missing `ISSUES` headers in `cut_mesh.py` and `cut_mesh_with_python.py`.~~ **(FIXED)**
+2) ~~One MATLAB source (`cut_mesh.py`) has no Python translation.~~ **(FIXED: consolidated into single cut_mesh.py)**
+3) ~~Some row-major `.ravel()` calls standing in for MATLAB `vec()`.~~ **(FIXED in preprocess_ortho_param.py)**
 4) Signed edge encoding appears consistent in `connectivity.py` and downstream decoders, but any code path that constructs signed indices without the +1 offset would silently lose sign on edge 0.
 
 ## Suggested Next Actions
 
-- Add `ISSUES` blocks to `ComputeParam/cut_mesh.py` and `ComputeParam/cut_mesh_with_python.py` (even if empty or noting dependencies).
-- Decide whether `ComputeParam/cut_mesh.py` should be removed, renamed, or fully implemented to avoid confusion.
-- Audit all `.ravel()` / `.flatten()` calls in MATLAB-derived files; confirm where order matters, and standardize on `ravel('F')` for true MATLAB vec() conversions.
+- ~~Add `ISSUES` blocks to `ComputeParam/cut_mesh.py` and `ComputeParam/cut_mesh_with_python.py`.~~ **(DONE)**
+- ~~Decide whether `ComputeParam/cut_mesh.py` should be removed, renamed, or fully implemented.~~ **(DONE: consolidated)**
+- ~~Audit all `.ravel()` / `.flatten()` calls in MATLAB-derived files.~~ **(DONE: fixed preprocess_ortho_param.py)**
 - Confirm every creation of signed edge indices uses `(edge_idx + 1) * sign` and that all consumers decode with `abs(x) - 1`.
 - Add a small set of parity tests for edge cases: boundary edges, edge 0 with negative sign, and vec() ordering on 2D arrays.
+
+## Fixes Applied (2025-01-23)
+
+1. **Consolidated `cut_mesh` files**: Deleted redundant MATLAB-only file and renamed `cut_mesh_with_python.py` → `cut_mesh.py` to match original MATLAB filename. The Python file contains full MATLAB source as comments per convention.
+
+2. **Added ISSUES block to `cut_mesh.py`**: Documents key conversion notes including:
+   - Local MeshInfo implementation
+   - Union-find translation with path compression
+   - Auto-detection of 1-based/0-based indexing
+   - Signed 1-based ide_cut_inv output for edge 0 sign preservation
+   - Boundary sentinel convention (-1)
+
+3. **Fixed `.ravel()` calls in `preprocess_ortho_param.py`**: Changed 4 instances of `tri_hard.ravel()` to `tri_hard.ravel('F')` to match MATLAB `tri_hard(:)` column-major semantics (lines 221, 276, 1096, 1102).
+
+**Remaining items from original list:**
+- Confirm every signed edge encoding uses `(edge_idx + 1) * sign` pattern
+- Add parity tests for edge cases (boundary edges, edge 0 sign, vec() ordering)

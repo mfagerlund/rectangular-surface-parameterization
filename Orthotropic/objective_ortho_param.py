@@ -216,25 +216,32 @@ def objective_ortho_param(
         # H_uv = weight.w_ratio*Conf;
         # df_uv = Reduction'*H_uv*diff;
         # fct = diff'*H_uv*diff;
-        log_aspect_ratio = np.log(weight.aspect_ratio) / 2
 
         ut_flat = ut.ravel('F')
         vt_flat = vt.ravel('F')
         uv_flat = np.concatenate([ut_flat, vt_flat])
 
-        # repmat(log_aspect_ratio, [6,1]) means 6*nf copies
-        # Wait, in MATLAB [ut(:); vt(:)] is 6*nf if ut and vt are nf x 3 each
-        # Actually ut(:) in column-major is 3*nf, so [ut(:); vt(:)] is 6*nf
-        # repmat(log_aspect_ratio, [6,1]) would be 6 copies but that doesn't match
-        # Looking more carefully: MATLAB repmat(x, [6,1]) on a scalar makes [x;x;x;x;x;x]
-        # But we need 6*nf elements, so this must mean repmat(log_aspect_ratio*ones(nf,1), [6,1])
-        # Actually the code has: diff = [ut(:); vt(:)] - repmat(log_aspect_ratio, [6,1])
-        # where [ut(:); vt(:)] is 6*nf, so repmat must produce 6*nf
-        # repmat(scalar, [6, 1]) = 6x1 vector, which doesn't match
-        # This might be a MATLAB broadcasting thing or there's implicit expansion
-        # Looking at it again: diff size is 6*nf, repmat(log_aspect_ratio, [6,1]) is 6x1
-        # In newer MATLAB this would broadcast. Let's assume it means all elements.
-        diff = uv_flat - log_aspect_ratio
+        # Handle both scalar and per-face aspect_ratio
+        # MATLAB: repmat(log_aspect_ratio, [6,1]) broadcasts scalar to all 6*nf elements
+        # If aspect_ratio is per-face (nf,), we need to tile it to match [ut(:); vt(:)]
+        aspect_ratio = np.atleast_1d(weight.aspect_ratio)
+        log_aspect_ratio = np.log(aspect_ratio) / 2
+
+        if log_aspect_ratio.size == 1:
+            # Scalar case: broadcast to all elements
+            diff = uv_flat - log_aspect_ratio[0]
+        elif log_aspect_ratio.size == nf:
+            # Per-face case: tile to match corner structure
+            # ut_flat has 3*nf elements (nf faces x 3 corners, column-major)
+            # vt_flat has 3*nf elements
+            # Need to repeat each face's value 3 times for its corners
+            # Column-major: corners are at indices [f, f+nf, f+2*nf] for face f
+            log_ar_tiled = np.tile(log_aspect_ratio, 6)  # [ar0..ar_{nf-1}] x 6
+            diff = uv_flat - log_ar_tiled
+        else:
+            raise ValueError(
+                f"aspect_ratio must be scalar or (nf,) array, got shape {aspect_ratio.shape}"
+            )
 
         # Conf = blkdiag(0*AeT, AeT)
         Conf = sp.block_diag([zero_AeT, AeT])
