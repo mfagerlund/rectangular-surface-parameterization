@@ -1,5 +1,12 @@
 # Integer-Grid Maps for Quad Meshing
 
+> **Note:** This document describes the algorithm for quad extraction from integer-grid maps.
+> This is a **downstream step beyond the Corman-Crane paper**, which produces the seamless
+> UV parameterization that serves as input to quad extraction.
+>
+> **Implementation:** We use [libQEx](https://github.com/hcebke/libQEx) for robust quad extraction.
+> Pre-built Windows binaries are included in `bin/`. See `docs/libqex_setup.md` for details.
+
 **Source**: Bommes et al., "Integer-Grid Maps for Reliable Quad Meshing", SIGGRAPH 2013
 
 ## Core Concept

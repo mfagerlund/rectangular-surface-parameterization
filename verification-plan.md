@@ -17,8 +17,12 @@ Previous work rushed ahead as soon as one thing appeared to work, without crossi
 ## Pipeline Stages
 
 ```
-1. Geometry → 2. Cross Field → 3. Cut Graph → 4. Optimization → 5. UV Recovery
+1. Geometry → 2. Cross Field → 3. Cut Graph → 4. Optimization → 5. UV Recovery → [6. Quad Extraction]
 ```
+
+**Stages 1-5**: Covered by Corman-Crane paper (SIGGRAPH 2025). Produces seamless UV parameterization.
+
+**Stage 6**: Quad extraction from integer-grid maps. **Beyond paper scope** but included for completeness using [libQEx](https://github.com/hcebke/libQEx).
 
 Each stage must be verified independently. A bug in stage N corrupts all stages N+1 onward.
 
@@ -255,7 +259,38 @@ See `verification-visualisation-plan.md` for implementation details.
 
 ---
 
+---
+
+## Stage 6: Quad Extraction (Beyond Paper)
+
+**Status**: [ ] NOT IMPLEMENTED
+
+**Note:** This stage is **beyond the scope of the Corman-Crane paper**. The paper produces a seamless UV parameterization; quad extraction is a separate downstream step included here for completeness.
+
+**What's needed:**
+1. **Quantization**: Move singularities to integer UV coordinates
+2. **Quad extraction**: Trace integer iso-lines to form quads
+
+**Implementation:** Using [libQEx](https://github.com/hcebke/libQEx) (GPL, SIGGRAPH Asia 2013)
+- Pre-built Windows x64 binaries included in `bin/`
+- Algorithm details: `docs/algo_integer_grid_maps.md`
+- Setup: `docs/libqex_setup.md`
+
+**What to verify:**
+- [ ] All quads are valid (4 vertices, planar-ish)
+- [ ] No degenerate quads (zero area)
+- [ ] Mesh is watertight (if input was watertight)
+- [ ] Quad count reasonable (proportional to UV area / target size)
+
+**References:**
+- libQEx paper: [QEx: Robust Quad Mesh Extraction](https://dl.acm.org/doi/10.1145/2508363.2508372)
+- Integer Grid Maps: [Bommes et al. 2013](https://dl.acm.org/doi/10.1145/2461912.2462014)
+
+---
+
 ## References
 
 - Main paper: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025.pdf`
 - Supplement: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025-supplement.pdf`
+- libQEx: https://github.com/hcebke/libQEx
+- QEx paper: https://dl.acm.org/doi/10.1145/2508363.2508372

@@ -12,8 +12,10 @@
 - Goal: 0 flipped triangles + compact UV layout.
 
 ## Pipeline
-Stages: `Geometry -> Cross Field -> Cut Graph -> Optimization -> UV Recovery`
-Phases: Load mesh -> geometry -> cross field -> cut graph -> sparse ops -> optimization -> UV recovery.
+Stages: `Geometry -> Cross Field -> Cut Graph -> Optimization -> UV Recovery -> [Quad Extraction]`
+Phases: Load mesh -> geometry -> cross field -> cut graph -> sparse ops -> optimization -> UV recovery -> (optional) quad mesh.
+
+**Note:** The Corman-Crane paper covers stages 1-5 (producing seamless UV parameterization). Quad extraction (stage 6) is a separate downstream step, included here for completeness.
 
 ## Two Implementations
 
@@ -97,8 +99,29 @@ Run `python Utils/verify_pipeline.py <mesh> -o output/` to generate per-stage vi
 
 See `verification-visualisation-plan.md` for implementation details.
 
+## Quad Extraction (Beyond Paper)
+
+The Corman-Crane paper produces a **seamless UV parameterization** - the input for quad meshing, not the quad mesh itself. To extract actual quads, two additional steps are needed:
+
+### 1. Quantization
+Move singularities to integer UV coordinates. The MATLAB reference uses an external C++ tool (`QuantizationYoann/`) which is not ported.
+
+### 2. Quad Extraction with libQEx
+We use [libQEx](https://github.com/hcebke/libQEx) (GPL, SIGGRAPH Asia 2013) for robust quad mesh extraction from integer-grid maps.
+
+**Pre-built binaries** are included in `bin/` (Windows x64 only). No build required.
+
+To build from source (optional):
+- CMake 2.6+, Visual Studio with SSE support
+- [OpenMesh](https://www.graphics.rwth-aachen.de/software/openmesh/) library
+- See `docs/libqex_setup.md`
+
+**References:**
+- libQEx paper: [QEx: Robust Quad Mesh Extraction](https://dl.acm.org/doi/10.1145/2508363.2508372)
+- Algorithm details: `docs/algo_integer_grid_maps.md`
+
 ## Docs
-`verification-plan.md`, `verification-visualisation-plan.md`, `docs/algo_integer_grid_maps.md`
+`verification-plan.md`, `verification-visualisation-plan.md`, `docs/algo_integer_grid_maps.md`, `docs/libqex_setup.md`
 
 ## License
 MIT
