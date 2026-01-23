@@ -21,6 +21,34 @@ from Utils.readOBJ import readOBJ
 from Utils.libqex_wrapper import extract_quads, save_quad_obj
 
 
+def preprocess_mesh_if_needed(mesh_path, output_dir, verbose=False):
+    """
+    Preprocess mesh using PyMeshLab to clean it for the pipeline.
+
+    Returns the path to the cleaned mesh.
+    """
+    try:
+        from Utils.preprocess_mesh import preprocess_mesh
+    except ImportError:
+        print("Warning: PyMeshLab not installed. Skipping preprocessing.")
+        print("Install with: pip install pymeshlab")
+        return mesh_path
+
+    mesh_name = Path(mesh_path).stem
+    clean_path = output_dir / f"{mesh_name}_clean.obj"
+
+    if verbose:
+        print(f"Preprocessing mesh: {mesh_path}")
+
+    try:
+        preprocess_mesh(str(mesh_path), str(clean_path), verbose=verbose)
+        return clean_path
+    except Exception as e:
+        print(f"Warning: Preprocessing failed: {e}")
+        print("Continuing with original mesh...")
+        return mesh_path
+
+
 def run_rsp(mesh_path, output_dir, verbose=False):
     """
     Run the RSP parameterization pipeline.
@@ -102,6 +130,8 @@ def main():
                         help='Scale factor for UVs (controls quad density)')
     parser.add_argument('--skip-rsp', action='store_true',
                         help='Skip RSP step, use existing _param.obj file')
+    parser.add_argument('--preprocess', action='store_true',
+                        help='Preprocess mesh with PyMeshLab before running RSP')
 
     args = parser.parse_args()
 
@@ -109,13 +139,20 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    mesh_name = Path(args.mesh).stem
+    input_mesh = args.mesh
+    mesh_name = Path(input_mesh).stem
+
+    # Preprocess mesh if requested
+    if args.preprocess and not args.skip_rsp:
+        input_mesh = preprocess_mesh_if_needed(input_mesh, output_dir, verbose=args.verbose)
+        mesh_name = Path(input_mesh).stem  # Update name if preprocessing created new file
+
     param_path = output_dir / f"{mesh_name}_param.obj"
 
     # Run RSP pipeline (unless skipped)
     if not args.skip_rsp:
         print("Running RSP parameterization pipeline...")
-        param_path = run_rsp(args.mesh, output_dir, verbose=args.verbose)
+        param_path = run_rsp(str(input_mesh), output_dir, verbose=args.verbose)
         print(f"RSP output: {param_path}")
     else:
         if not param_path.exists():

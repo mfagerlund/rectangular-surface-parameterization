@@ -34,6 +34,8 @@ There was an old implementation done without MATLAB reference. It was deleted be
 ## Requirements
 Python 3.8+, NumPy, SciPy, Matplotlib. Install: `pip install numpy scipy matplotlib`
 
+Optional for mesh preprocessing: `pip install pymeshlab`
+
 ## Commands
 
 ### MATLAB-ported pipeline (PRIMARY)
@@ -56,6 +58,27 @@ pytest tests/ -v
 ```
 
 Test meshes: `C:/Dev/Colonel/Data/Meshes/sphere320.obj` (genus 0), `C:/Dev/Colonel/Data/Meshes/torus.obj` (genus 1).
+
+### Quad Extraction (full pipeline)
+```bash
+# Generate quad mesh from triangle mesh (RSP + libQEx)
+python extract_quads.py mesh.obj -o Results/ --scale 10
+
+# With preprocessing for problematic meshes (requires pymeshlab)
+python extract_quads.py mesh.obj -o Results/ --scale 10 --preprocess
+
+# Skip RSP if already parameterized
+python extract_quads.py mesh.obj -o Results/ --scale 10 --skip-rsp
+```
+
+### Mesh Preprocessing (standalone)
+```bash
+# Preprocess a mesh for the RSP pipeline (requires pymeshlab)
+python Utils/preprocess_mesh.py mesh.obj mesh_clean.obj
+
+# Check mesh quality diagnostics
+python -c "from Utils.preprocess_mesh import check_mesh_quality; check_mesh_quality('mesh.obj')"
+```
 
 ## References (READ)
 MATLAB impl: https://github.com/etcorman/RectangularSurfaceParameterization (local: `C:\Slask\RectangularSurfaceParameterization`)
@@ -103,6 +126,20 @@ See `verification-visualisation-plan.md` for implementation details.
 
 The Corman-Crane paper produces a **seamless UV parameterization** - the input for quad meshing, not the quad mesh itself. To extract actual quads, two additional steps are needed:
 
+### Full Pipeline: `extract_quads.py`
+Runs RSP parameterization + libQEx quad extraction in one command:
+```bash
+python extract_quads.py mesh.obj -o Results/ --scale 10 -v
+```
+Options:
+- `--scale N` - Scale UVs to control quad density (higher = more quads)
+- `--preprocess` - Clean mesh with PyMeshLab before RSP (for problematic meshes)
+- `--skip-rsp` - Use existing `*_param.obj` file
+
+Output: `Results/<mesh>_quads.obj`
+
+**Note:** Triangular holes at singularities are expected (where cross field has +90° or -90° rotation).
+
 ### 1. Quantization
 Move singularities to integer UV coordinates. The MATLAB reference uses an external C++ tool (`QuantizationYoann/`) which is not ported.
 
@@ -120,8 +157,54 @@ To build from source (optional):
 - libQEx paper: [QEx: Robust Quad Mesh Extraction](https://dl.acm.org/doi/10.1145/2508363.2508372)
 - Algorithm details: `docs/algo_integer_grid_maps.md`
 
+## Mesh Preprocessing
+
+Many real-world meshes fail the RSP pipeline due to quality issues. Use `Utils/preprocess_mesh.py`:
+
+```python
+from Utils.preprocess_mesh import preprocess_mesh, check_mesh_quality
+
+# Diagnose issues
+check_mesh_quality("mesh.obj")
+
+# Clean mesh (remesh, fill holes, fix non-manifold)
+preprocess_mesh("mesh.obj", "mesh_clean.obj")
+```
+
+Or use `--preprocess` flag with `extract_quads.py`.
+
+### Robustness Fixes
+The pipeline includes fixes for common mesh issues:
+- **Unreferenced vertices**: Handled in `Preprocess/dec_tri.py` (assigns small Voronoi area)
+- **Curvature mismatches**: Relaxed to warnings in `Preprocess/preprocess_ortho_param.py`
+- **Invalid quad indices**: Filtered in `Utils/libqex_wrapper.py`
+
+See `docs/robustness-improvements.md` for details.
+
 ## Docs
-`verification-plan.md`, `verification-visualisation-plan.md`, `docs/algo_integer_grid_maps.md`, `docs/libqex_setup.md`
+`verification-plan.md`, `verification-visualisation-plan.md`, `docs/algo_integer_grid_maps.md`, `docs/libqex_setup.md`, `docs/robustness-improvements.md`, `docs/mesh-quality-investigation.md`
+
+## Future Work
+
+### Medium Priority
+- **Port quantization**: MATLAB uses `QuantizationYoann/` (C++ Gurobi) to snap singularities to integer UVs
+- **Better cross-field solver**: Handle singular matrices gracefully (cow, spot meshes fail)
+- **Auto-detect preprocessing needs**: Check mesh quality and auto-preprocess if needed
+
+### Lower Priority
+- **Boundary support**: Handle meshes with holes (teapot fails on Gaussian curvature check)
+- **Mixed Voronoi/barycentric areas**: True mixed area computation for obtuse triangles
+- **Alternative quantization**: Integer optimization without Gurobi dependency
+- **Mesh decimation**: Auto-simplify very large meshes before processing
+
+### Known Mesh Failures
+See `docs/mesh-quality-investigation.md`:
+| Mesh | Issue | Workaround |
+|------|-------|------------|
+| stanford-bunny | Unreferenced vertices | Fixed in dec_tri.py |
+| cow, spot | Singular matrix in cross field | Needs better solver |
+| teapot | Gaussian curvature mismatch (holes) | Needs boundary support |
+| suzanne | Non-manifold edges | Use --preprocess |
 
 ## License
 MIT
