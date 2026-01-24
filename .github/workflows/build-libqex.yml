@@ -17,7 +17,7 @@ jobs:
           - os: windows-latest
             artifact_name: qex_extract-windows-x64
             binary_name: qex_extract.exe
-          - os: macos-13  # Intel
+          - os: macos-15  # Intel
             artifact_name: qex_extract-macos-x64
             binary_name: qex_extract
           - os: macos-14  # ARM (M1/M2)
@@ -37,7 +37,7 @@ jobs:
 
       - name: Clone OpenMesh
         run: |
-          git clone --depth 1 https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
+          git clone --depth 1 --recurse-submodules https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
           echo "OpenMesh commit: $(git -C OpenMesh rev-parse HEAD)" >> $GITHUB_STEP_SUMMARY
 
       - name: Build OpenMesh (Unix)
