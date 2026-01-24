@@ -64,6 +64,10 @@ python run_RSP.py Mesh/torus.obj --frame-field smooth --save-viz
 
 A 4556-face mesh with interesting topology - demonstrates handling of complex geometry.
 
+> **Note:** B36's UV layout shows **overlapping regions** - this is expected behavior, not a bug.
+> The algorithm produces *seamless* UVs for quad meshing, not *bijective* (overlap-free) UVs for texturing.
+> See [Understanding UV Overlaps](#understanding-uv-overlaps) for details.
+
 ### Smooth Cross Field
 
 ```bash
