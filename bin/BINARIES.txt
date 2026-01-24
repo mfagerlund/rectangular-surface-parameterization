@@ -1,6 +1,16 @@
 # Pre-built Binaries for Quad Extraction (libQEx)
 
-## Download
+**Note:** Binaries are NOT included in the repository (gitignored). They are
+automatically downloaded from GitHub Releases on first use.
+
+## Automatic Download
+
+When you run `extract_quads.py`, the appropriate binary for your platform is
+downloaded automatically and cached locally:
+- Windows: `%LOCALAPPDATA%\rsp\bin\`
+- Linux/macOS: `~/.cache/rsp/bin/`
+
+## Manual Download
 
 Pre-built binaries for all platforms are available from GitHub Releases:
 https://github.com/mfagerlund/rectangular-surface-parameterization/releases
@@ -11,7 +21,7 @@ Download the appropriate binary for your platform:
 - `qex_extract-macos-x64` - macOS Intel
 - `qex_extract-macos-arm64` - macOS Apple Silicon (M1/M2)
 
-Place the binary in this `bin/` directory and rename to `qex_extract` (or `qex_extract.exe` on Windows).
+Place the binary in this `bin/` directory or your cache directory.
 
 ## License Information
 

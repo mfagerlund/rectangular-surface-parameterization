@@ -2,6 +2,7 @@
 output/
 Results/
 
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -15,6 +16,16 @@ venv/
 env/
 .env
 *.log
+
+# Binaries (lazy-loaded from GitHub Releases)
+*.dll
+*.exe
+*.lib
+*.so
+*.dylib
+*.a
+
+# OS
 .DS_Store
 Thumbs.db
 

@@ -6,7 +6,7 @@ Command-line reference for rectangular-surface-parameterization.
 
 The algorithm transforms a triangle mesh into a quad mesh through these stages:
 
-![Example UV Layout](docs/examples/sphere320_smooth/sphere320_uv_layout.png)
+![Example UV Layout](docs/examples/sphere320_smooth/sphere320_uv_layout.jpg)
 *Example output: Sphere UV layout with checkerboard visualization*
 
 1. **Cross Field** - Compute a smooth 4-directional field on the surface
@@ -46,11 +46,11 @@ python run_RSP.py mesh.obj -o Results/ -v --plot
 
 **Output:**
 - `Results/<mesh>_param.obj` - Parameterized mesh with UV coordinates
-- `Results/stage1_*.png` - Geometry visualizations (mesh, curvature)
-- `Results/stage2_*.png` - Cross field visualizations (streamlines, singularities)
-- `Results/stage3_*.png` - Cut graph visualization
-- `Results/stage4_*.png` - Optimization visualizations (scale fields)
-- `Results/stage5_*.png` - UV recovery visualizations (UV layout, quality)
+- `Results/stage1_*.jpg` - Geometry visualizations (mesh, curvature)
+- `Results/stage2_*.jpg` - Cross field visualizations (streamlines, singularities)
+- `Results/stage3_*.jpg` - Cut graph visualization
+- `Results/stage4_*.jpg` - Optimization visualizations (scale fields)
+- `Results/stage5_*.jpg` - UV recovery visualizations (UV layout, quality)
 
 ### Full Pipeline (Parameterization + Quad Extraction)
 
@@ -87,7 +87,7 @@ Computes the **smoothest possible** cross field by minimizing directional variat
 the mesh using heat flow diffusion. Good general-purpose choice when you don't need
 alignment to surface features.
 
-![Smooth cross field result](docs/examples/B36_smooth/B36_uv_layout.png)
+![Smooth cross field result](docs/examples/B36_smooth/B36_uv_layout.jpg)
 *B36 mesh with smooth cross field: 0 flipped triangles*
 
 ```bash
@@ -101,7 +101,7 @@ follows the axis while the other wraps around. On a saddle, directions follow th
 of steepest ascent/descent. Best for organic shapes where you want quads to follow the
 natural geometry.
 
-![Curvature cross field result](docs/examples/pig_curvature/pig_uv_layout.png)
+![Curvature cross field result](docs/examples/pig_curvature/pig_uv_layout.jpg)
 *Pig mesh with curvature-aligned cross field*
 
 ```bash
@@ -157,7 +157,7 @@ The `--w-conf-ar` parameter controls the trade-off:
 | `0.5` | Isometric (default) | Balance between angles and areas |
 | `1.0` | Conformal | Preserve angles, allow area variation |
 
-![Distortion metrics](docs/examples/pig_smooth/pig_distortion.png)
+![Distortion metrics](docs/examples/pig_smooth/pig_distortion.jpg)
 *Distortion analysis panel: area, conformal, Jacobian, and orthogonality metrics*
 
 ```bash
@@ -170,7 +170,7 @@ Optimizes for **Chebyshev nets** where grid lines maintain constant spacing. Use
 architectural applications and fabric/material simulation where you need a net that can
 be physically constructed from inextensible strips.
 
-![Chebyshev energy result](docs/examples/SquareMyles_chebyshev/SquareMyles_uv_layout.png)
+![Chebyshev energy result](docs/examples/SquareMyles_chebyshev/SquareMyles_uv_layout.jpg)
 *SquareMyles with Chebyshev energy: uniform grid spacing*
 
 ```bash
@@ -231,8 +231,8 @@ pytest tests/ -v
 |------|-------------|
 | `<mesh>_param.obj` | Parameterized mesh with UV coordinates |
 | `<mesh>_quads.obj` | Extracted quad mesh (from extract_quads.py) |
-| `stage5_uv_layout.png` | UV space visualization with checkerboard |
-| `stage5_quality.png` | Distortion heatmap (4 metrics) |
+| `stage5_uv_layout.jpg` | UV space visualization with checkerboard |
+| `stage5_quality.jpg` | Distortion heatmap (4 metrics) |
 
 ## Test Meshes
 

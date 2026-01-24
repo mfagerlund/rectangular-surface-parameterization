@@ -21,7 +21,7 @@ Computes an orthogonal (rectangular) UV parameterization of a triangle mesh, ali
 - Hard edge and boundary alignment support
 - Integration with [libQEx](https://github.com/hcebke/libQEx) for quad mesh extraction
 
-![Example: Pig UV Layout](docs/examples/pig_smooth/pig_uv_layout.png)
+![Example: Pig UV Layout](docs/examples/pig_smooth/pig_uv_layout.jpg)
 *Pig mesh parameterization: 3678 faces, only 10 flipped triangles (0.3%)*
 
 ## Installation

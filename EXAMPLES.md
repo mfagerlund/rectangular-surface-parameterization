@@ -19,13 +19,13 @@ A 320-face sphere - the simplest test case. Genus 0 surfaces require at least 8 
 python run_RSP.py Mesh/sphere320.obj --frame-field smooth -v
 ```
 
-![Sphere Smooth UV](docs/examples/sphere320_smooth/sphere320_uv_layout.png)
+![Sphere Smooth UV](docs/examples/sphere320_smooth/sphere320_uv_layout.jpg)
 *UV Layout: **0 flipped triangles** - perfect parameterization*
 
-![Sphere Smooth Distortion](docs/examples/sphere320_smooth/sphere320_distortion.png)
+![Sphere Smooth Distortion](docs/examples/sphere320_smooth/sphere320_distortion.jpg)
 *Distortion analysis showing area, conformal, Jacobian, and orthogonality metrics*
 
-![Sphere Smooth Quads](docs/examples/sphere320_smooth/sphere320_quads.png)
+![Sphere Smooth Quads](docs/examples/sphere320_smooth/sphere320_quads.jpg)
 *Extracted quad mesh: 908 quads*
 
 ### Curvature-Aligned Cross Field
@@ -34,10 +34,10 @@ python run_RSP.py Mesh/sphere320.obj --frame-field smooth -v
 python run_RSP.py Mesh/sphere320.obj --frame-field curvature -v
 ```
 
-![Sphere Curvature UV](docs/examples/sphere320_curvature/sphere320_uv_layout.png)
+![Sphere Curvature UV](docs/examples/sphere320_curvature/sphere320_uv_layout.jpg)
 *Curvature-aligned field on a sphere (uniform curvature, so similar to smooth)*
 
-![Sphere Curvature Quads](docs/examples/sphere320_curvature/sphere320_quads.png)
+![Sphere Curvature Quads](docs/examples/sphere320_curvature/sphere320_quads.jpg)
 *Extracted quad mesh: 927 quads*
 
 ---
@@ -52,13 +52,13 @@ A 1152-face torus - genus 1 surfaces can have **zero singularities** since their
 python run_RSP.py Mesh/torus.obj --frame-field smooth -v
 ```
 
-![Torus Smooth UV](docs/examples/torus_smooth/torus_uv_layout.png)
+![Torus Smooth UV](docs/examples/torus_smooth/torus_uv_layout.jpg)
 *UV Layout: **0 flipped triangles** - characteristic elongated shape from torus topology*
 
-![Torus Smooth Distortion](docs/examples/torus_smooth/torus_distortion.png)
+![Torus Smooth Distortion](docs/examples/torus_smooth/torus_distortion.jpg)
 *Distortion is relatively uniform across the surface*
 
-![Torus Smooth Quads](docs/examples/torus_smooth/torus_quads.png)
+![Torus Smooth Quads](docs/examples/torus_smooth/torus_quads.jpg)
 *Extracted quad mesh: 887 quads with clean periodic structure*
 
 ---
@@ -77,10 +77,10 @@ A 4556-face mesh with interesting topology - demonstrates handling of complex ge
 python run_RSP.py Mesh/B36.obj --frame-field smooth -v
 ```
 
-![B36 Smooth UV](docs/examples/B36_smooth/B36_uv_layout.png)
+![B36 Smooth UV](docs/examples/B36_smooth/B36_uv_layout.jpg)
 *UV Layout: **0 flipped triangles** - note: overlapping regions are expected for complex shapes (see [Understanding UV Overlaps](#understanding-uv-overlaps))*
 
-![B36 Smooth Distortion](docs/examples/B36_smooth/B36_distortion.png)
+![B36 Smooth Distortion](docs/examples/B36_smooth/B36_distortion.jpg)
 *Distortion varies across the surface due to geometric complexity*
 
 > **Note:** Quad extraction with libQEx fails for B36 due to overlapping UVs - this is a known limitation. The parameterization itself is valid for applications that handle overlaps.
@@ -91,7 +91,7 @@ python run_RSP.py Mesh/B36.obj --frame-field smooth -v
 python run_RSP.py Mesh/B36.obj --frame-field curvature -v
 ```
 
-![B36 Curvature UV](docs/examples/B36_curvature/B36_uv_layout.png)
+![B36 Curvature UV](docs/examples/B36_curvature/B36_uv_layout.jpg)
 *Curvature-aligned version - different singularity placement*
 
 ---
@@ -106,13 +106,13 @@ A 3678-face pig mesh - tests handling of organic geometry with varying curvature
 python run_RSP.py Mesh/pig.obj --frame-field smooth -v
 ```
 
-![Pig Smooth UV](docs/examples/pig_smooth/pig_uv_layout.png)
+![Pig Smooth UV](docs/examples/pig_smooth/pig_uv_layout.jpg)
 *UV Layout: **10 flipped triangles (0.3%)** - very low flip rate for complex organic shape*
 
-![Pig Smooth Distortion](docs/examples/pig_smooth/pig_distortion.png)
+![Pig Smooth Distortion](docs/examples/pig_smooth/pig_distortion.jpg)
 *Distortion concentrated at high-curvature areas (ears, snout)*
 
-![Pig Smooth Quads](docs/examples/pig_smooth/pig_quads.png)
+![Pig Smooth Quads](docs/examples/pig_smooth/pig_quads.jpg)
 *Extracted quad mesh: 888 quads*
 
 ### Curvature-Aligned Cross Field
@@ -121,13 +121,13 @@ python run_RSP.py Mesh/pig.obj --frame-field smooth -v
 python run_RSP.py Mesh/pig.obj --frame-field curvature -v
 ```
 
-![Pig Curvature UV](docs/examples/pig_curvature/pig_uv_layout.png)
+![Pig Curvature UV](docs/examples/pig_curvature/pig_uv_layout.jpg)
 *UV Layout: **23 flipped triangles (0.6%)** - curvature alignment creates different fold patterns*
 
-![Pig Curvature Distortion](docs/examples/pig_curvature/pig_distortion.png)
+![Pig Curvature Distortion](docs/examples/pig_curvature/pig_distortion.jpg)
 *Curvature-aligned distortion pattern*
 
-![Pig Curvature Quads](docs/examples/pig_curvature/pig_quads.png)
+![Pig Curvature Quads](docs/examples/pig_curvature/pig_quads.jpg)
 *Extracted quad mesh: 938 quads*
 
 ---
@@ -142,13 +142,13 @@ A 1328-face mesh with a square hole - tests handling of meshes with boundaries.
 python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth -v
 ```
 
-![SquareMyles Smooth UV](docs/examples/SquareMyles_smooth/SquareMyles_uv_layout.png)
+![SquareMyles Smooth UV](docs/examples/SquareMyles_smooth/SquareMyles_uv_layout.jpg)
 *UV Layout: **0 flipped triangles** - hole preserved in UV space*
 
-![SquareMyles Smooth Distortion](docs/examples/SquareMyles_smooth/SquareMyles_distortion.png)
+![SquareMyles Smooth Distortion](docs/examples/SquareMyles_smooth/SquareMyles_distortion.jpg)
 *Distortion analysis*
 
-![SquareMyles Smooth Quads](docs/examples/SquareMyles_smooth/SquareMyles_quads.png)
+![SquareMyles Smooth Quads](docs/examples/SquareMyles_smooth/SquareMyles_quads.jpg)
 *Extracted quad mesh: 917 quads*
 
 ### Chebyshev Energy
@@ -157,13 +157,13 @@ python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth -v
 python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth --energy chebyshev -v
 ```
 
-![SquareMyles Chebyshev UV](docs/examples/SquareMyles_chebyshev/SquareMyles_uv_layout.png)
+![SquareMyles Chebyshev UV](docs/examples/SquareMyles_chebyshev/SquareMyles_uv_layout.jpg)
 *UV Layout: **0 flipped triangles** - Chebyshev energy produces more uniform grid spacing*
 
-![SquareMyles Chebyshev Distortion](docs/examples/SquareMyles_chebyshev/SquareMyles_distortion.png)
+![SquareMyles Chebyshev Distortion](docs/examples/SquareMyles_chebyshev/SquareMyles_distortion.jpg)
 *Chebyshev energy optimizes for constant grid spacing - note the different orthogonality pattern*
 
-![SquareMyles Chebyshev Quads](docs/examples/SquareMyles_chebyshev/SquareMyles_quads.png)
+![SquareMyles Chebyshev Quads](docs/examples/SquareMyles_chebyshev/SquareMyles_quads.jpg)
 *Extracted quad mesh: 948 quads*
 
 ---

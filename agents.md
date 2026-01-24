@@ -42,19 +42,19 @@ Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) fo
 ## Example Output
 
 ### Sphere (genus 0) - UV Layout
-![Sphere UV Layout](docs/images/sphere320_uv_layout.png)
+![Sphere UV Layout](docs/images/sphere320_uv_layout.jpg)
 *Left: UV layout with triangle mesh. Right: Checkerboard pattern for distortion visualization. **0 flipped triangles.***
 
 ### Sphere - Distortion Analysis
-![Sphere Distortion](docs/images/sphere320_distortion.png)
+![Sphere Distortion](docs/images/sphere320_distortion.jpg)
 *Four quality metrics: Area distortion, conformal distortion, Jacobian determinant (negative = flipped), orthogonality error.*
 
 ### Sphere - Quad Mesh
-![Sphere Quads](docs/examples/sphere320_smooth/sphere320_quads.png)
+![Sphere Quads](docs/examples/sphere320_smooth/sphere320_quads.jpg)
 *Extracted quad mesh: 908 quads*
 
 ### Torus (genus 1) - UV Layout
-![Torus UV Layout](docs/images/torus_uv_layout.png)
+![Torus UV Layout](docs/images/torus_uv_layout.jpg)
 *Torus parameterization showing characteristic cut structure for genus-1 surface. **0 flipped triangles.***
 
 ## References
@@ -94,11 +94,11 @@ python run_RSP.py mesh.obj -o output/ -v --visualize none   # No visualizations
 
 | Stage | Output Files | What to Check |
 |-------|--------------|---------------|
-| 1. Geometry | `stage1_mesh.png`, `stage1_curvature.png` | Mesh intact, curvature at vertices |
-| 2. Cross Field | `stage2_cross_field.png`, `stage2_singularities.png` | Crosses aligned, 8 singularities for sphere |
-| 3. Cut Graph | `stage3_cut_graph.png` | Cut edges connect all cones |
-| 4. Optimization | `stage4_scales.png`, `stage4_distributions.png` | Smooth scale fields |
-| 5. UV Recovery | `stage5_uv_layout.png`, `stage5_quality.png` | 0 flipped triangles (no red) |
+| 1. Geometry | `stage1_mesh.jpg`, `stage1_curvature.jpg` | Mesh intact, curvature at vertices |
+| 2. Cross Field | `stage2_cross_field.jpg`, `stage2_singularities.jpg` | Crosses aligned, 8 singularities for sphere |
+| 3. Cut Graph | `stage3_cut_graph.jpg` | Cut edges connect all cones |
+| 4. Optimization | `stage4_scales.jpg`, `stage4_distributions.jpg` | Smooth scale fields |
+| 5. UV Recovery | `stage5_uv_layout.jpg`, `stage5_quality.jpg` | 0 flipped triangles (no red) |
 
 ## Quad Extraction (Beyond Paper)
 
