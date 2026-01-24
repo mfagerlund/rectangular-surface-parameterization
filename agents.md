@@ -1,10 +1,5 @@
 # CLAUDE.md
 
-## DO NOT RUSH
-- Read `verification-plan.md` before anything.
-- Verify each pipeline stage with tests + visualizations; get explicit signoff before next stage.
-- If a stage fails, fix it before touching downstream.
-
 ## Overview / Goal
 - Corman & Crane rectangular parameterization (SIGGRAPH 2025) for quad meshing.
 - Orthogonal (not necessarily isotropic) UVs aligned to a cross field.
@@ -17,19 +12,13 @@ Phases: Load mesh -> geometry -> cross field -> cut graph -> sparse ops -> optim
 
 **Note:** The Corman-Crane paper covers stages 1-5 (producing seamless UV parameterization). Quad extraction (stage 6) is a separate downstream step, included here for completeness.
 
-## Two Implementations
-
-### MATLAB-ported (PRIMARY) - `run_RSP.py`
-Entry point for production use. Line-by-line translation from official MATLAB code.
+## Implementation - `run_RSP.py`
+Entry point. Line-by-line translation from official MATLAB code.
 - `Preprocess/` - MeshInfo, angles, curvature, connectivity, DEC operators
 - `FrameField/` - trivial connection, cross field computation
 - `Orthotropic/` - optimization (reduce_corner_var_2d, optimize_RSP)
 - `ComputeParam/` - cut_mesh, mesh_to_disk_seamless, parametrization_from_scales
 - `Utils/` - I/O, visualization
-
-### Old implementation (DELETED)
-There was an old implementation done without MATLAB reference. It was deleted because it never worked correctly.
-**DO NOT reference any "fixes" from the old code - they were all garbage.**
 
 ## Requirements
 Python 3.8+, NumPy, SciPy, Matplotlib. Install: `pip install numpy scipy matplotlib`
@@ -48,6 +37,24 @@ pytest tests/ -v                                    # Run tests
 ```
 
 Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) for details.
+
+## Example Output
+
+### Sphere (genus 0) - UV Layout
+![Sphere UV Layout](docs/images/sphere320_uv_layout.png)
+*Left: UV layout with triangle mesh. Right: Checkerboard pattern for distortion visualization. **0 flipped triangles.***
+
+### Sphere - Distortion Analysis
+![Sphere Distortion](docs/images/sphere320_distortion.png)
+*Four quality metrics: Area distortion, conformal distortion, Jacobian determinant (negative = flipped), orthogonality error.*
+
+### Sphere - 3D Mesh View
+![Sphere Mesh](docs/images/sphere320_mesh_flips.png)
+*Original mesh with flipped faces highlighted (none in this case).*
+
+### Torus (genus 1) - UV Layout
+![Torus UV Layout](docs/images/torus_uv_layout.png)
+*Torus parameterization showing characteristic cut structure for genus-1 surface. **0 flipped triangles.***
 
 ## References (READ)
 MATLAB impl: https://github.com/etcorman/RectangularSurfaceParameterization (local: `C:\Slask\RectangularSurfaceParameterization`)
@@ -79,7 +86,7 @@ See `verification-plan.md`. Summary:
 
 ## Visual Verification
 
-Run `python Utils/verify_pipeline.py <mesh> -o output/` to generate per-stage visualizations:
+Run `python -m rectangular_surface_parameterization.utils.verify_pipeline <mesh> -o output/` to generate per-stage visualizations:
 
 | Stage | Output Files | What to Check |
 |-------|--------------|---------------|
@@ -157,7 +164,6 @@ See `docs/robustness-improvements.md` for details.
 
 ### Medium Priority
 - **Port quantization**: MATLAB uses `QuantizationYoann/` (C++ Gurobi) to snap singularities to integer UVs
-- **Better cross-field solver**: Handle singular matrices gracefully (cow, spot meshes fail)
 - **Auto-detect preprocessing needs**: Check mesh quality and auto-preprocess if needed
 
 ### Lower Priority
@@ -166,15 +172,11 @@ See `docs/robustness-improvements.md` for details.
 - **Alternative quantization**: Integer optimization without Gurobi dependency
 - **Mesh decimation**: Auto-simplify very large meshes before processing
 
-### Known Mesh Failures
-See `docs/mesh-quality-investigation.md`:
+### Known Limitations
 | Mesh | Issue | Workaround |
 |------|-------|------------|
-| stanford-bunny | Unreferenced vertices | Fixed in dec_tri.py |
-| cow, spot | Singular matrix in cross field | Fixed with regularized_solve() |
-| teapot | Gaussian curvature mismatch (holes) | Needs boundary support |
+| teapot | Meshes with holes | Needs boundary support |
 | suzanne | Non-manifold edges | Use --preprocess |
-| pig, SquareMyles | Open mesh with boundaries | Fixed: auto-uses reduce_corner_var_2d_cut |
 
 ## License
 
@@ -183,10 +185,3 @@ AGPL-3.0-or-later (GNU Affero General Public License v3.0 or later)
 This is a derivative work of the original MATLAB implementation by Etienne Corman
 and Keenan Crane. See LICENSE file for full attribution and terms.
 
-## TODO: Rename Local Folder
-The GitHub repo has been renamed to `rectangular-surface-parameterization`.
-Rename the local folder to match:
-```bash
-cd /c/Dev
-mv Corman-Crane rectangular-surface-parameterization
-```

@@ -4,8 +4,8 @@ Unified visual verification tool for the Corman-Crane RSP pipeline.
 Generates per-stage visualizations saved as PNG files for manual verification.
 
 Usage:
-    python Utils/verify_pipeline.py <mesh.obj> -o output/
-    python Utils/verify_pipeline.py <mesh.obj> -o output/ --stage 1
+    python -m rectangular_surface_parameterization.utils.verify_pipeline <mesh.obj> -o output/
+    python -m rectangular_surface_parameterization.utils.verify_pipeline <mesh.obj> -o output/ --stage 1
 """
 
 import argparse
@@ -939,9 +939,9 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python Utils/verify_pipeline.py mesh.obj -o output/
-  python Utils/verify_pipeline.py mesh.obj -o output/ --stage 1
-  python Utils/verify_pipeline.py C:/Dev/Colonel/Data/Meshes/sphere320.obj -o Results/verify/
+  python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj -o output/
+  python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj -o output/ --stage 1
+  python -m rectangular_surface_parameterization.utils.verify_pipeline sphere320.obj -o Results/verify/
         """
     )
 

@@ -1,6 +1,6 @@
 # Generated output
-output/*.png
-output/*.obj
+output/
+Results/
 
 __pycache__/
 *.pyc
@@ -17,9 +17,12 @@ env/
 *.log
 .DS_Store
 Thumbs.db
-Results/
+
+# Testing
+.pytest_cache/
 
 # IDE
 .idea/
 .vscode/
+.ropeproject/
 *.swp

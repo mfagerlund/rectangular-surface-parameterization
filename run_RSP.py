@@ -24,13 +24,10 @@ from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import numpy as np
-import scipy.sparse as sp
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 
 # Import converted modules
 from rectangular_surface_parameterization.io.read_obj import readOBJ
-from rectangular_surface_parameterization.io.write_obj import writeObj
 from rectangular_surface_parameterization.io.save_param import save_param
 from rectangular_surface_parameterization.utils.extract_scale import extract_scale_from_param
 from rectangular_surface_parameterization.io.visualize import save_uv_visualization, visualize_run_RSP_result
