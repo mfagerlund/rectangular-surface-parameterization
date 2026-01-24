@@ -94,6 +94,8 @@ Examples:
                         help='Disable seamlessness constraint')
     parser.add_argument('--quantization', action='store_true',
                         help='Enable integer quantization (requires external QuantizationYoann binary)')
+    parser.add_argument('--scale', type=float, default=30.0,
+                        help='UV scale factor for quad density (default: 30)')
 
     # Energy options
     parser.add_argument('--energy', type=str, default='distortion',
@@ -370,6 +372,8 @@ def main():
         print("Computing parametrization...")
 
     disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(Src, param, angn, sing, k21, ifseamless_const, ifboundary, ifhardedge)
+
+    # Poisson solve for parameterization
     Xp, dX = parametrization_from_scales(Src, disk_mesh, dec_cut, param, angn, om, ut, vt, Align, Rot)
 
     if verbose:
@@ -468,12 +472,15 @@ def main():
     #     UV = Xp;
     # end
 
+    # Apply scale to UVs
+    UV_scaled = Xp * args.scale
+
     if 'cheby' in energy_type:
         # Rotate by 45 degrees
         r = np.array([[1, 1], [-1, 1]]) * (np.sqrt(2) / 2)
-        UV = Xp @ r
+        UV = UV_scaled @ r
     else:
-        UV = Xp
+        UV = UV_scaled
 
     # if ifquantization && ~isempty(param.ide_bound) && ~ifboundary
     #     warning('Boundary alignment is disactivated.');
