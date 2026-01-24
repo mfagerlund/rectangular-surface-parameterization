@@ -24,6 +24,9 @@ Computes an orthogonal (rectangular) UV parameterization of a triangle mesh, ali
 ![Example: Pig UV Layout](docs/examples/pig_smooth/pig_uv_layout.jpg)
 *Pig mesh parameterization: 3678 faces, only 10 flipped triangles (0.3%)*
 
+![Example: Pig Quad Mesh](docs/examples/pig_smooth/pig_quads.jpg)
+*Extracted quad mesh: 888 quads via libQEx*
+
 ## Installation
 
 ```bash
