@@ -51,7 +51,7 @@ from rectangular_surface_parameterization.parameterization.seamless import mesh_
 
 # Stage visualization functions
 from rectangular_surface_parameterization.utils.verify_pipeline import (
-    verify_geometry, verify_cross_field, verify_cut_graph,
+    verify_geometry, verify_principal_curvature, verify_cross_field, verify_cut_graph,
     verify_optimization, verify_uv_recovery
 )
 
@@ -135,6 +135,8 @@ Examples:
                         help='Stages to visualize as comma-separated list (default: 1,2,3,4,5 = all). '
                              'Use --visualize "" or --visualize none to disable. '
                              'Stages: 1=geometry, 2=cross_field, 3=cut_graph, 4=optimization, 5=uv_recovery')
+    parser.add_argument('--principal-curvature', action='store_true',
+                        help='Generate principal curvature visualizations (k1, k2, Gaussian, Mean, directions). Off by default.')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose output')
 
@@ -237,6 +239,12 @@ def main():
         if verbose:
             print("Generating Stage 1 visualizations (geometry)...")
         verify_geometry(Src, Path(path_save))
+
+    # Principal curvature visualization (off by default)
+    if args.principal_curvature:
+        if verbose:
+            print("Generating principal curvature visualizations...")
+        verify_principal_curvature(Src, param, Path(path_save))
 
     # col = zeros(Src.num_vertices,1); col(Src.edge_to_vertex(param.ide_fix,:)) = 1;
     # figure; trisurf(...); title('Constraint')

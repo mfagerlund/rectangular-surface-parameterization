@@ -39,6 +39,19 @@ from rectangular_surface_parameterization.utils.extract_scale import extract_sca
 # Stage 1: Geometry
 # -----------------------------------------------------------------------------
 
+def rotate_vertices_around_x(vertices: np.ndarray, angle_deg: float) -> np.ndarray:
+    """Rotate vertices around X axis by given angle in degrees."""
+    angle_rad = np.radians(angle_deg)
+    cos_a, sin_a = np.cos(angle_rad), np.sin(angle_rad)
+    # Rotation matrix around X axis
+    R = np.array([
+        [1, 0,      0     ],
+        [0, cos_a, -sin_a],
+        [0, sin_a,  cos_a]
+    ])
+    return vertices @ R.T
+
+
 def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     """
     Verify geometry stage with visualizations.
@@ -52,6 +65,9 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Rotate vertices 90 degrees around X so meshes with body along Z face forward
+    rotated_verts = rotate_vertices_around_x(Src.vertices, -90)
 
     # Compute angle defect (discrete Gaussian curvature) at each vertex
     # angle_defect[v] = 2*pi - sum of corner angles at v
@@ -74,10 +90,10 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     ax1 = fig.add_subplot(121, projection='3d')
     ax2 = fig.add_subplot(122, projection='3d')
 
-    for ax, elev, azim, title in [(ax1, 30, 45, 'View 1 (elev=30, azim=45)'),
-                                   (ax2, 30, 135, 'View 2 (elev=30, azim=135)')]:
-        # Draw mesh as wireframe
-        ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2],
+    for ax, elev, azim, title in [(ax1, 30, 45, 'View 1'),
+                                   (ax2, 30, 135, 'View 2')]:
+        # Draw mesh as wireframe (using rotated vertices)
+        ax.plot_trisurf(rotated_verts[:, 0], rotated_verts[:, 1], rotated_verts[:, 2],
                         triangles=Src.triangles,
                         color='lightblue', edgecolor='black', linewidth=0.2, alpha=0.8)
         ax.view_init(elev=elev, azim=azim)
@@ -115,21 +131,22 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     norm = plt.Normalize(vmin=-vmax, vmax=vmax)
     cmap = plt.cm.RdBu_r
 
-    # Build polygon collection for 3D
-    verts = Src.vertices[Src.triangles]  # (nf, 3, 3)
+    # Build polygon collection for 3D (using rotated vertices)
+    verts = rotated_verts[Src.triangles]  # (nf, 3, 3)
     facecolors = cmap(norm(face_curvature))
 
     poly = Poly3DCollection(verts, facecolors=facecolors, edgecolor='black', linewidth=0.1, alpha=0.9)
     ax1.add_collection3d(poly)
 
     # Set axis limits
-    ax1.set_xlim(Src.vertices[:, 0].min(), Src.vertices[:, 0].max())
-    ax1.set_ylim(Src.vertices[:, 1].min(), Src.vertices[:, 1].max())
-    ax1.set_zlim(Src.vertices[:, 2].min(), Src.vertices[:, 2].max())
+    ax1.set_xlim(rotated_verts[:, 0].min(), rotated_verts[:, 0].max())
+    ax1.set_ylim(rotated_verts[:, 1].min(), rotated_verts[:, 1].max())
+    ax1.set_zlim(rotated_verts[:, 2].min(), rotated_verts[:, 2].max())
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
     ax1.set_zlabel('Z')
     ax1.set_title('Discrete Gaussian Curvature\n(red=positive, blue=negative)')
+    ax1.view_init(elev=30, azim=-60)  # Default matplotlib view
 
     # Add colorbar
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -168,6 +185,236 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     print(f"  Edges: {Src.num_edges}")
     print(f"  Euler characteristic: {euler_char} (V - E + F = {Src.num_vertices} - {Src.num_edges} + {Src.num_faces} = {Src.num_vertices - Src.num_edges + Src.num_faces})")
     print(f"  Total curvature: {total_curvature:.6f} rad (expected: {2*np.pi*euler_char:.6f} for χ={euler_char})")
+
+    return metrics
+
+
+# -----------------------------------------------------------------------------
+# Stage 1b: Principal Curvature
+# -----------------------------------------------------------------------------
+
+def verify_principal_curvature(Src: MeshInfo, param, output_dir: Path) -> dict:
+    """
+    Verify principal curvature computation with visualizations.
+
+    Outputs:
+    - stage1b_principal_curvature.jpg: k1, k2, Gaussian, Mean curvature heatmaps
+    - stage1b_curvature_directions.jpg: Principal direction streamlines (both directions combined)
+
+    Args:
+        Src: MeshInfo structure
+        param: Preprocessed parameters with e1r, e2r reference frames
+        output_dir: Output directory for images
+
+    Returns:
+        dict with metrics: k1_range, k2_range, gaussian_range, mean_range
+    """
+    from rectangular_surface_parameterization.cross_field.principal_curvature import (
+        compute_principal_curvatures, PrincipalCurvatures
+    )
+    from scipy.spatial import cKDTree
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Rotate vertices 90 degrees around X so meshes with body along Z face forward
+    rotated_verts = rotate_vertices_around_x(Src.vertices, -90)
+
+    # Compute principal curvatures
+    curv = compute_principal_curvatures(Src, param)
+
+    # -------------------------------------------------------------------------
+    # Plot 1: Four curvature heatmaps (k1, k2, Gaussian, Mean)
+    # -------------------------------------------------------------------------
+    fig = plt.figure(figsize=(16, 14))
+
+    # Helper to plot 3D heatmap with percentile-based color range
+    def plot_curvature_3d(ax, values, title, cmap='RdBu_r', symmetric=True, percentile=90):
+        """Plot mesh with face colors based on curvature values.
+
+        Uses percentile-based clipping to handle outliers.
+        """
+        # Use percentile for robust color scaling (handles outliers)
+        if symmetric:
+            abs_vals = np.abs(values)
+            vmax = np.percentile(abs_vals, percentile)
+            if vmax < 1e-10:
+                vmax = 1.0
+            vmin = -vmax
+        else:
+            vmin = np.percentile(values, 100 - percentile)
+            vmax = np.percentile(values, percentile)
+            if abs(vmax - vmin) < 1e-10:
+                vmax = vmin + 1.0
+
+        # Clip values for coloring
+        clipped = np.clip(values, vmin, vmax)
+
+        norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        cmap_obj = plt.cm.get_cmap(cmap)
+
+        verts = rotated_verts[Src.triangles]  # Use rotated vertices
+        facecolors = cmap_obj(norm(clipped))
+
+        poly = Poly3DCollection(verts, facecolors=facecolors, edgecolor='none', alpha=0.95)
+        ax.add_collection3d(poly)
+
+        ax.set_xlim(rotated_verts[:, 0].min(), rotated_verts[:, 0].max())
+        ax.set_ylim(rotated_verts[:, 1].min(), rotated_verts[:, 1].max())
+        ax.set_zlim(rotated_verts[:, 2].min(), rotated_verts[:, 2].max())
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+
+        # Show both the display range and the actual data range
+        actual_min, actual_max = np.min(values), np.max(values)
+        ax.set_title(f'{title}\ncolor range: [{vmin:.2f}, {vmax:.2f}] (data: [{actual_min:.2f}, {actual_max:.2f}])')
+
+        ax.view_init(elev=30, azim=-60)  # Default matplotlib view
+
+        sm = plt.cm.ScalarMappable(cmap=cmap_obj, norm=norm)
+        sm.set_array([])
+        plt.colorbar(sm, ax=ax, shrink=0.6)
+
+    # k1 (first principal curvature)
+    ax1 = fig.add_subplot(221, projection='3d')
+    plot_curvature_3d(ax1, curv.k1, 'k1 (First Principal Curvature)')
+
+    # k2 (second principal curvature)
+    ax2 = fig.add_subplot(222, projection='3d')
+    plot_curvature_3d(ax2, curv.k2, 'k2 (Second Principal Curvature)')
+
+    # Gaussian curvature K = k1 * k2
+    ax3 = fig.add_subplot(223, projection='3d')
+    plot_curvature_3d(ax3, curv.gaussian, 'Gaussian Curvature (K = k1 * k2)')
+
+    # Mean curvature H = (k1 + k2) / 2
+    ax4 = fig.add_subplot(224, projection='3d')
+    plot_curvature_3d(ax4, curv.mean, 'Mean Curvature (H = (k1 + k2) / 2)')
+
+    fig.suptitle('Stage 1b: Principal Curvature Analysis', fontsize=14)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'stage1b_principal_curvature.jpg', dpi=150, pil_kwargs={'quality': 85})
+    plt.close()
+    print(f"Saved: {output_dir / 'stage1b_principal_curvature.jpg'}")
+
+    # -------------------------------------------------------------------------
+    # Plot 2: Principal direction streamlines (COMBINED in one view)
+    # -------------------------------------------------------------------------
+    fig = plt.figure(figsize=(14, 12))
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Compute face barycenters
+    barycenters = (Src.vertices[Src.triangles[:, 0], :] +
+                   Src.vertices[Src.triangles[:, 1], :] +
+                   Src.vertices[Src.triangles[:, 2], :]) / 3
+
+    # Convert principal directions to 3D vectors
+    dir1_3d = (np.real(curv.dir1)[:, np.newaxis] * param.e1r +
+               np.imag(curv.dir1)[:, np.newaxis] * param.e2r)
+    dir2_3d = (np.real(curv.dir2)[:, np.newaxis] * param.e1r +
+               np.imag(curv.dir2)[:, np.newaxis] * param.e2r)
+
+    # Normalize
+    dir1_3d = dir1_3d / (np.linalg.norm(dir1_3d, axis=1, keepdims=True) + 1e-10)
+    dir2_3d = dir2_3d / (np.linalg.norm(dir2_3d, axis=1, keepdims=True) + 1e-10)
+
+    # Build spatial lookup
+    face_tree = cKDTree(barycenters)
+
+    def trace_streamline(start_face, direction_field, max_steps=150, step_size=None):
+        """Trace a streamline following direction field."""
+        if step_size is None:
+            step_size = np.sqrt(np.mean(Src.sq_edge_length)) * 0.2
+
+        path = [barycenters[start_face].copy()]
+        current_pos = path[0].copy()
+        current_face = start_face
+        prev_dir = None
+
+        for _ in range(max_steps):
+            direction = direction_field[current_face].copy()
+
+            # Ensure consistent direction
+            if prev_dir is not None:
+                if np.dot(direction, prev_dir) < 0:
+                    direction = -direction
+            prev_dir = direction.copy()
+
+            new_pos = current_pos + direction * step_size
+
+            # Find nearest face
+            _, new_face = face_tree.query(new_pos)
+
+            # Stop if we've moved too far from mesh
+            if np.linalg.norm(new_pos - barycenters[new_face]) > step_size * 3:
+                break
+
+            path.append(new_pos.copy())
+            current_pos = new_pos
+            current_face = new_face
+
+        return np.array(path)
+
+    # Select seed faces (stratified sampling)
+    n_seeds = min(50, Src.num_faces // 8)
+    np.random.seed(42)
+    seed_faces = np.random.choice(Src.num_faces, n_seeds, replace=False)
+
+    # Draw mesh first (light gray surface so pig shape is visible) - use rotated vertices
+    verts = rotated_verts[Src.triangles]
+    poly = Poly3DCollection(verts, facecolors='lightgray', edgecolor='none', alpha=0.4)
+    ax.add_collection3d(poly)
+
+    # Then draw streamlines on top (trace in original coords, rotate for display)
+    # Direction 1 (k1) - blue
+    for seed in seed_faces:
+        for sign in [1, -1]:
+            path = trace_streamline(seed, sign * dir1_3d)
+            if len(path) > 1:
+                rotated_path = rotate_vertices_around_x(path, -90)
+                ax.plot(rotated_path[:, 0], rotated_path[:, 1], rotated_path[:, 2], 'b-', linewidth=1.5, alpha=0.9)
+
+    # Direction 2 (k2) - red
+    for seed in seed_faces:
+        for sign in [1, -1]:
+            path = trace_streamline(seed, sign * dir2_3d)
+            if len(path) > 1:
+                rotated_path = rotate_vertices_around_x(path, -90)
+                ax.plot(rotated_path[:, 0], rotated_path[:, 1], rotated_path[:, 2], 'r-', linewidth=1.5, alpha=0.9)
+
+    ax.set_xlim(rotated_verts[:, 0].min(), rotated_verts[:, 0].max())
+    ax.set_ylim(rotated_verts[:, 1].min(), rotated_verts[:, 1].max())
+    ax.set_zlim(rotated_verts[:, 2].min(), rotated_verts[:, 2].max())
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    ax.set_title(f'Principal Curvature Directions\nBlue: k1 direction, Red: k2 direction ({n_seeds} seeds)')
+    ax.view_init(elev=30, azim=-60)  # Default matplotlib view
+
+    fig.suptitle('Stage 1b: Principal Curvature Directions', fontsize=14)
+    plt.tight_layout()
+    plt.savefig(output_dir / 'stage1b_curvature_directions.jpg', dpi=150, pil_kwargs={'quality': 85})
+    plt.close()
+    print(f"Saved: {output_dir / 'stage1b_curvature_directions.jpg'}")
+
+    # Return metrics
+    metrics = {
+        'k1_min': float(np.min(curv.k1)),
+        'k1_max': float(np.max(curv.k1)),
+        'k2_min': float(np.min(curv.k2)),
+        'k2_max': float(np.max(curv.k2)),
+        'gaussian_min': float(np.min(curv.gaussian)),
+        'gaussian_max': float(np.max(curv.gaussian)),
+        'mean_min': float(np.min(curv.mean)),
+        'mean_max': float(np.max(curv.mean)),
+    }
+
+    print(f"\nStage 1b Metrics (Principal Curvature):")
+    print(f"  k1 range: [{metrics['k1_min']:.4f}, {metrics['k1_max']:.4f}]")
+    print(f"  k2 range: [{metrics['k2_min']:.4f}, {metrics['k2_max']:.4f}]")
+    print(f"  Gaussian (K) range: [{metrics['gaussian_min']:.4f}, {metrics['gaussian_max']:.4f}]")
+    print(f"  Mean (H) range: [{metrics['mean_min']:.4f}, {metrics['mean_max']:.4f}]")
 
     return metrics
 
@@ -318,8 +565,8 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
         streamlines_E2.append(full_path)
 
     # Draw streamlines
-    for ax, elev, azim, title in [(ax1, 30, 45, 'View 1 (elev=30, azim=45)'),
-                                   (ax2, 30, 135, 'View 2 (elev=30, azim=135)')]:
+    for ax, elev, azim, title in [(ax1, 0, 0, 'Front view'),
+                                   (ax2, 0, 90, 'Side view')]:
         # Draw mesh surface (light gray, semi-transparent)
         ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2],
                         triangles=Src.triangles,
@@ -483,8 +730,8 @@ def verify_cut_graph(Src: MeshInfo, k21: np.ndarray, sing: np.ndarray,
         direction = p - mesh_center
         return mesh_center + direction * lift_factor
 
-    for ax, elev, azim, title in [(ax1, 30, 45, 'View 1 (elev=30, azim=45)'),
-                                   (ax2, 30, 135, 'View 2 (elev=30, azim=135)')]:
+    for ax, elev, azim, title in [(ax1, 0, 0, 'Front view'),
+                                   (ax2, 0, 90, 'Side view')]:
         # Draw mesh as wireframe only (no filled faces for better visibility)
         ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2],
                         triangles=Src.triangles,
