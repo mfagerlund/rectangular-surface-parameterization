@@ -31,17 +31,26 @@ to wrap around the surface without visible seams.
 ### Parameterization Only
 
 ```bash
-# Basic run - outputs parameterized mesh with UVs
+# Basic run - outputs parameterized mesh with UVs + all stage visualizations
 python run_RSP.py mesh.obj -o Results/ -v
 
-# With visualization PNGs (UV layout, flipped faces highlighted)
-python run_RSP.py mesh.obj -o Results/ -v --save-viz
+# Disable visualizations (faster)
+python run_RSP.py mesh.obj -o Results/ -v --visualize none
 
-# Interactive matplotlib plots
+# Only specific stages (1=geometry, 2=cross_field, 3=cut_graph, 4=optimization, 5=uv_recovery)
+python run_RSP.py mesh.obj -o Results/ -v --visualize 1,5
+
+# Interactive matplotlib plots (in addition to saved PNGs)
 python run_RSP.py mesh.obj -o Results/ -v --plot
 ```
 
-**Output:** `Results/<mesh>_param.obj` with UV coordinates
+**Output:**
+- `Results/<mesh>_param.obj` - Parameterized mesh with UV coordinates
+- `Results/stage1_*.png` - Geometry visualizations (mesh, curvature)
+- `Results/stage2_*.png` - Cross field visualizations (streamlines, singularities)
+- `Results/stage3_*.png` - Cut graph visualization
+- `Results/stage4_*.png` - Optimization visualizations (scale fields)
+- `Results/stage5_*.png` - UV recovery visualizations (UV layout, quality)
 
 ### Full Pipeline (Parameterization + Quad Extraction)
 
@@ -199,14 +208,19 @@ Or use the `--preprocess` flag with extract_quads.py.
 
 ## Verification
 
-```bash
-# Verify specific pipeline stage (1=geometry, 2=cross_field, 3=cut_graph, 4=optimization, 5=uv_recovery)
-python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 1
-python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 2
-python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 3
-python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 4
-python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 5
+Stage visualizations are now generated automatically by `run_RSP.py`:
 
+```bash
+# Generate all stage visualizations (default)
+python run_RSP.py mesh.obj -o Results/ -v
+
+# Generate only specific stages
+python run_RSP.py mesh.obj -o Results/ -v --visualize 1,2  # geometry + cross field only
+```
+
+This outputs PNG files for each stage in the output directory.
+
+```bash
 # Run all tests
 pytest tests/ -v
 ```

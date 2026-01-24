@@ -84,15 +84,21 @@ Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) fo
 
 ## Visual Verification
 
-Run `python -m rectangular_surface_parameterization.utils.verify_pipeline <mesh> -o output/` to generate per-stage visualizations:
+Stage visualizations are generated automatically by `run_RSP.py`:
+
+```bash
+python run_RSP.py mesh.obj -o output/ -v                    # All stages (default)
+python run_RSP.py mesh.obj -o output/ -v --visualize 1,5    # Only geometry + UV
+python run_RSP.py mesh.obj -o output/ -v --visualize none   # No visualizations
+```
 
 | Stage | Output Files | What to Check |
 |-------|--------------|---------------|
 | 1. Geometry | `stage1_mesh.png`, `stage1_curvature.png` | Mesh intact, curvature at vertices |
 | 2. Cross Field | `stage2_cross_field.png`, `stage2_singularities.png` | Crosses aligned, 8 singularities for sphere |
 | 3. Cut Graph | `stage3_cut_graph.png` | Cut edges connect all cones |
-| 4. Optimization | `stage4_scale_u.png`, `stage4_scale_v.png` | Smooth scale fields |
-| 5. UV Recovery | `stage5_uv_layout.png`, `stage5_checkerboard.png` | 0 flipped triangles (no red) |
+| 4. Optimization | `stage4_scales.png`, `stage4_distributions.png` | Smooth scale fields |
+| 5. UV Recovery | `stage5_uv_layout.png`, `stage5_quality.png` | 0 flipped triangles (no red) |
 
 ## Quad Extraction (Beyond Paper)
 
