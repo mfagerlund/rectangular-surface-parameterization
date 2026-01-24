@@ -35,6 +35,7 @@ from scipy.sparse import csr_matrix
 
 from .connectivity import connectivity
 from .angles_of_triangles import angles_of_triangles
+from .signed_edge_array import SignedEdgeArray
 
 
 @dataclass
@@ -56,9 +57,9 @@ class MeshInfo:
         Number of edges.
     E2V : ndarray (ne, 2)
         Edge-to-vertex connectivity. E2V[e] = [v0, v1].
-    T2E : ndarray (nf, 3)
-        Triangle-to-edge connectivity (signed). T2E[f, i] gives the edge
-        opposite to vertex i, with sign indicating orientation.
+    T2E : SignedEdgeArray (nf, 3)
+        Triangle-to-edge connectivity with orientation signs.
+        Use T2E.indices for 0-based edge indices, T2E.signs for orientations.
     E2T : ndarray (ne, 4)
         Edge-to-triangle connectivity. E2T[e] = [t0, t1, s0, s1] where
         t0, t1 are adjacent triangles (0 if boundary) and s0, s1 are signs.
@@ -84,7 +85,7 @@ class MeshInfo:
     num_vertices: int
     num_edges: int
     E2V: np.ndarray
-    T2E: np.ndarray
+    T2E: SignedEdgeArray
     E2T: np.ndarray
     T2T: np.ndarray
     normal: np.ndarray

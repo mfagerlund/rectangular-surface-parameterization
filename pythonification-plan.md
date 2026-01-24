@@ -215,7 +215,7 @@ Utils/          # I/O, visualization
 
 ### Target Structure
 ```
-corman_crane/
+rectangular_surface_parameterization/
     __init__.py
     core/
         mesh.py           # TriangleMesh, CutMesh dataclasses
@@ -249,10 +249,10 @@ When reorganizing, update `pyproject.toml`:
 ```toml
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["corman_crane*"]
+include = ["rectangular_surface_parameterization*"]
 
 [project.scripts]
-rsp = "corman_crane.cli:main"
+rsp = "rectangular_surface_parameterization.cli:main"
 ```
 
 ---

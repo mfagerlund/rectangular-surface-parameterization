@@ -364,10 +364,10 @@ class TestT2EContent:
         E2V, T2E, E2T, T2T = connectivity(single_triangle)
         ne = E2V.shape[0]
 
-        # T2E uses 1-based signed encoding: decode with abs(T2E) - 1
+        # T2E is now a SignedEdgeArray - use .indices for 0-based edge indices
         for f in range(T2E.shape[0]):
             for i in range(3):
-                edge_idx = abs(T2E[f, i]) - 1  # decode 1-based to 0-based
+                edge_idx = T2E[f, i].indices.item()  # 0-based edge index
                 assert 0 <= edge_idx < ne, \
                     f"Face {f}, edge {i}: index {edge_idx} out of range [0, {ne})"
 
@@ -379,7 +379,7 @@ class TestT2EContent:
         for f in range(T.shape[0]):
             face_verts = set(T[f])
             for i in range(3):
-                edge_idx = abs(T2E[f, i]) - 1  # decode 1-based to 0-based
+                edge_idx = T2E[f, i].indices.item()  # 0-based edge index
                 edge_verts = set(E2V[edge_idx])
                 # Edge vertices should be a subset of face vertices
                 assert edge_verts.issubset(face_verts), \
@@ -437,7 +437,7 @@ class TestConsistency:
 
         for f in range(nf):
             for i in range(3):
-                edge_idx = abs(T2E[f, i]) - 1  # decode 1-based to 0-based
+                edge_idx = T2E[f, i].indices.item()  # 0-based edge index
                 # E2T[edge_idx, 0] or E2T[edge_idx, 1] should be f
                 tri0, tri1 = E2T[edge_idx, 0], E2T[edge_idx, 1]
                 assert f in (tri0, tri1), \
@@ -462,12 +462,11 @@ class TestSigns:
     """Test that T2E signs indicate edge orientation."""
 
     def test_t2e_signs_nonzero(self, tetrahedron_surface):
-        """T2E uses 1-based signed encoding: sign(T2E) should be +1 or -1, never 0."""
+        """T2E signs should be +1 or -1, never 0."""
         E2V, T2E, E2T, T2T = connectivity(tetrahedron_surface)
 
-        # T2E uses 1-based signed encoding: (edge_idx + 1) * sign
-        # So np.sign(T2E) should always be +1 or -1, never 0
-        signs = np.sign(T2E)
+        # T2E is now a SignedEdgeArray - use .signs property
+        signs = T2E.signs
         assert np.all(np.abs(signs) == 1), \
             f"All T2E signs should be +1 or -1, got signs with zero: {signs[signs == 0]}"
 
@@ -476,8 +475,8 @@ class TestSigns:
         E2V, T2E, E2T, T2T = connectivity(tetrahedron_surface)
         ne = E2V.shape[0]
 
-        # Decode: edge_idx = abs(T2E) - 1
-        edge_indices = np.abs(T2E) - 1
+        # Use SignedEdgeArray .indices property for 0-based edge indices
+        edge_indices = T2E.indices
         assert np.all(edge_indices >= 0), "Edge indices should be non-negative"
         assert np.all(edge_indices < ne), f"Edge indices should be < {ne}"
 
@@ -486,19 +485,19 @@ class TestSigns:
         E2V, T2E, E2T, T2T = connectivity(single_triangle)
 
         # Find any occurrence of edge 0 in T2E
-        edge_indices = np.abs(T2E) - 1
+        edge_indices = T2E.indices
         mask = edge_indices == 0
 
         if np.any(mask):
-            # Get the signed values for edge 0
-            edge0_signed = T2E[mask]
-            # Signs should be +1 or -1 (abs(signed_val) = 1 for edge 0)
-            assert np.all(np.abs(edge0_signed) == 1), \
-                f"Edge 0 should have abs(T2E) == 1, got {edge0_signed}"
-            # Signs should be properly preserved
-            signs = np.sign(edge0_signed)
+            # Get the SignedEdgeArray for edge 0 entries
+            edge0_sea = T2E[mask]
+            # Signs should be +1 or -1
+            signs = edge0_sea.signs
             assert np.all(np.abs(signs) == 1), \
                 f"Edge 0 signs should be +1 or -1, got {signs}"
+            # Raw values for edge 0 should have abs() == 1 (since index 0 -> raw = 1*sign)
+            assert np.all(np.abs(edge0_sea.raw) == 1), \
+                f"Edge 0 raw should have abs() == 1, got {edge0_sea.raw}"
 
     def test_e2t_sign_columns(self, tetrahedron_surface):
         """E2T columns 2 and 3 should be opposite signs."""

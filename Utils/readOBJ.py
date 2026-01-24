@@ -1,279 +1,119 @@
-
-
-# For the original line-by-line MATLAB translation with interleaved comments,
-# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
+# Mesh I/O using trimesh library
+# Replaces the original MATLAB-ported OBJ reader
 
 import numpy as np
-from typing import Tuple, Optional
-import warnings
+from typing import Tuple
+import trimesh
 
-
-# function [V,F,UV,TF,N,NF,SI] = readOBJ(filename,varargin)
 
 def readOBJ(filename: str, quads: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
-    Read an OBJ file with vertex/face information.
+    Read a mesh file (OBJ, PLY, STL, OFF, etc.) using trimesh.
 
     Args:
-        filename: path to .obj file
-        quads: whether to output face information in X by 4 matrices
+        filename: path to mesh file
+        quads: if True, preserve quad faces (not yet supported, will triangulate)
 
     Returns:
         V: vertices (#V, 3)
-        F: face indices (#F, 3 or 4), 0-indexed
-        UV: texture coordinates (#UV, 2 or 3)
-        TF: face texture indices (#F, 3 or 4), 0-indexed
-        N: normals (#N, 3)
-        NF: face normal indices (#F, 3 or 4), 0-indexed
-        SI: singularity info (#SI, 2)
+        F: face indices (#F, 3), 0-indexed
+        UV: texture coordinates (#UV, 2) or empty array
+        TF: face texture indices (#F, 3) or empty array, 0-indexed
+        N: normals (#N, 3) or empty array
+        NF: face normal indices (#F, 3) or empty array, 0-indexed
+        SI: singularity info - empty array (not used)
 
-    Note: MATLAB returns 1-indexed faces; Python returns 0-indexed faces.
+    Note:
+        - Supports any format trimesh can load (OBJ, PLY, STL, OFF, GLB, etc.)
+        - Handles UTF-8 and other encodings automatically
+        - Merges duplicate vertices by position (important for correct topology)
+        - Quad faces are triangulated (quads=True not yet implemented)
     """
-    # if quads
-    #     ss = 4;
-    # else
-    #     ss = 3;
-    # end
+    # Load mesh with trimesh - it handles encoding automatically
+    mesh = trimesh.load(filename, force='mesh', process=False)
 
-    # simplex size
-    ss = 4 if quads else 3
+    # Get vertices and faces
+    V = np.asarray(mesh.vertices, dtype=np.float64)
+    F = np.asarray(mesh.faces, dtype=np.int64)
 
-    # Use lists for dynamic allocation in Python
+    # Merge duplicate vertices by position
+    # Trimesh expands vertices for per-face texture coords, but we need
+    # the true mesh topology for geometry processing
+    V, F = _merge_duplicate_vertices(V, F)
 
-    # Amortized array allocation
-    V_list = []
-    F_list = []
-    UV_list = []
-    TF_list = []
-    N_list = []
-    NF_list = []
-    SI_list = []
-
-    # Track counts
-    numv = 0
-    numuv = 0
-    numn = 0
-
-    # triangulated = false;
-    # all_ss = true;
-
-    triangulated = False
-    all_ss = True
-
-    # fp = fopen( filename, 'r' );
-    # type = fscanf( fp, '%s', 1 );
-    # while strcmp( type, '' ) == 0
-
-    with open(filename, 'r') as fp:
-        for line in fp:
-            line = line.strip()
-            if not line:
-                continue
-
-            parts = line.split()
-            if not parts:
-                continue
-
-            type_token = parts[0]
-
-            # if strcmp( type, 'v' ) == 1
-            #     v = sscanf( line, '%lf %lf %lf' );
-            #     numv = numv+1;
-            #     if length(v) == 2
-            #       V(numv,1:2) = [v(1:2)'];
-            #     else
-            #       V(numv,:) = [v(1:3)'];
-            #     end
-
-            if type_token == 'v':
-                v = [float(x) for x in parts[1:4]]
-                if len(v) == 2:
-                    v.append(0.0)
-                elif len(v) < 2:
-                    continue
-                V_list.append(v[:3])
-                numv += 1
-
-            # elseif strcmp( type, 'vt')
-            #     v = sscanf( line, '%f %f %f' );
-            #     numuv = numuv+1;
-            #     UV(numuv,:) = [v'];
-
-            elif type_token == 'vt':
-                v = [float(x) for x in parts[1:]]
-                if len(v) >= 2:
-                    UV_list.append(v[:min(3, len(v))])
-                    numuv += 1
-
-            # elseif strcmp( type, 'vn')
-            #     n = sscanf( line, '%f %f %f' );
-            #     numn = numn+1;
-            #     N(numn,:) = [n'];
-
-            elif type_token == 'vn':
-                n = [float(x) for x in parts[1:4]]
-                if len(n) >= 3:
-                    N_list.append(n[:3])
-                    numn += 1
-
-            # elseif strcmp( type, 'f' ) == 1
-            #     [t, count] = sscanf(line,'%d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d %d/%d/%d');
-            #     ... (various formats)
-
-            elif type_token == 'f':
-                # Parse face - handle v, v/vt, v/vt/vn, v//vn formats
-                face_v = []
-                face_vt = []
-                face_vn = []
-
-                for vertex in parts[1:]:
-                    indices = vertex.split('/')
-
-                    # Vertex index (required)
-                    vi = int(indices[0])
-                    # Handle negative indices (relative to current count)
-                    # t = t + (t<0).*   (numv+1);
-                    if vi < 0:
-                        vi = numv + vi + 1
-                    face_v.append(vi)
-
-                    # Texture coordinate index (optional)
-                    vti = -1
-                    if len(indices) > 1 and indices[1]:
-                        vti = int(indices[1])
-                        # tf = tf + (tf<0).*(numuv+1);
-                        if vti < 0:
-                            vti = numuv + vti + 1
-                    face_vt.append(vti)
-
-                    # Normal index (optional)
-                    vni = -1
-                    if len(indices) > 2 and indices[2]:
-                        vni = int(indices[2])
-                        # nf = nf + (nf<0).*(numn+1);
-                        if vni < 0:
-                            vni = numn + vni + 1
-                    face_vn.append(vni)
-
-                # Convert to numpy arrays for processing
-                t = np.array(face_v)
-                tf = np.array(face_vt)
-                nf = np.array(face_vn)
-
-                # if numel(t) > ss
-                #   if ~triangulated
-                #     warning('Trivially triangulating high degree facets');
-                #   end
-                #   triangulated = true;
-                # end
-
-                if len(t) > ss:
-                    if not triangulated:
-                        warnings.warn('Trivially triangulating high degree facets')
-                    triangulated = True
-
-                # Fan triangulation for polygons with > ss vertices
-                # while true
-                #   if numel(t) > ss
-                #     corners = [1 2 3];  (MATLAB 1-indexed)
-                #   else
-                #     corners = 1:numel(t);
-                #   end
-                #   ...
-                #   if numel(t) <= ss
-                #     break;
-                #   end
-                #   t = t([1 3:end]);
-
-                while True:
-                    if len(t) > ss:
-                        corners = [0, 1, 2]  # 0-indexed
-                    else:
-                        # if all_ss && numel(t)<ss
-                        #   warning('Small degree facet found');
-                        #   all_ss = false;
-                        # end
-                        if all_ss and len(t) < ss:
-                            warnings.warn('Small degree facet found')
-                            all_ss = False
-                        corners = list(range(len(t)))
-
-                    # Store face (convert to 0-indexed: subtract 1)
-                    # F(numf,1:numel(corners)) = [t(corners)'];
-                    face = [t[c] - 1 for c in corners]
-                    # Pad with -1 for triangles when using quads (MATLAB uses 0, Python uses -1)
-                    while len(face) < ss:
-                        face.append(-1)
-                    F_list.append(face)
-
-                    # Store texture face
-                    # TF(numtf,1:numel(corners)) = [tf(corners)'];
-                    tface = [tf[c] - 1 if tf[c] > 0 else -1 for c in corners]
-                    while len(tface) < ss:
-                        tface.append(-1)
-                    TF_list.append(tface)
-
-                    # Store normal face
-                    # NF(numnf,1:numel(corners)) = [nf(corners)'];
-                    nface = [nf[c] - 1 if nf[c] > 0 else -1 for c in corners]
-                    while len(nface) < ss:
-                        nface.append(-1)
-                    NF_list.append(nface)
-
-                    # if numel(t) <= ss
-                    #   break;
-                    # end
-                    if len(t) <= ss:
-                        break
-
-                    # t = t([1 3:end]); - fan triangulation
-                    t = np.concatenate([[t[0]], t[2:]])
-                    tf = np.concatenate([[tf[0]], tf[2:]])
-                    nf = np.concatenate([[nf[0]], nf[2:]])
-
-                    if len(t) < 3:
-                        break
-
-            # elseif strcmp( type, 'c')
-            #     s = sscanf( line, '%d %f' );
-            #     numc = numc+1;
-            #     SI(numc,:) = [s'];
-
-            elif type_token == 'c':
-                s = [float(x) for x in parts[1:3]]
-                if len(s) >= 2:
-                    SI_list.append(s[:2])
-
-            # elseif strcmp( type, '#' ) == 1
-
-            elif type_token == '#':
-                # ignore comment line
-                pass
-
-    # V = V(1:numv,:);
-    # F = F(1:numf,:);
-    # UV = UV(1:numuv,:);
-    # TF = TF(1:numtf,:);
-    # N = N(1:numn,:);
-    # NF = NF(1:numnf,:);
-    # SI = SI(1:numc,:);
-
-    # Convert lists to numpy arrays
-    V = np.array(V_list) if V_list else np.zeros((0, 3))
-    F = np.array(F_list, dtype=int) if F_list else np.zeros((0, ss), dtype=int)
-
-    # Handle UV dimensions
-    if UV_list:
-        max_uv_dim = max(len(uv) for uv in UV_list)
-        UV = np.zeros((len(UV_list), max_uv_dim))
-        for i, uv in enumerate(UV_list):
-            UV[i, :len(uv)] = uv
+    # Handle texture coordinates if available
+    if hasattr(mesh.visual, 'uv') and mesh.visual.uv is not None:
+        UV = np.asarray(mesh.visual.uv, dtype=np.float64)
+        # Note: UV indices may not match after merging - return original for reference
+        TF = np.zeros((F.shape[0], 3), dtype=np.int64)  # Placeholder
     else:
-        UV = np.zeros((0, 2))
+        UV = np.zeros((0, 2), dtype=np.float64)
+        TF = np.zeros((0, 3), dtype=np.int64)
 
-    TF = np.array(TF_list, dtype=int) if TF_list else np.zeros((0, ss), dtype=int)
-    N = np.array(N_list) if N_list else np.zeros((0, 3))
-    NF = np.array(NF_list, dtype=int) if NF_list else np.zeros((0, ss), dtype=int)
-    SI = np.array(SI_list) if SI_list else np.zeros((0, 2))
+    # Handle normals if available
+    if hasattr(mesh, 'vertex_normals') and mesh.vertex_normals is not None:
+        N = np.asarray(mesh.vertex_normals, dtype=np.float64)
+        NF = np.zeros((F.shape[0], 3), dtype=np.int64)  # Placeholder
+    else:
+        N = np.zeros((0, 3), dtype=np.float64)
+        NF = np.zeros((0, 3), dtype=np.int64)
+
+    # SI (singularity info) - not used, return empty
+    SI = np.zeros((0, 2), dtype=np.float64)
 
     return V, F, UV, TF, N, NF, SI
+
+
+def _merge_duplicate_vertices(V: np.ndarray, F: np.ndarray,
+                               decimals: int = 10) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Merge vertices that have the same position.
+
+    Trimesh often creates duplicate vertices when loading OBJ files with
+    per-face texture coordinates. This function merges them back.
+
+    Args:
+        V: vertices (N, 3)
+        F: faces (M, 3)
+        decimals: precision for comparing vertex positions
+
+    Returns:
+        V_unique: unique vertices
+        F_remapped: faces with updated indices
+    """
+    # Round to handle floating point comparison
+    V_rounded = np.round(V, decimals=decimals)
+
+    # Find unique vertices and mapping from old to new indices
+    V_unique, inverse = np.unique(V_rounded, axis=0, return_inverse=True)
+
+    # Remap face indices
+    F_remapped = inverse[F]
+
+    # Use original (non-rounded) vertices for the unique positions
+    # Get one original vertex per unique position
+    unique_indices = np.zeros(len(V_unique), dtype=np.int64)
+    seen = np.zeros(len(V_unique), dtype=bool)
+    for i, inv in enumerate(inverse):
+        if not seen[inv]:
+            unique_indices[inv] = i
+            seen[inv] = True
+
+    V_unique = V[unique_indices]
+
+    return V_unique, F_remapped
+
+
+def load_mesh(filename: str) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Simple mesh loader - just vertices and faces.
+
+    Args:
+        filename: path to mesh file
+
+    Returns:
+        vertices: (#V, 3) vertex positions
+        faces: (#F, 3) triangle indices, 0-indexed
+    """
+    V, F, *_ = readOBJ(filename)
+    return V, F

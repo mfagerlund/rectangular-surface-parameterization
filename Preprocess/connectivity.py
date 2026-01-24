@@ -5,6 +5,8 @@
 
 import numpy as np
 
+from Preprocess.signed_edge_array import SignedEdgeArray
+
 
 # function [E2V, T2E, E2T, T2T] = connectivity(T)
 
@@ -21,10 +23,9 @@ def connectivity(T):
     -------
     E2V : ndarray (ne, 2)
         Edge to vertices mapping (each row is [v0, v1] sorted), 0-indexed
-    T2E : ndarray (nf, 3)
-        Triangle to edge mapping using 1-based signed indices.
-        Decode: edge_idx = abs(T2E) - 1, sign = np.sign(T2E)
-        This encoding avoids the edge-0 sign loss problem.
+    T2E : SignedEdgeArray (nf, 3)
+        Triangle to edge mapping with orientation signs.
+        Use T2E.indices for 0-based edge indices, T2E.signs for orientations.
     E2T : ndarray (ne, 4)
         Edge to triangles: [tri0, tri1, sign0, sign1] where sign indicates orientation.
         tri values are 0-indexed, -1 means no neighbor (boundary).
@@ -142,13 +143,57 @@ def connectivity(T):
 
     # T2E = T2E.*t2es;
 
-    # Apply signs to T2E using 1-based encoding to avoid edge-0 sign loss.
-    # MATLAB uses 1-based indices, so T2E*sign works there.
-    # In Python with 0-based indices, edge 0 * -1 = 0 (loses sign).
-    # Fix: use (T2E + 1) * sign. Decode: idx = abs(x) - 1, sign = np.sign(x)
-    T2E_signed = (T2E + 1) * t2es
+    # Apply signs to T2E. Previously used 1-based encoding to avoid edge-0 sign loss.
+    # Now using SignedEdgeArray which handles the encoding internally.
+    T2E_signed = SignedEdgeArray.from_edges_and_signs(T2E, t2es)
 
 
     # (V2T computation is commented out in MATLAB, skipping)
 
     return E2V, T2E_signed, E2T, T2T
+
+
+def check_mesh_connected(mesh) -> bool:
+    """
+    Check if a mesh is a single connected component.
+
+    Uses BFS on the vertex adjacency graph to verify all vertices
+    are reachable from vertex 0.
+
+    Parameters
+    ----------
+    mesh : MeshInfo
+        Mesh with E2V edge-to-vertex mapping
+
+    Returns
+    -------
+    bool
+        True if mesh is connected, False otherwise
+    """
+    from collections import deque
+
+    nv = mesh.num_vertices
+    E2V = mesh.E2V
+
+    # Build vertex adjacency list
+    adj = [[] for _ in range(nv)]
+    for e in range(E2V.shape[0]):
+        v0, v1 = E2V[e, 0], E2V[e, 1]
+        adj[v0].append(v1)
+        adj[v1].append(v0)
+
+    # BFS from vertex 0
+    visited = np.zeros(nv, dtype=bool)
+    queue = deque([0])
+    visited[0] = True
+    count = 1
+
+    while queue:
+        v = queue.popleft()
+        for neighbor in adj[v]:
+            if not visited[neighbor]:
+                visited[neighbor] = True
+                count += 1
+                queue.append(neighbor)
+
+    return count == nv
