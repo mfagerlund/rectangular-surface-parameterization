@@ -1,24 +1,12 @@
-# === ISSUES ===
-# - accumarray: use np.bincount
-# - unique(..., 'rows'): use np.unique with axis=0 and return_index/return_inverse
-# - MATLAB sort returns [sorted, indices], Python uses np.sort + np.argsort
-# - MATLAB find returns 1-indexed, Python np.where returns 0-indexed
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 
 
 # function [E2V, T2E, E2T, T2T] = connectivity(T)
-# % Computes the adjacency properties given a list of triangles
-# %
-# % INPUT:
-# % T : list of triangles
-# %
-# % OUTPUT:
-# % E2V : list of edges = per of vertices indexes
-# % T2E : edge indexes per triangles
-# % E2T : adjacent triangles to each edge , sign of the edge seen from triangle
-# % T2T : adjacent triangles to each triangle
 
 def connectivity(T):
     """
@@ -95,11 +83,6 @@ def connectivity(T):
     e3 = ic[2*nf:]
     T2E = np.column_stack([e1, e2, e3])  # unsigned for now
 
-    # % bound = find(accumarray(T2E(:), 1) == 1);
-    # % [~, idx] = sort([e1; e2; e3]);
-    # % idx = mod(idx-1, nf)+1;
-    # % E2T = reshape(idx', [2, size(E2V,1)])';
-    # % E2T = [E2T, edgeSg, -edgeSg];
     # bound = find(accumarray(T2E(:), 1) == 1);
     # nB = length(bound);
 
@@ -108,9 +91,6 @@ def connectivity(T):
     bound = np.where(edge_counts == 1)[0]
     nB = len(bound)
 
-    # % if ~isempty(bound)
-    # %     warning(['Mesh with ', num2str(nB), ' boundary edges: length retrieval might not work']);
-    # % end
     # [~, idx] = sort([e1; e2; e3; bound]);
     # idx(idx <= 3*nf) = mod(idx(idx <= 3*nf)-1, nf)+1;
     # E2T = reshape(idx', [2, size(E2V,1)])';
@@ -168,14 +148,6 @@ def connectivity(T):
     # Fix: use (T2E + 1) * sign. Decode: idx = abs(x) - 1, sign = np.sign(x)
     T2E_signed = (T2E + 1) * t2es
 
-    # % [Ts,id] = sort(T);
-    # % V2T = cell(3, 1);
-    # % for i = 1:3
-    # %     nbTri = zeros(nv, 1);
-    # %     nbTri(1:max(Ts(:,i))) = accumarray(Ts(:,i), 1);
-    # %     V2T{i} = mat2cell(id(:,i), nbTri, 1);
-    # % end
-    # % V2T = cellfun(@(a,b,c) [a;b;c], V2T{1}, V2T{2}, V2T{3}, 'UniformOutput', false);
 
     # (V2T computation is commented out in MATLAB, skipping)
 

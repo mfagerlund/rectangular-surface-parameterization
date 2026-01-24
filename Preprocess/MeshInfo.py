@@ -1,8 +1,3 @@
-# === ISSUES ===
-# - connectivity(): needs Python implementation in connectivity.py
-# - repmat: use np.tile or broadcasting
-# - sparse matrix construction: use scipy.sparse.csr_matrix or coo_matrix
-# === END ISSUES ===
 
 # function mesh = MeshInfo(X, T)
 #
@@ -15,7 +10,6 @@
 # mesh.nv = size(mesh.X,1);
 # mesh.ne = size(mesh.E2V,1);
 #
-# % Normals and areas
 # mesh.normal = cross(mesh.X(mesh.T(:,1),:) - mesh.X(mesh.T(:,2),:), mesh.X(mesh.T(:,1),:) - mesh.X(mesh.T(:,3),:));
 # mesh.area = sqrt(sum(mesh.normal.^2, 2))/2;
 # mesh.normal = mesh.normal./repmat(sqrt(sum(mesh.normal.^2, 2)), [1, 3]);
@@ -24,14 +18,16 @@
 # mesh.Nv = A*mesh.normal;
 # mesh.Nv = mesh.Nv./repmat(sqrt(sum(mesh.Nv.^2,2)), [1,3]);
 #
-# % Edge length
 # mesh.SqEdgeLength = sum((mesh.X(mesh.E2V(:,1),:) - mesh.X(mesh.E2V(:,2),:)).^2, 2);
 #
-# % Angles
 # mesh.corner_angle = angles_of_triangles(mesh.X, mesh.T);
 # mesh.cot_corner_angle = cot(mesh.corner_angle);
 #
 # end
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 from dataclasses import dataclass
 import numpy as np
@@ -134,7 +130,6 @@ def mesh_info(X: np.ndarray, T: np.ndarray) -> MeshInfo:
     nv = X.shape[0]
     ne = E2V.shape[0]
 
-    # % Normals and areas
     # mesh.normal = cross(mesh.X(mesh.T(:,1),:) - mesh.X(mesh.T(:,2),:), mesh.X(mesh.T(:,1),:) - mesh.X(mesh.T(:,3),:));
 
     # MATLAB is 1-indexed, Python is 0-indexed
@@ -176,14 +171,12 @@ def mesh_info(X: np.ndarray, T: np.ndarray) -> MeshInfo:
     Nv_norms = np.linalg.norm(Nv, axis=1, keepdims=True)
     Nv = Nv / np.maximum(Nv_norms, 1e-12)
 
-    # % Edge length
     # mesh.SqEdgeLength = sum((mesh.X(mesh.E2V(:,1),:) - mesh.X(mesh.E2V(:,2),:)).^2, 2);
 
     # MATLAB E2V(:,1) -> Python E2V[:, 0], E2V(:,2) -> E2V[:, 1]
     edge_vec = X[E2V[:, 0], :] - X[E2V[:, 1], :]
     SqEdgeLength = np.sum(edge_vec ** 2, axis=1)
 
-    # % Angles
     # mesh.corner_angle = angles_of_triangles(mesh.X, mesh.T);
 
     corner_angle = angles_of_triangles(X, T)

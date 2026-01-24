@@ -1,10 +1,3 @@
-# === ISSUES ===
-# - quadprog: use cvxpy or scipy.optimize for quadratic programming with equality constraints
-# - blkdiag: use scipy.sparse.block_diag
-# - accumarray: use np.bincount or np.add.at
-# - dot(A, B, 2): use np.sum(A * B, axis=1) for row-wise dot product
-# - complex(): numpy uses 1j for imaginary unit
-# === END ISSUES ===
 
 # function [Xp,mu] = parametrization_from_scales(Src, SrcCut, dec_cut, param, ang, omega, ut, vt, Align, Rot)
 #
@@ -22,39 +15,33 @@
 #     end
 # end
 #
-# % Integrated scales per edge
 # u1_int = ut(:,[1 2 3])/2 + ut(:,[2 3 1])/2;
 # u2_int = vt(:,[1 2 3])/2 + vt(:,[2 3 1])/2;
 #
 # expu = [exp(u1_int + u2_int),      zeros(Src.nf,3), ...
 #              zeros(Src.nf,3), exp(u1_int - u2_int)];
 #
-# % Average frame on edge
 # omega(param.ide_bound) = 0;
 # e1 = exp(1i*ang);
 # e1_edge = [e1, e1, e1];
 # e1_edge = (e1_edge + exp(-1i*omega(abs(Src.T2E)).*sign(Src.T2E)).*e1_edge)/2;
 # e2_edge = 1i*e1_edge;
 #
-# % Edge of cut mesh on local basis
 # edge = dec_cut.d0p*SrcCut.X;
 # edge1 = edge(abs(SrcCut.T2E(:,1)),:);
 # edge2 = edge(abs(SrcCut.T2E(:,2)),:);
 # edge3 = edge(abs(SrcCut.T2E(:,3)),:);
 # edge_tri_cut = [complex(dot(param.e1r, edge1, 2), dot(param.e2r, edge1, 2)), complex(dot(param.e1r, edge2, 2), dot(param.e2r, edge2, 2)), complex(dot(param.e1r, edge3, 2), dot(param.e2r, edge3, 2))];
 #
-# % Deformed edges inside triangle (ie \mu_{ij}^k)
 # sigma1_tri = real(conj(e1_edge).*edge_tri_cut);
 # sigma2_tri = real(conj(e2_edge).*edge_tri_cut);
 # mu1_tri = expu(:,1:3).*sigma1_tri + expu(:,4:6)  .*sigma2_tri;
 # mu2_tri = expu(:,7:9).*sigma1_tri + expu(:,10:12).*sigma2_tri;
 #
-# % New edge vector (ie \mu_{ij})
 # mu = zeros(SrcCut.ne,2);
 # mu(:,1) = accumarray(abs(SrcCut.T2E(:)), mu1_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
 # mu(:,2) = accumarray(abs(SrcCut.T2E(:)), mu2_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
 #
-# % Integration with/out seamless constraints
 # W = dec_cut.W + 1e-5*dec_cut.star0p;
 # W = (W + W')/2;
 # div_dX = dec_cut.d1d*dec_cut.star1p*mu;
@@ -65,6 +52,10 @@
 # else
 #     Xp = W\div_dX;
 # end
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from scipy.sparse import csr_matrix, block_diag, vstack
@@ -221,7 +212,6 @@ def parametrization_from_scales(
         if Rot is None:
             Rot = csr_matrix((0, 2 * SrcCut.nv))
 
-    # % Integrated scales per edge
     # u1_int = ut(:,[1 2 3])/2 + ut(:,[2 3 1])/2;
     # u2_int = vt(:,[1 2 3])/2 + vt(:,[2 3 1])/2;
 
@@ -243,7 +233,6 @@ def parametrization_from_scales(
 
     expu = np.column_stack([exp_sum, zeros_nf3, zeros_nf3, exp_diff])  # shape (nf, 12)
 
-    # % Average frame on edge
     # omega(param.ide_bound) = 0;
 
     omega = omega.copy()
@@ -275,7 +264,6 @@ def parametrization_from_scales(
 
     e2_edge = 1j * e1_edge  # Perpendicular frame direction
 
-    # % Edge of cut mesh on local basis
     # edge = dec_cut.d0p*SrcCut.X;
 
     edge = dec_cut.d0p @ SrcCut.X  # shape (ne_cut, 3)
@@ -308,7 +296,6 @@ def parametrization_from_scales(
         row_dot(e1r, edge3) + 1j * row_dot(e2r, edge3),  # complex edge 3
     ])  # shape (nf, 3), complex
 
-    # % Deformed edges inside triangle (ie \mu_{ij}^k)
     # sigma1_tri = real(conj(e1_edge).*edge_tri_cut);
     # sigma2_tri = real(conj(e2_edge).*edge_tri_cut);
 
@@ -322,7 +309,6 @@ def parametrization_from_scales(
     mu1_tri = expu[:, 0:3] * sigma1_tri + expu[:, 3:6] * sigma2_tri  # shape (nf, 3)
     mu2_tri = expu[:, 6:9] * sigma1_tri + expu[:, 9:12] * sigma2_tri  # shape (nf, 3)
 
-    # % New edge vector (ie \mu_{ij})
     # mu = zeros(SrcCut.ne,2);
     # mu(:,1) = accumarray(abs(SrcCut.T2E(:)), mu1_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
     # mu(:,2) = accumarray(abs(SrcCut.T2E(:)), mu2_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
@@ -346,7 +332,6 @@ def parametrization_from_scales(
     mu[:, 0] = mu_sum1 / mu_count
     mu[:, 1] = mu_sum2 / mu_count
 
-    # % Integration with/out seamless constraints
     # W = dec_cut.W + 1e-5*dec_cut.star0p;
     # W = (W + W')/2;
 

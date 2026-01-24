@@ -1,11 +1,4 @@
-# === ISSUES ===
-# - trisurf: visualization uses matplotlib (matplotlib.pyplot.triplot or mpl_toolkits.mplot3d)
-# - contains: use 'x in str' or str.find()
-# - QuantizationYoann: external C++ executable, not ported - quantization disabled
-# === END ISSUES ===
 
-# % Rectangle Surface Parametrization
-# % Corman and Crane, 2025
 
 """
 Rectangle Surface Parametrization - Corman and Crane, 2025
@@ -18,6 +11,10 @@ Usage:
 Example:
     python run_RSP.py C:/Dev/Colonel/Data/Meshes/sphere320.obj -o output/
 """
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import argparse
 import os
@@ -127,7 +124,6 @@ def main():
     """Main entry point."""
     args = parse_args()
 
-    # % Options
     # mesh_name = 'B36';
     # frame_field_type = 'smooth';
     # ifhardedge   = true;
@@ -156,7 +152,6 @@ def main():
     # Create output directory if needed
     os.makedirs(path_save, exist_ok=True)
 
-    # % Energy weights
     # if strcmp(energy_type, 'distortion')
     #     weight.w_conf_ar = 0.5;
     # end
@@ -174,7 +169,6 @@ def main():
         weight.w_ratio = 1.0
     weight.w_gradv = args.w_gradv
 
-    # %% Load mesh
     # [X,T] = readOBJ([path_data, mesh_name, '.obj']);
 
     if verbose:
@@ -185,7 +179,6 @@ def main():
     if verbose:
         print(f"  Vertices: {X.shape[0]}, Faces: {T.shape[0]}")
 
-    # % Rescale: area equals one
     # area_tot = sum(sqrt(sum(cross(X(T(:,1),:) - X(T(:,2),:), X(T(:,1),:) - X(T(:,3),:),2).^2,2)))/2;
     # X = X/sqrt(area_tot);
 
@@ -202,7 +195,6 @@ def main():
     if verbose:
         print(f"  Rescaled by factor: {1/scale_factor:.4f} (total area -> 1)")
 
-    # % Preprocess geometry
     # Src = MeshInfo(X, T);
     # dec = dec_tri(Src);
     # [param,Src,dec] = preprocess_ortho_param(Src, dec, ifboundary, ifhardedge, 40);
@@ -224,7 +216,6 @@ def main():
         print(f"  Boundary edges: {len(param.ide_bound)}")
         print(f"  Fixed edges: {len(param.ide_fix)}")
 
-    # % Plot constraint edges (visualization)
     # col = zeros(Src.nv,1); col(Src.E2V(param.ide_fix,:)) = 1;
     # figure; trisurf(...); title('Constraint')
 
@@ -240,7 +231,6 @@ def main():
         ax.set_title('Constraint Edges')
         plt.show()
 
-    # %% Compute initial cross field
     # if strcmp(frame_field_type, 'curvature')
     #     [omega,ang,sing,kappa,Curv] = compute_curvature_cross_field(Src, param, dec, 30, 1e-1);
     #     weight.aspect_ratio = ...
@@ -268,7 +258,6 @@ def main():
 
         omega, ang, sing, kappa, Curv = compute_curvature_cross_field(Src, param, dec, 30, 1e-1)
 
-        # % Target aspect ratio
         # weight.aspect_ratio = ((abs(kappa(:,1)) + 1e-5)./(abs(kappa(:,2)) + 1e-5));
         # t = exp(5);
         # weight.aspect_ratio = max(min(weight.aspect_ratio, t), 1/t);
@@ -277,7 +266,6 @@ def main():
         t = np.exp(5)
         weight.aspect_ratio = np.clip(weight.aspect_ratio, 1/t, t)
 
-        # % Target direction
         # weight.ang_dir = ang;
 
         weight.ang_dir = ang.copy()
@@ -286,7 +274,6 @@ def main():
         omega, ang, sing = compute_face_cross_field(Src, param, dec, 10)
 
     elif frame_field_type == 'trivial':
-        # % Vertex singularity index
         # sing = zeros(Src.nv,1);
         # sing(param.idx_bound) = round(2*param.K(param.idx_bound)/pi)/4;
 
@@ -295,21 +282,18 @@ def main():
             # param.K may have extended vertices, use param.Kt for vertex curvature
             sing[param.idx_bound] = np.round(2 * param.Kt[param.idx_bound] / np.pi) / 4
 
-        # % Singularity index of non-contractible cycles
         # om_cycle = param.Icycle*param.para_trans;
         # om_cycle = om_cycle - 2*pi*round(4*om_cycle/(2*pi))/4;
 
         om_cycle = param.Icycle @ param.para_trans
         om_cycle = om_cycle - 2 * np.pi * np.round(4 * om_cycle / (2 * np.pi)) / 4
 
-        # % Singularity index between disconnected constraints
         # om_link = param.Ilink*param.para_trans;
         # om_link = om_link - 2*pi*round(4*om_link/(2*pi))/4;
 
         om_link = param.Ilink @ param.para_trans
         om_link = om_link - 2 * np.pi * np.round(4 * om_link / (2 * np.pi)) / 4
 
-        # % Trivial connection
         # [omega,ang,sing] = trivial_connection(Src, param, dec, ifboundary, ifhardedge, sing);
 
         omega, ang, sing = trivial_connection(Src, param, dec, ifboundary, ifhardedge, sing, om_cycle, om_link)
@@ -326,7 +310,6 @@ def main():
         print(f"  Negative singularities: {id_sing_m}")
         print(f"  Total singularities: {id_sing_p + id_sing_m}")
 
-    # % Plot frame field
     # plot_frame_field(1, Src, param, ang, sing);
     # title('Init frame field');
 
@@ -335,7 +318,6 @@ def main():
         plt.title('Initial Frame Field')
         plt.show()
 
-    # %% Compute cross field jumps and build reduction matrix for v
     # [Edge_jump,v2t,base_tri] = reduce_corner_var_2d(Src);
     # [k21,Reduction] = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t);
 
@@ -345,7 +327,6 @@ def main():
     Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
     k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
-    # %% Optimize integrability condition
     # itmax = 200;
     # ifplot = false;
     # u = zeros(Src.nv,1);
@@ -376,7 +357,6 @@ def main():
         else:
             print(f"  Line search failed at iteration {result.it}")
 
-    # %% Compute parametrization
     # [SrcCut,dec_cut,Align,Rot] = mesh_to_disk_seamless(Src, param, angn, sing, k21, ifseamless_const, ifboundary, ifhardedge);
     # [Xp,dX] = parametrization_from_scales(Src, SrcCut, dec_cut, param, angn, om, ut, vt, Align, Rot);
 
@@ -389,7 +369,6 @@ def main():
     if verbose:
         print(f"  Cut mesh vertices: {SrcCut.nv}, faces: {SrcCut.nf}")
 
-    # %% Extract distortion metrics
     # disto = extract_scale_from_param(Xp, Src.X, Src.T, param, SrcCut.T, angn);
     # curl_dX = sqrt(sum((dec_cut.d1p*dX).^2,2))./Src.area;
 
@@ -411,7 +390,6 @@ def main():
             print(f"Saving visualizations to {path_save}...")
         visualize_run_RSP_result(Src, SrcCut, Xp, disto, output_dir=path_save, mesh_name=mesh_name)
 
-    # %% Plot results
     if ifplot:
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
@@ -449,7 +427,6 @@ def main():
         plt.tight_layout()
         plt.show()
 
-        # % Plot singularities
         # col = zeros(Src.nf,1); col(disto.detJ <= 0) = 1;
         # id_sing_p = sing > 1/8;
         # id_sing_m = sing <-1/8;
@@ -478,8 +455,6 @@ def main():
         ax.legend()
         plt.show()
 
-    # %% Save mesh
-    # % Rotate UVs by 45 deg in case of Chebyshev net
     # if contains(energy_type, 'cheby')
     #     r = [1,1;-1,1]*(sqrt(2)/2);
     #     UV = Xp*r;
@@ -494,7 +469,6 @@ def main():
     else:
         UV = Xp
 
-    # % Desactivate quantization in known case of failure
     # if ifquantization && ~isempty(param.ide_bound) && ~ifboundary
     #     warning('Boundary alignment is disactivated.');
     #     warning('The quantization step does not support free boundaries.');
@@ -528,7 +502,6 @@ def main():
         print("Warning: The quantization step will fail.")
         ifquantization = False
 
-    # % Save parametrization
     # save_param(ifquantization, path_save, mesh_name, sqrt(area_tot)*Src.X, Src.T, UV, SrcCut.T, sing, Src.E2V(param.ide_hard,:));
 
     if verbose:

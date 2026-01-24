@@ -1,11 +1,3 @@
-# === ISSUES ===
-# - MeshInfo: implemented locally as dataclass (not imported from Preprocess.MeshInfo)
-# - union_find: translated locally with path compression optimization
-# - Indexing: auto-detects 1-based inputs, converts to 0-based internally
-# - ide_cut_inv: returned as signed 1-based to preserve sign for edge 0
-# - T2E encoding: handles signed 1-based encoding ((edge_idx+1)*sign)
-# - Boundary sentinel: uses -1 (not 0) for missing neighbors
-# === END ISSUES ===
 
 # function [SrcCut,idx_cut_inv,ide_cut_inv,edge_cut] = cut_mesh(X, T, E2V, E2T, T2E, T2T, idcone, edge_jump_tag)
 # 
@@ -13,7 +5,6 @@
 # ne = size(E2V,1);
 # nf = size(T,1);
 # 
-# % Dual spanning tree
 # Q = 1;
 # tri_pred =-ones(nf,1); % Visited faces
 # tri_pred(Q) = 0;
@@ -39,7 +30,6 @@
 #     end
 # end
 # 
-# % Recursively cut leaves (ie degree 1 vertices that are not singularities)
 # visited_edge(edge_jump_tag) = false; 
 # edge_cut =~visited_edge; % Set of current edge in the cut
 # deg = accumarray(vec(E2V(edge_cut,:)), 1, [nv,1]); % vertices degree
@@ -53,9 +43,7 @@
 #     deg1 = deg == 1; % set of degree 1 vertices
 # end
 # 
-# % Create new mesh with cut edge as boundary
 # if any(edge_cut) && any(all(E2T(edge_cut,1:2) ~= 0,2))
-#     % Compute equivalence based on edges
 #     e2v = [T(:,1),T(:,2); T(:,2),T(:,3); T(:,3),T(:,1)];
 #     [e2vs,ids] = sort(e2v,2);
 #     id_cut = find(ismember(e2vs, E2V(edge_cut,:), 'rows'));
@@ -71,7 +59,6 @@
 #     e2v_cuts = [e2v_cut(:,1).*(ids(:,1) == 1) + e2v_cut(:,2).*(ids(:,1) == 2), e2v_cut(:,1).*(ids(:,2) == 1) + e2v_cut(:,2).*(ids(:,2) == 2)];
 #     equiv_vx = [e2v_cuts(idtri1(id1),1), e2v_cuts(idtri2(id2),1) ; e2v_cuts(idtri1(id1),2), e2v_cuts(idtri2(id2),2)];
 #     
-#     % Propagate equivalences
 #     Tc = reshape(union_find(3*nf, equiv_vx), [nf,3]);
 #     idx_cut_inv = unique([Tc(:), T(:)], 'rows');
 #     idx_cut_inv = idx_cut_inv(:,2);
@@ -95,9 +82,6 @@
 # ids = idx_cut_inv(SrcCut.E2V(:,1)) == E2V(ide_cut_inv,1);
 # ide_cut_inv = ids.*ide_cut_inv - (~ids).*ide_cut_inv;
 # 
-# % figure;
-# % trisurf(SrcCut.T, SrcCut.X(:,1), SrcCut.X(:,2), SrcCut.X(:,3));
-# % axis equal;
 # end
 # 
 # function x = union_find(n, equiv)
@@ -124,13 +108,11 @@
 #     error('Argument size invalid.');
 # end
 # 
-# % Set nodes to root
 # x = parent;
 # for i = 1:n
 #     [x(i),~] = find_root(i, parent);
 # end
 # 
-# % Rearrange root nodes
 # nset = unique(x);
 # uniq_id = zeros(max(nset),1);
 # uniq_id(nset) = 1:length(nset);
@@ -158,6 +140,10 @@
 #     s = s + 1;
 # end
 # end
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from dataclasses import dataclass

@@ -1,9 +1,3 @@
-# === ISSUES ===
-# - accumarray: use np.bincount or np.add.at
-# - repmat: use np.tile or broadcasting
-# - sparse matrix construction: use scipy.sparse.csr_matrix or coo_matrix
-# - vec(): MATLAB's vec() flattens column-wise (Fortran order), use .ravel('F') or .flatten('F')
-# === END ISSUES ===
 
 # function dec = dec_tri(Src)
 #
@@ -42,7 +36,6 @@
 # star1d = sparse(1:ne, 1:ne, 1./cotweight, ne, ne);
 # star2d = sparse(1:nv, 1:nv, 1./vor_area, nv, nv);
 #
-# % output
 # dec.d0p = d0p;
 # dec.d1p = d1p;
 # dec.d0d = d0d;
@@ -55,7 +48,6 @@
 # dec.star1d = star1d;
 # dec.star2d = star2d;
 #
-# % Triangle based operator
 # Reduction_tri = sparse(reshape((1:3*nf)', [nf,3]), Src.T, 1, 3*nf, nv);
 # deg_ed = accumarray(abs(Src.T2E(:)), 1);
 # I = abs(Src.T2E(:,[1 2 3]));
@@ -75,6 +67,10 @@
 # dec.Reduction_tri = Reduction_tri;
 #
 # end
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 from dataclasses import dataclass
 import numpy as np
@@ -281,7 +277,6 @@ def dec_tri(Src: MeshInfo) -> DEC:
     star1d = diags(1.0 / cotweight, format='csr')
     star2d = diags(1.0 / vor_area, format='csr')
 
-    # % Triangle based operator
     # Reduction_tri = sparse(reshape((1:3*nf)', [nf,3]), Src.T, 1, 3*nf, nv);
 
     # Reduction_tri maps vertices to corners (3*nf x nv)

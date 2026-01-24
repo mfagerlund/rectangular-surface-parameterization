@@ -1,8 +1,7 @@
-# === ISSUES ===
-# - graph/minspantree: use scipy.sparse.csgraph.minimum_spanning_tree
-# - setdiff(..., 'rows'): need custom row matching with numpy
-# - kruskal fallback: not implemented (scipy MST should suffice)
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -11,8 +10,6 @@ from typing import List, Tuple, Optional
 
 
 # function [cycle,cocycle] = find_graph_generator(l, T, E2T, E2V, init)
-# % "Greedy Optimal Homotopy and Homology Generators"
-# % Jeff Erickson, Kim Whittlesey
 #
 # if ~exist('init', 'var')
 #     init = 1;
@@ -59,8 +56,6 @@ def find_graph_generator(
     nf = E2T[:, :2].max() + 1  # Only first two columns are triangle indices
 
 
-# %% Primal graph
-# % Set edge weights, zero at boundaries
 # ide_bound = any(E2T(:,1:2) == 0, 2);
 # l = abs(l) + 1e-5;
 # w = l;
@@ -75,7 +70,6 @@ def find_graph_generator(
     w[ide_bound] = 0
 
 
-# % Compute minimal spanning tree on primal graph
 # try
 #     G = graph(E2V(:,1), E2V(:,2), w);
 #     [Tree, pred] = minspantree(G, 'Type','tree', 'Root',init);
@@ -113,7 +107,6 @@ def find_graph_generator(
     EdgeTree = np.array(tree_edges) if tree_edges else np.zeros((0, 2), dtype=int)
 
 
-# % Find edge indices which are not in the tree
 # [~,id] = setdiff(sort(E2V,2), sort(EdgeTree,2), 'rows');
 # assert(all(~isnan(pred)), 'Multiple connected components.');
 
@@ -134,7 +127,6 @@ def find_graph_generator(
         )
 
 
-# % Remove boundary edges
 # id = setdiff(id, find(ide_bound));
 
     # Remove boundary edges
@@ -142,8 +134,6 @@ def find_graph_generator(
     id_not_in_tree = np.setdiff1d(id_not_in_tree, boundary_edges)
 
 
-# %% Dual graph
-# % Edge weights for the dual graph
 # w = 1./l;
 
     # Dual graph
@@ -151,7 +141,6 @@ def find_graph_generator(
     w_dual = 1.0 / l
 
 
-# % Compute minimal spanning tree on the dual graph of the remaining edges
 # try
 #     Gco = graph(E2T(id,1), E2T(id,2), w(id));
 #     [CoTree, copred] = minspantree(Gco, 'Type','forest', 'Method','sparse');
@@ -207,7 +196,6 @@ def find_graph_generator(
         EdgeCoTree = np.zeros((0, 2), dtype=int)
 
 
-# % Find edges indices which are not in the dual graph
 # [~,idCoEdge] = setdiff(sort(E2T(:,1:2),2), sort(EdgeCoTree,2), 'rows');
 
     # Find edge indices which are not in the dual tree
@@ -216,7 +204,6 @@ def find_graph_generator(
     idCoEdge = _setdiff_rows(E2T_sorted, EdgeCoTree_sorted)
 
 
-# % Find edges which are neither in the primal nor in the dual graph
 # idGen = intersect(id, idCoEdge);
 
     # Find edges which are neither in the primal nor in the dual graph
@@ -224,8 +211,6 @@ def find_graph_generator(
     idGen = np.intersect1d(id_not_in_tree, idCoEdge)
 
 
-# %% Build cycle basis
-# % Find the primal loops starting from idGen
 # cycle = cell(length(idGen),1);
 # for i = 1:length(idGen)
 #     left = flipud(predecessors(pred, E2V(idGen(i),1)));
@@ -246,7 +231,6 @@ def find_graph_generator(
         cycle.append(cycle_i)
 
 
-# % Find the dual loops starting from idGen
 # cocycle = cell(length(idGen),1);
 # assert(all(~isnan(pred)));
 # assert(all(~isnan(copred)));

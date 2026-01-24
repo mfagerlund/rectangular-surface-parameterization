@@ -1,14 +1,13 @@
-# === ISSUES ===
-# - accumarray: use np.add.at (np.bincount doesn't work with floating point values)
-# - unique(..., 'rows'): use np.unique with axis=0 and return_inverse=True
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from .angles_of_triangles import angles_of_triangles
 
 
 # function [K,idx_bound,ide_bound] = gaussian_curvature(X, T)
-# % Output gaussian curvature inside and normal curvature at the boundary
 
 def gaussian_curvature(X, T):
     """
@@ -32,7 +31,6 @@ def gaussian_curvature(X, T):
     """
     nv = X.shape[0]
 
-    # % Compute interior curvature
     # theta = angles_of_triangles(X, T);
     # K = 2*pi - accumarray(T(:), theta(:));
 
@@ -42,10 +40,8 @@ def gaussian_curvature(X, T):
     # accumarray: sum angles at each vertex
     np.add.at(K, T.ravel(), -theta.ravel())
 
-    # % K(idx_bound) = K(idx_bound) - pi;
     # (This is done below after finding boundary vertices)
 
-    # % Compute boundary normal curvature
     # E2V = sort([T(:,1), T(:,2); T(:,2), T(:,3); T(:,3), T(:,1)], 2);
 
     # Compute boundary normal curvature

@@ -1,31 +1,11 @@
-# === ISSUES ===
-# - graph/conncomp: use scipy.sparse.csgraph.connected_components
-# - graph/shortestpath: use scipy.sparse.csgraph.dijkstra or shortest_path
-# - wrapToPi: use np.arctan2(np.sin(x), np.cos(x))
-# - circshift: use np.roll
-# - intersect(..., 'rows', 'stable'): need custom row matching preserving order
-# - ismember(..., 'rows'): need custom row membership test
-# === END ISSUES ===
 
 # function [param,Src,dec] = preprocess_ortho_param(Src, dec, ifboundary, ifhardedge, tol_dihedral_deg, Ehard2V)
-# % Preprocess geometry:
-# % - Detect hard edges
-# % - Compute boundary edges
-# % - Remesh so that each triangle has only one constrained edge
-# % - Store data for trivial connection (non-contractible cycles, Gaussian curvature, parallel transport)
 #
-# % Input:
-# % - Src: triangle mesh data structure
-# % - dec: DEC data structure
-# % - ifboundary: (boolean) enforce boundary alignment
-# % - ifhardedge: (boolean) enforce hard-edge alignment
-# % - tol_dihedral_deg: (double) hard-edge detection threshold (angle in degree)
-# % - Ehard2V: (integer array n x 2) vertex indices of alignment edges (optional)
 #
-# % Output:
-# % - param: data structure containing all parametrization constraints information
-# % - Src: remeshed triangle mesh data structure
-# % - dec: remeshed DEC data structure
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -201,39 +181,29 @@ def preprocess_ortho_param(
     # Clear sort_triangles cache before processing new mesh
     clear_sort_cache()
 
-    # %% Remeshing: a triangle cannot have two alignment constraints
-    # % Check three cases:
-    # % 1. alignment constraints are detected by the dihedral angle
-    # % 2. alignment constraints is given by vertex indices
 
     # if ifhardedge && ~exist('Ehard2V','var')
 
     if ifhardedge and Ehard2V is None:
-        # % Compute hard edges
         # [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(Src, tol_dihedral_deg);
 
         ide_hard, tri_hard, ide_bound, tri_bound = detect_hard_edge(Src, tol_dihedral_deg)
 
-        # % List of all constraints (boundary + hard edges)
         # ide_fix = [ide_hard; ide_bound];    % Constrained edges
         # tri_fix = [tri_hard(:); tri_bound]; % Corresponding faces
 
         ide_fix = np.concatenate([ide_hard, ide_bound])
         tri_fix = np.concatenate([tri_hard.ravel('F'), tri_bound])  # MATLAB tri_hard(:)
 
-        # % If a face appears twice it is over constrained
-        # % -> must be split in 3
         # if numel(tri_fix) ~= length(unique(tri_fix))
 
         if len(tri_fix) != len(np.unique(tri_fix)):
-            # % Find indices of over-constrained triangles
             # tri = sum(ismember(abs(Src.T2E), ide_fix) ,2) >= 2;
 
             # T2E uses 1-based signed encoding, so abs(T2E)-1 gives 0-based edge indices
             T2E_abs = np.abs(Src.T2E) - 1
             tri_mask = np.sum(np.isin(T2E_abs, ide_fix), axis=1) >= 2
 
-            # % Add the barycenter to the new vertex list Xs
             # b = (Src.X(Src.T(tri,1),:)+Src.X(Src.T(tri,2),:)+Src.X(Src.T(tri,3),:))/3;
             # Xs = [Src.X; b];
 
@@ -243,7 +213,6 @@ def preprocess_ortho_param(
                  Src.X[Src.T[tri_mask, 2], :]) / 3
             Xs = np.vstack([Src.X, b])
 
-            # % Add 3 triangles per constrained triangles to the new triangle list Ts
             # np = Src.nv+(1:size(b,1))';
             # Ttri = [Src.T(tri,[1 2]), np ; Src.T(tri,[2 3]), np ; Src.T(tri,[3 1]), np];
             # Ts = Src.T;
@@ -259,24 +228,20 @@ def preprocess_ortho_param(
             Ts = np.delete(Src.T, tri_indices, axis=0)
             Ts = np.vstack([Ts, Ttri])
 
-            # % Recompute connectivity information
             # Src = MeshInfo(Xs, Ts);
 
             Src = mesh_info(Xs, Ts)
 
-            # % Recompute hard edges
             # [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(Src, tol_dihedral_deg);
 
             ide_hard, tri_hard, ide_bound, tri_bound = detect_hard_edge(Src, tol_dihedral_deg)
 
-            # % New list of all constraints (boundary + hard edges)
             # ide_fix = [ide_hard; ide_bound];
             # tri_fix = [tri_hard(:); tri_bound];
 
             ide_fix = np.concatenate([ide_hard, ide_bound])
             tri_fix = np.concatenate([tri_hard.ravel('F'), tri_bound])  # MATLAB tri_hard(:)
 
-        # % Check that the remeshing worked
         # assert(numel(tri_fix) == length(unique(tri_fix)), 'Multiple constraints on a triangle.');
 
         assert len(tri_fix) == len(np.unique(tri_fix)), 'Multiple constraints on a triangle.'
@@ -299,8 +264,6 @@ def preprocess_ortho_param(
         ide_hard = np.array([], dtype=int)
         tri_hard = np.zeros((0, 2), dtype=int)
 
-    # %% Remeshing: only constraint edges can have both vertices belonging to constraint edges or a boundary
-    # % If this happen, the edge is plitted in two
     # ide_bound = boundary_indices(Src);
 
     ide_bound, _ = boundary_indices(Src)
@@ -308,12 +271,10 @@ def preprocess_ortho_param(
     # if ifhardedge || ~isempty(ide_bound)
 
     if ifhardedge or len(ide_bound) > 0:
-        # % Gather edge indices from constrained edges and boundary edges
         # ide_fix = [ide_hard; ide_bound];
 
         ide_fix = np.concatenate([ide_hard, ide_bound])
 
-        # % Find corresponding vertex indices
         # idx_fix = unique(Src.E2V(ide_fix,:));
 
         if len(ide_fix) > 0:
@@ -321,7 +282,6 @@ def preprocess_ortho_param(
         else:
             idx_fix = np.array([], dtype=int)
 
-        # % Edges indices whose vertices both belongs to constrained vertices
         # ide = find(all(ismember(Src.E2V, idx_fix), 2));
 
         if len(idx_fix) > 0:
@@ -330,13 +290,10 @@ def preprocess_ortho_param(
         else:
             ide = np.array([], dtype=int)
 
-        # % Edges indices whose vertices both belongs to constrained vertices but
-        # % are not constrained edges themselves
         # ide = setdiff(ide, ide_fix);
 
         ide = np.setdiff1d(ide, ide_fix)
 
-        # % If ide is not empty, hese edges must be split
         # if ~isempty(ide)
 
         if len(ide) > 0:
@@ -355,14 +312,12 @@ def preprocess_ortho_param(
             # while ~isempty(ide) % while there are edges to split
 
             while len(ide) > 0:
-                # % Take first edge in the list
                 # id = ide(1);
                 # idx = E2V(id,:);
 
                 id_edge = ide[0]
                 idx = E2V[id_edge, :]
 
-                # % Split the first triangle in two
                 # idt1 = E2T(id,1);
                 # t1 = Ts(idt1,:);
                 # t1 = circshift(t1, [0,1-find(~ismember(t1,idx))]);
@@ -373,7 +328,6 @@ def preprocess_ortho_param(
                 not_in_edge = np.where(~np.isin(t1, idx))[0][0]
                 t1 = np.roll(t1, -not_in_edge)
 
-                # % Split the second triangle in two
                 # idt2 = E2T(id,2);
                 # t2 = Ts(idt2,:);
                 # t2 = circshift(t2, [0,1-find(~ismember(t2,idx))]);
@@ -383,7 +337,6 @@ def preprocess_ortho_param(
                 not_in_edge = np.where(~np.isin(t2, idx))[0][0]
                 t2 = np.roll(t2, -not_in_edge)
 
-                # % Update the triangle list
                 # Ts(idt1,:) = [t1(1), t1(2), nv+1];
                 # Ts(idt2,:) = [t2(1), t2(2), nv+1];
                 # Ts = [Ts; t1(1), nv+1, t1(3); t2(1), nv+1, t2(3)];
@@ -392,7 +345,6 @@ def preprocess_ortho_param(
                 Ts[idt2, :] = [t2[0], t2[1], nv]
                 Ts = np.vstack([Ts, [t1[0], nv, t1[2]], [t2[0], nv, t2[2]]])
 
-                # % Middle of the edge is added to the vertex list
                 # m = (Xs(E2V(id,1),:) + Xs(E2V(id,2),:))/2;
                 # Xs = [Xs; m];
                 # nv = nv + 1;
@@ -401,7 +353,6 @@ def preprocess_ortho_param(
                 Xs = np.vstack([Xs, m])
                 nv = nv + 1
 
-                # % Update connectivity and check for new edges to split
                 # idx = sort(E2V(ide_fix,:),2);
                 # [E2V,~,E2T] = connectivity(Ts);
                 # [~,ide_fix] = intersect(sort(E2V,2), idx, 'rows');
@@ -433,8 +384,6 @@ def preprocess_ortho_param(
                 else:
                     ide = np.array([], dtype=int)
 
-            # % Vertex pair corresponding to constrained edges (needed to find
-            # % new edge indices)
             # idx_hard = sort(Src.E2V(ide_hard,:),2);
 
             if len(ide_hard) > 0:
@@ -442,14 +391,12 @@ def preprocess_ortho_param(
             else:
                 idx_hard = np.zeros((0, 2), dtype=int)
 
-            # % Recompute connectivity and DEC
             # Src = MeshInfo(Xs, Ts);
             # dec = dec_tri(Src);
 
             Src = mesh_info(Xs, Ts)
             dec = dec_tri(Src)
 
-            # % Update constrained indices
             # [~,ide_hard] = intersect(sort(Src.E2V,2), idx_hard, 'rows');
             # tri_hard = Src.E2T(ide_hard,1:2);
 
@@ -461,14 +408,12 @@ def preprocess_ortho_param(
                 ide_hard = np.array([], dtype=int)
                 tri_hard = np.zeros((0, 2), dtype=int)
 
-    # % Store hard edges
     # param.ide_hard = ide_hard;
     # param.tri_hard = tri_hard;
 
     param.ide_hard = ide_hard
     param.tri_hard = tri_hard
 
-    # %% Compute boundary related stuff (mostly needed for, e.g., trivial connections)
     # [ide_bound,tri_bound] = boundary_indices(Src);
     # idx_bound = unique(Src.E2V(ide_bound,:));
     # idx_int = setdiff((1:Src.nv)', idx_bound);
@@ -487,7 +432,6 @@ def preprocess_ortho_param(
     ide_int = np.setdiff1d(np.arange(Src.ne), ide_bound)
     tri_int = np.setdiff1d(np.arange(Src.nf), tri_bound)
 
-    # % Store in structure
     # param.idx_bound = idx_bound;
     # param.ide_bound = ide_bound;
     # param.tri_bound = tri_bound;
@@ -502,13 +446,10 @@ def preprocess_ortho_param(
     param.ide_int = ide_int
     param.tri_int = tri_int
 
-    # %% Merge boundary and hard edges
-    # % group constraints by connected component  (still for trivial connections)
     # ide_fix = [ide_hard; ide_bound];
 
     ide_fix = np.concatenate([ide_hard, ide_bound])
 
-    # % Compute a graph made of only the constrained edges (still for trivial connections)
     # idx_fix = unique(Src.E2V(ide_fix,:));
     # idx_fix_inv = zeros(Src.nv,1);
     # idx_fix_inv(idx_fix) = 1:length(idx_fix);
@@ -531,7 +472,6 @@ def preprocess_ortho_param(
         n_fix_verts = 0
         G = sp.csr_matrix((0, 0))
 
-    # % Find the connected components of the graph (still for trivial connections)
     # [bins,binsizes] = conncomp(G);
 
     if n_fix_verts > 0:
@@ -543,8 +483,6 @@ def preprocess_ortho_param(
         bins = np.array([], dtype=int)
         binsizes = np.array([], dtype=int)
 
-    # % For each component store: vertex, edge, triangle indices and edge
-    # % orientation sign (still for trivial connections)
     # idx_fix_cell = cell(length(binsizes),1);
     # ide_fix_cell = cell(length(binsizes),1);
     # tri_fix_cell = cell(length(binsizes),1);
@@ -590,7 +528,6 @@ def preprocess_ortho_param(
             ide_sign_fix_i = np.array([])
         ide_sign_fix_cell.append(ide_sign_fix_i)
 
-    # %% Smooth cross field: Face-to-face parallel transport
     # E2T = zeros(Src.ne,2);
     # E2T(:,1) = Src.E2T(:,1).*(Src.E2T(:,3) > 0) + Src.E2T(:,2).*(Src.E2T(:,3) < 0);
     # E2T(:,2) = Src.E2T(:,1).*(Src.E2T(:,3) < 0) + Src.E2T(:,2).*(Src.E2T(:,3) > 0);
@@ -627,7 +564,6 @@ def preprocess_ortho_param(
             E2T[e, 0] = f0  # f_neg
             E2T[e, 1] = f1  # f_pos
 
-    # % Compute angle defect
     # K = gaussian_curvature(Src.X, Src.T);
     # assert(norm(sum(K) - 2*pi*(Src.nf-Src.ne+Src.nv)) < 1e-5, 'Gaussian curvature does not match topology.');
 
@@ -637,7 +573,6 @@ def preprocess_ortho_param(
     if curvature_error >= 1e-5:
         warnings.warn(f'Gaussian curvature does not match topology (error={curvature_error:.2e}, χ={euler_char}). Mesh may have issues.')
 
-    # % Local basis: e1r aligned with constrained and boundary edges
     # edge = Src.X(Src.E2V(:,2),:) - Src.X(Src.E2V(:,1),:);
     # edge = edge./sqrt(sum(edge.^2,2));
     # e1r = Src.X(Src.T(:,2),:) - Src.X(Src.T(:,1),:);
@@ -677,7 +612,6 @@ def preprocess_ortho_param(
 
     e2r = np.cross(Src.normal, e1r)
 
-    # % Angle between edge and local basis
     # edge_angles = zeros(Src.ne,2);
     # edge_angles(ide_int,1) = comp_angle(edge(ide_int,:), e1r(E2T(ide_int,1),:), Src.normal(E2T(ide_int,1),:));
     # edge_angles(ide_int,2) = comp_angle(edge(ide_int,:), e1r(E2T(ide_int,2),:), Src.normal(E2T(ide_int,2),:));
@@ -695,7 +629,6 @@ def preprocess_ortho_param(
             Src.normal[E2T[ide_int, 1], :]
         )
 
-    # % Parallel transport
     # para_trans = wrapToPi(edge_angles(:,1) - edge_angles(:,2));
     # para_trans(ide_bound) = 0;
 
@@ -710,7 +643,6 @@ def preprocess_ortho_param(
         warnings.warn(f'Gaussian curvature incompatible with angle defect (residual={residual_norm:.2e}). May affect results.')
         # Don't fail, just warn - some meshes have numerical issues
 
-    # % Angle between local basis and triangleedges
     # param.ang_basis = [comp_angle(Src.X(Src.T(:,1),:) - Src.X(Src.T(:,2),:), e1r, Src.normal), ...
     #                    comp_angle(Src.X(Src.T(:,2),:) - Src.X(Src.T(:,3),:), e1r, Src.normal), ...
     #                    comp_angle(Src.X(Src.T(:,3),:) - Src.X(Src.T(:,1),:), e1r, Src.normal)];
@@ -721,7 +653,6 @@ def preprocess_ortho_param(
         comp_angle(Src.X[Src.T[:, 2], :] - Src.X[Src.T[:, 0], :], e1r, Src.normal)
     ])
 
-    # % Store stuff
     # param.E2T = E2T;
     # param.e1r = e1r;
     # param.e2r = e2r;
@@ -737,11 +668,7 @@ def preprocess_ortho_param(
     param.Kt_invisible = K - dec.d1d @ para_trans
     param.ang_basis = ang_basis
 
-    # %% Smooth cross field: take care of acute angle between edge constraints
-    # % See: "Frame Fields for CAD models" https://inria.hal.science/hal-03537852/document
     #
-    # % Build exterior derivative of dual 1-form (d1d) where constrained edges
-    # % are seen as boundaries
     # E2V = Src.E2V;
     # T = Src.T;
     # nv = Src.nv;
@@ -839,7 +766,6 @@ def preprocess_ortho_param(
     row_sums = np.array(np.abs(d1d_new).sum(axis=1)).flatten()
     assert np.all(row_sums != 0), 'd1d has zero rows'
 
-    # % Store stuff
     # Vp2V = unique([T(:), Src.T(:)], 'rows');
     # [~,id] = sort(Vp2V(:,1));
     # param.Vp2V = Vp2V(id,2);
@@ -876,20 +802,15 @@ def preprocess_ortho_param(
     param.K = K_new
     param.K_invisible = K_new - d1d_new @ para_trans
 
-    # %% Trivial connection: Path between isolated constraints
-    # % Build the sparse matrix Ilink accumulating the dual 1-form along each
-    # % path connecting the connected component of constraints
     # nc = max(length(ide_fix_cell) - 1, 0);
     # Ilink = sparse(nc,Src.ne);
 
     nc = max(len(ide_fix_cell) - 1, 0)
     Ilink = sp.lil_matrix((nc, Src.ne))
 
-    # % Compute a shortest path between the first component and all the other
     # for i = 1:nc
 
     for i in range(nc):
-        # % Edge weights
         # ld = max(dec.star1p*sqrt(Src.SqEdgeLength), 1e-5);
 
         ld = np.maximum(dec.star1p.diagonal() * np.sqrt(Src.SqEdgeLength), 1e-5)
@@ -912,7 +833,6 @@ def preprocess_ortho_param(
                 if len(ide_fix_cell[j]) > 0:
                     ld[ide_fix_cell[j]] = np.min(ld) * 1e-5
 
-        # % Build primal graph (on dual mesh: faces are nodes)
         # Gd = graph(E2T(ide_int,1), E2T(ide_int,2), ld(ide_int));
 
         # Build dual graph adjacency for shortest path
@@ -930,8 +850,6 @@ def preprocess_ortho_param(
         Gd = sp.csr_matrix((weights_d, (row_d, col_d)), shape=(Src.nf, Src.nf))
         Gd = Gd + Gd.T  # Make symmetric
 
-        # % Shortest dual path from a vertex in component 1 and a vertex in
-        # % compenent i+1
         # P = shortestpath(Gd, tri_fix_cell{1}(1), tri_fix_cell{i+1}(1))';
 
         start_face = tri_fix_cell[0][0] if len(tri_fix_cell[0]) > 0 else 0
@@ -946,7 +864,6 @@ def preprocess_ortho_param(
         if len(P) < 2:
             continue
 
-        # % Find edge indices of the path
         # ed = [P(1:end-1), P(2:end)];
         # [~,~,ide] = intersect(sort(ed,2), sort(E2T,2), 'rows', 'stable');
         # assert(length(ide) == length(P)-1);
@@ -959,7 +876,6 @@ def preprocess_ortho_param(
         if len(ide_path) != len(P) - 1:
             continue  # Path reconstruction failed
 
-        # % Remove part of the path on the boundary of 1 and i+1
         # a = find(ismember(P, tri_fix_cell{1}), 1, 'last');
         # b = find(ismember(P, tri_fix_cell{i+1}), 1, 'first');
         # id = a:b-1;
@@ -985,12 +901,10 @@ def preprocess_ortho_param(
         ide_path = ide_path[id_range]
         ed = ed[id_range, :]
 
-        # % Edge sign
         # s = (E2T(ide,1) == ed(:,1)) - (E2T(ide,2) == ed(:,1));
 
         s = (E2T[ide_path, 0] == ed[:, 0]).astype(int) - (E2T[ide_path, 1] == ed[:, 0]).astype(int)
 
-        # % Build 1-form integration matrix along the path
         # Ilink(i,:) = sparse(ones(length(ide),1), ide, s, 1, Src.ne);
 
         for idx, edge_idx in enumerate(ide_path):
@@ -1012,15 +926,11 @@ def preprocess_ortho_param(
     param.Ilink = Ilink
     param.Ilink_hard = Ilink_hard
 
-    # %% Trivial connection: Non-contractible cycles
-    # % Compute non-constractible loops
     # [cycle,cocycle] = find_graph_generator(full(diag(dec.star1p)), Src.T, Src.E2T, Src.E2V, 1);
 
     star1p_diag = np.array(dec.star1p.diagonal())
     cycle, cocycle = find_graph_generator(star1p_diag, Src.T, Src.E2T, Src.E2V, init=0)
 
-    # % Build the sparse matrix Icycle accumulating the dual 1-form along each
-    # % cycle
     # nc = length(cocycle);
     # Icycle = sparse(nc,Src.ne);
 
@@ -1028,15 +938,12 @@ def preprocess_ortho_param(
     Icycle = sp.lil_matrix((nc_cycles, Src.ne))
 
     # for i = 1:nc
-    #     % Find edge indices correpsonding to cycle
     #     ed = [cocycle{i}, circshift(cocycle{i}, [1,0])];
     #     [~,ide] = ismember(sort(ed,2), sort(E2T,2), 'rows');
     #     assert(length(ide) == length(cocycle{i}));
     #
-    #     % Find edge sign in the cycle
     #     s = (E2T(ide,1) == ed(:,1)) - (E2T(ide,2) == ed(:,1));
     #
-    #     % Build sparce matrix
     #     Icycle(i,:) = sparse(ones(length(ide),1), ide, s, 1, Src.ne);
     # end
 
@@ -1057,12 +964,10 @@ def preprocess_ortho_param(
         if len(ide_cycle) != len(cocycle[i]):
             continue
 
-        # % Find edge sign in the cycle
         # s = (E2T(ide,1) == ed(:,1)) - (E2T(ide,2) == ed(:,1));
 
         s = (E2T[ide_cycle, 0] == ed[:, 0]).astype(int) - (E2T[ide_cycle, 1] == ed[:, 0]).astype(int)
 
-        # % Build sparce matrix
         for idx, edge_idx in enumerate(ide_cycle):
             Icycle[i, edge_idx] = s[idx]
 
@@ -1082,7 +987,6 @@ def preprocess_ortho_param(
     param.Icycle = Icycle
     param.Icycle_hard = Icycle_hard
 
-    # %% Set constraint list
     # if ifboundary && ifhardedge
     #     ide_fix = [ide_hard; ide_bound];
     #     tri_fix = [tri_hard(:); tri_bound];
@@ -1159,24 +1063,20 @@ def detect_hard_edge(Src: MeshInfo, tol_dihedral_deg: float) -> Tuple[np.ndarray
     """
     tol_dihedral = tol_dihedral_deg * np.pi / 180
 
-    # % Find boundary edges
     # [ide_bound,tri_bound] = boundary_indices(Src);
 
     ide_bound, tri_bound = boundary_indices(Src)
 
-    # % Interior edges
     # ide_int = setdiff((1:Src.ne)', ide_bound);
 
     ide_int = np.setdiff1d(np.arange(Src.ne), ide_bound)
 
-    # % Compute unit vector edges
     # edge = Src.X(Src.E2V(:,2),:) - Src.X(Src.E2V(:,1),:);
     # edge = edge./sqrt(sum(edge.^2,2));
 
     edge = Src.X[Src.E2V[:, 1], :] - Src.X[Src.E2V[:, 0], :]
     edge = edge / np.linalg.norm(edge, axis=1, keepdims=True)
 
-    # % Compute angle between normals by using the edge vector for sign
     # dihedral_angle = Src.E2T(ide_int,4).*comp_angle(Src.normal(Src.E2T(ide_int,1),:), Src.normal(Src.E2T(ide_int,2),:), edge(ide_int,:));
 
     # E2T[:, 3] is the edge sign (column 4 in MATLAB 1-indexed)
@@ -1190,12 +1090,10 @@ def detect_hard_edge(Src: MeshInfo, tol_dihedral_deg: float) -> Tuple[np.ndarray
         edge[ide_int, :]
     )
 
-    # % Hard edges are angle larger than a threshold
     # ide_hard = ide_int(abs(dihedral_angle) > tol_dihedral);
 
     ide_hard = ide_int[np.abs(dihedral_angle) > tol_dihedral]
 
-    # % Find adjancent triangles
     # tri_hard = Src.E2T(ide_hard,1:2);
 
     if len(ide_hard) > 0:
@@ -1207,10 +1105,8 @@ def detect_hard_edge(Src: MeshInfo, tol_dihedral_deg: float) -> Tuple[np.ndarray
 
 
 # function [ide_bound,tri_bound] = boundary_indices(Src)
-# % A boundary edge belongs to only one triangle
 # ide_bound = find(any(Src.E2T == 0, 2));
 #
-# % A boundary triangle is incident to a boundary edge
 # tri_bound = sum(Src.E2T(ide_bound,1:2),2);
 
 def boundary_indices(Src: MeshInfo) -> Tuple[np.ndarray, np.ndarray]:

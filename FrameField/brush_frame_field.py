@@ -1,6 +1,7 @@
-# === ISSUES ===
-# - None: all MATLAB functions have direct Python equivalents
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from collections import deque
@@ -91,16 +92,6 @@ def brush_frame_field(
 
 
 # function [y,S,level] = breadth_first_search(x, omega, E2V, fun, init)
-# % Input:
-# % x     : variable defined at vertices
-# % omega : define edges
-# % E2V   : graph edges
-# % fun   : update function
-# %
-# % Output:
-# % y: defined vertices, propagation of x(1) in the graph updated at edges
-# % with the function: x_i = fun(x_j,omega_ij)
-# % S: spanning tree creating during bread first search
 #
 # if ~exist('init', 'var')
 #     init = 1;

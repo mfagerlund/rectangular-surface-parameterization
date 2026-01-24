@@ -1,8 +1,7 @@
-# === ISSUES ===
-# - quadprog: use scipy.optimize.minimize or cvxpy for quadratic programming
-# - wrapToPi: use np.arctan2(np.sin(x), np.cos(x)) or custom wrap function
-# - brush_frame_field: call from brush_frame_field.py (needs translation)
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -51,7 +50,6 @@ def trivial_connection(
     """
     from scipy.optimize import minimize
 
-    # % Default value for vertex indices
     # if ~exist('sing','var')
     #     if ~isempty(param.idx_bound)
     #         sing = zeros(Src.nv,1);
@@ -78,7 +76,6 @@ def trivial_connection(
             id = np.random.randint(0, Src.nv, n_sing)
             sing[id] = 1/4
 
-    # % Default value for non-contractible indices
     # if ~exist('om_cycle','var') || isempty(om_cycle)
     #     om_cycle = param.Icycle*param.para_trans;
     #     om_cycle = om_cycle - 2*pi*round(4*om_cycle/(2*pi))/4;
@@ -89,7 +86,6 @@ def trivial_connection(
         om_cycle = param.Icycle @ param.para_trans
         om_cycle = om_cycle - 2 * np.pi * np.round(4 * om_cycle / (2 * np.pi)) / 4
 
-    # % Default value for connecting constraint path indices
     # if ~exist('om_link','var') || isempty(om_link)
     #     om_link = param.Ilink*param.para_trans;
     #     om_link = om_link - 2*pi*round(4*om_link/(2*pi))/4;
@@ -100,7 +96,6 @@ def trivial_connection(
         om_link = param.Ilink @ param.para_trans
         om_link = om_link - 2 * np.pi * np.round(4 * om_link / (2 * np.pi)) / 4
 
-    # % Check Gauss-Bonnet constraints
     # if isempty(param.idx_bound)
     #     assert(norm(sum(sing) - (Src.nf - Src.ne + Src.nv)) < 1e-5, 'Singularities do not satisfy Gauss-Bonnet.');
     # end
@@ -111,7 +106,6 @@ def trivial_connection(
         assert np.abs(np.sum(sing) - euler_char) < 1e-5, \
             'Singularities do not satisfy Gauss-Bonnet.'
 
-    # % Build loop constraints
     # if ifboundary && ifhardedge
     #     s2 = [sing; round(2*param.K(Src.nv+1:end)/pi)/4];
     #     A = [param.d1d; sparse(1:length(param.ide_bound), param.ide_bound, 1, length(param.ide_bound), Src.ne); param.Ilink; param.Icycle];
@@ -204,7 +198,6 @@ def trivial_connection(
             om_cycle
         ])
 
-    # % Solve quadratic program
     # omega = quadprog(dec.star1d, zeros(Src.ne,1), [], [], A, b);
 
     # Solve quadratic program: min 0.5 * x' * H * x  s.t. A*x = b
@@ -212,18 +205,14 @@ def trivial_connection(
     # This is a QP with equality constraints
     omega = solve_qp_equality(dec.star1d, A, b)
 
-    # % Compute frame angle
     # ang = brush_frame_field(param, omega, param.tri_fix);
 
     # Compute frame angles via BFS propagation
     ang = brush_frame_field(param, omega, param.tri_fix)
 
-    # % Check that alignment constraints are satisfied
-    # % assert(norm(wrapToPi(4*ang)) < 1e-5, 'Failed to prescribe alignment constraint.');
 
     # (Optional check commented out in MATLAB)
 
-    # % Check that singularities indices are as prescribed
     # sing2 = (dec.d1d*(param.para_trans - omega) + param.Kt_invisible)/(2*pi);
     # assert(norm(sing(param.idx_int) - sing2(param.idx_int)) < 1e-5, 'Failed to prescribe singularities.');
 

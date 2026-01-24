@@ -1,6 +1,7 @@
-# === ISSUES ===
-# - system call to QuantizationYoann: external program, not implemented
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import os

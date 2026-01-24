@@ -1,6 +1,7 @@
-# === ISSUES ===
-# - None identified
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -38,13 +39,7 @@ def omega_from_scale(
             (only if compute_derivative is True)
     """
     # function [O,Or,dO] = omega_from_scale(Src, param, dec, ut, vt, ang, Reduction)
-    # % Build frame rotation from scale factors ut and vt defined at corners
 
-    # % OUTPUT:
-    # % - O: (E x 6F sparse matrix) O*[ut(:); vt(:)] is the frame rotation omega
-    # % - Or: (E x 2V sparse matrix) linear map from scale factors to omega in
-    # % reduced variables
-    # % - dO: (E x F sparse matrix) derivative of omega wrt ang
 
     # cot_ang = Src.cot_corner_angle;
     cot_ang = Src.cot_corner_angle  # (nf x 3)
@@ -147,7 +142,6 @@ def omega_from_scale(
     if Reduction is not None:
         Or = O @ Reduction
 
-    # % Derivative wrt frame angle
     # if nargout >= 3
     dO = None
     if compute_derivative:

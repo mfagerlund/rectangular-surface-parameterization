@@ -1,10 +1,7 @@
-# === ISSUES ===
-# - omega_from_scale: call from Orthotropic.omega_from_scale (needs translation if not done)
-# - nargout: Python doesn't have direct equivalent; use optional return parameter
-# - spdiags: use scipy.sparse.diags
-# - blkdiag: use scipy.sparse.block_diag
-# - speye: use scipy.sparse.eye
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -14,12 +11,7 @@ from Orthotropic.omega_from_scale import omega_from_scale
 
 
 # function [F,Jf,Hf] = oracle_integrability_condition(Src, param, dec, omega, ut, vt, ang, lambda, Reduction, ide_free)
-# % Compute the integrability condition per edge and its derivative
 #
-# % OUTPUT:
-# % - F: integrability condition evaluated on edges defined by the list "ide_free"
-# % - Jf: Jacobian of F wrt u, v, theta
-# % - Hf: second order derivative of F needed for the Newton method
 
 def oracle_integrability_condition(
     Src,
@@ -106,7 +98,6 @@ def oracle_integrability_condition(
 
     Jf = sp.hstack([Or[ide_free, :], dO[ide_free, :] - d0d[ide_free, :]])
 
-    # % Second order derivative
     # if nargout >= 3
 
     if not compute_hessian:

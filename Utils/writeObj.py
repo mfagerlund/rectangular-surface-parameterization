@@ -1,6 +1,7 @@
-# === ISSUES ===
-# - None: straightforward file writing
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from typing import Optional
@@ -8,19 +9,6 @@ import warnings
 
 
 # function writeObj(filename, V,F,UV,TF,N,NF,E2V)
-#   % WRITEOBJ writes an OBJ file with vertex/face information
-#   %
-#   % writeOBJ(filename,V,F,UV,N)
-#   %
-#   % Input:
-#   %  filename  path to .obj file
-#   %  V  #V by 3 list of vertices
-#   %  F  #F by 3 list of triangle indices
-#   %  UV  #UV by 2 list of texture coordinates
-#   %  TF  #TF by 3 list of corner texture indices into UV
-#   %  N  #N by 3 list of normals
-#   %  NF  #NF by 3 list of corner normal indices into N
-#   %  E2V  #NE by 2 list of vertices indices of feature edge
 
 def writeObj(
     filename: str,
@@ -167,7 +155,6 @@ def writeObj(
                 parts = ' '.join(f'{valid_face[i] + 1}/{tf_indices[i] + 1}/{nf_indices[i] + 1}' for i in range(len(valid_face)))
                 f.write(f'f {parts}\n')
 
-        # % print feature edges
         # if hasE2V
         #     fprintf( f, 'l %d %d\n', E2V');
         # end

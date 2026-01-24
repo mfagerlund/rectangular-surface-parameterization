@@ -1,6 +1,7 @@
-# === ISSUES ===
-# - accumarray: use np.add.at for accumulation
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from typing import Tuple, Optional
@@ -54,7 +55,6 @@ def extract_scale_from_param(
 
     nf = T.shape[0]
 
-    # % Compute distortion
     # u_tri = zeros(nf,2);
     # disto.ang_param = zeros(nf,1);
     # disto.detJ = zeros(nf,1);
@@ -130,8 +130,6 @@ def extract_scale_from_param(
 
         disto.ang_param[i] = np.arctan2(Q[0, 1], Q[0, 0])
 
-        # % u_tri(i,1) = log(s(1)*s(2))/2;
-        # % u_tri(i,2) = log(s(1)/s(2))/2;
         # d = diag(U*S*U');
         # u_tri(i,1) = log(d(1)*d(2))/2;
         # u_tri(i,2) = log(d(1)/d(2))/2;
@@ -197,7 +195,6 @@ def extract_scale_from_param(
     # if nargout > 1
     #     theta = angle(exp(4*1i*(disto.ang_param - ang)))/4;
     #
-    #     % Average on vertices
     #     u = accumarray(T(:), [u_tri(:,1); u_tri(:,1); u_tri(:,1)])./accumarray(T(:), 1);
     #     v = accumarray(T_cut(:), [u_tri(:,2); u_tri(:,2); u_tri(:,2)])./accumarray(T_cut(:), 1);
     #     ut = [u(T), v(T)];

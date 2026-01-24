@@ -1,7 +1,7 @@
-# === ISSUES ===
-# - wrapToPi: implemented as wrap_to_pi using np.arctan2(np.sin(x), np.cos(x))
-# - brush_frame_field: imported from brush_frame_field.py
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -17,12 +17,6 @@ def wrap_to_pi(x: np.ndarray) -> np.ndarray:
 
 
 # function [omega,ang,sing,kappa,Curv] = compute_curvature_cross_field(Src, param, dec, smoothing_iter, alpha)
-# % Compute curvature aligned cross field
-# % - omega: field rotation
-# % -   ang: field angle
-# % -  sing: field cingularities
-# % - kappa: principal curvatures
-# % -  Curv: symmetric curvature tensor
 
 def compute_curvature_cross_field(
     Src,
@@ -50,11 +44,7 @@ def compute_curvature_cross_field(
         Curv: Symmetric curvature tensor (nf x 3)
     """
 
-    # %% Compute curvature tensor
-    # % "SECOND FUNDAMENTAL MEASURE OF GEOMETRIC SETS AND LOCAL APPROXIMATION OF CURVATURES"
-    # % David Cohen-Steiner & Jean-Marie Morvan
 
-    # % Compute dihedral angle
     # comp_angle = @(u,v,n) atan2(dot(cross(u,v,2),n,2), dot(u,v,2));
 
     def comp_angle(u, v, n):
@@ -106,7 +96,6 @@ def compute_curvature_cross_field(
         edge[int_idx, :]
     )
 
-    # % Compute curvature tensor
     # Curv = zeros(Src.nf,4);
     # J = [0,-1; 1, 0];
     # K = zeros(Src.nf,1);
@@ -171,7 +160,6 @@ def compute_curvature_cross_field(
     # MATLAB indices [1,2,4] -> Python [0,1,3] (a11, a21=a12, a22)
     Curv = Curv[:, [0, 1, 3]]
 
-    # %% Extract principal directions
     # dir_min = zeros(Src.nf,1); % principal direction
     # kappa = zeros(Src.nf,2); % principal curvature
     # for i = 1:Src.nf
@@ -204,7 +192,6 @@ def compute_curvature_cross_field(
         dir_min[i] = complex(V[0, 0], V[1, 0])
         kappa[i, :] = D
 
-    # %% Frame field smoothing
     # z = (dir_min./abs(dir_min)).^4; % Init cross field from principal direction
     # z_fix = ones(length(param.tri_fix),1); % reference frame is algned with constraint edge by construction
     # z(param.tri_fix) = z_fix; % alignment constraints
@@ -216,7 +203,6 @@ def compute_curvature_cross_field(
 
     # if smoothing_iter > 0
     if smoothing_iter > 0:
-        # % Build connection Laplacian
         # I = [param.ide_int,param.ide_int];
         # J = param.E2T(param.ide_int,1:2);
         # rot = param.para_trans(param.ide_int);
@@ -242,7 +228,6 @@ def compute_curvature_cross_field(
         Wcon = d0d_cplx.conj().T @ dec.star1d @ d0d_cplx
         Wcon = (Wcon + Wcon.conj().T) / 2
 
-        # % Screen smoothing
         # w = (abs(K) + 1e-3); % Gaussian curvature weight
         # M = spdiags(alpha*w.*Src.area, 0, Src.nf, Src.nf); % Modified mass matrix
         # A = Wcon + M;
@@ -276,8 +261,6 @@ def compute_curvature_cross_field(
             # Normalize to unit circle
             z = z / np.abs(z)
 
-    # %% Extract angles in reference basis
-    # % Compute frames rotation
     # ang = angle(z)/4;
     # omega = wrapToPi(4*(dec.d0d*ang + param.para_trans))/4;
     # omega(param.ide_bound) = 0;
@@ -288,12 +271,10 @@ def compute_curvature_cross_field(
     omega[param.ide_bound] = 0
     sing = (dec.d1d @ (param.para_trans - omega) + param.Kt_invisible) / (2 * np.pi)
 
-    # % Brush frame field
     # ang = brush_frame_field(param, omega, param.tri_fix, ang(param.tri_fix));
 
     ang = brush_frame_field(param, omega, param.tri_fix, ang[param.tri_fix])
 
-    # %% Match curvature with closest frame direction
     # z_min = (dir_min./abs(dir_min)).^2;
     # z_max = 1i*z_min;
     # [~,id] = min(abs([z_min, z_max] - exp(2*1i*ang)), [], 2);

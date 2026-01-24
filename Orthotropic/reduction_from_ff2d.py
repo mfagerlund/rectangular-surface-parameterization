@@ -1,7 +1,7 @@
-# === ISSUES ===
-# - blkdiag: use scipy.sparse.block_diag
-# - spdiags: use scipy.sparse.diags
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -46,7 +46,6 @@ def reduction_from_ff2d(
     Reduction : sparse matrix
         Block diagonal reduction matrix combining ut and vt reductions
     """
-    # % Compute jumps per edge from cross field
     # k21 = ones(Src.ne,1);
     # [~,k21i] = min(abs(exp(1i*ang(param.E2T(param.ide_int,2))+(0:3)*1i*pi/2+1i*(omega(param.ide_int)-param.para_trans(param.ide_int))) - exp(1i*ang(param.E2T(param.ide_int,1)))), [], 2);
     # k21(param.ide_int) = k21i;
@@ -85,7 +84,6 @@ def reduction_from_ff2d(
 
     k21[param.ide_int] = k21i
 
-    # % Accumulate jump around vertices
     # k21T = mod(reshape(Edge_jump*(k21-1), Src.nf,[]), 4);
 
     # Edge_jump is (3*nf, ne), k21-1 is (ne,)
@@ -93,12 +91,10 @@ def reduction_from_ff2d(
     k21T_flat = Edge_jump @ (k21 - 1)
     k21T = np.mod(k21T_flat.reshape((Src.nf, 3), order='F'), 4)
 
-    # % Sign bits
     # s = (-1).^k21T;
 
     s = np.power(-1.0, k21T)
 
-    # % Build reduction matrix
     # v2t_smooth = sparse(reshape((1:3*Src.nf)', [Src.nf,3]), Src.T, 1, 3*Src.nf, Src.nv);
     # Reduction = blkdiag(v2t_smooth, spdiags(s(:), 0, 3*Src.nf, 3*Src.nf)*v2t);
 

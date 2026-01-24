@@ -1,9 +1,7 @@
-# === ISSUES ===
-# - sort_triangles: call from Preprocess.sort_triangles (already converted)
-# - cell2mat: use np.vstack on list of arrays
-# - repelem: use np.repeat with appropriate counts
-# - circshift: use np.roll
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -61,7 +59,6 @@ def reduce_corner_var_2d_cut(
     # Make a mutable copy since we modify ide_cut for boundary edges
     ide_cut = ide_cut.copy()
 
-    # % Reduce variables at corner
     # base_tri = zeros(Src.nf,3);
     # path_vx = cell(Src.nv,1);
     # path_edge = cell(Src.nv,1);
@@ -175,7 +172,6 @@ def reduce_corner_var_2d_cut(
 
         # for j = 0:n
         for j in range(n + 1):
-            # % equivalence between vertices
             # idt = tri_ord(flag == j);
             # idvx = sum(Tc(idt,:) .* (Src.T(idt,:) == i), 2);
             # assert(~isempty(idvx))
@@ -202,7 +198,6 @@ def reduce_corner_var_2d_cut(
                 new_vx_idx = nv + (j - 1)
                 path_vx[new_vx_idx] = np.column_stack([idvx, np.full(len(idvx), new_vx_idx)])
 
-            # % edge path linking vertices
             # I = repelem(idvx(2:end), (1:length(idvx)-1)');
             # J = zeros(size(I));
             # d = edge_ord(flag == j);
@@ -250,7 +245,6 @@ def reduce_corner_var_2d_cut(
                     new_vx_idx = nv + (j - 1)
                     path_edge[new_vx_idx] = np.zeros((0, 2), dtype=int)
 
-            # % base triangle
             # base_tri(idvx) = idt(1);
 
             base_tri[idvx] = idt[0]

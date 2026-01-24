@@ -1,9 +1,7 @@
-# === ISSUES ===
-# - quadprog: use scipy.sparse.linalg.spsolve with KKT system, or cvxpy for QP
-# - wrapToPi: use np.arctan2(np.sin(x), np.cos(x)) - implemented as wrap_to_pi()
-# - plot_frame_field: imported from FrameField.plot_frame_field
-# - blkdiag: use scipy.sparse.block_diag
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -19,10 +17,7 @@ def wrap_to_pi(x: np.ndarray) -> np.ndarray:
 
 
 # function [u,v,ut,vt,om,angn,flag,it] = optimize_RSP(omega, ang, u, v, Src, param, dec, Reduction, energy_type, weight, if_plot, itmax, A_const, b_const)
-# % Newton solver minimizing the enrgy defined in "energy_type" subject to
-# % the satisfaction of the integrability constraint
 #
-# % flag : 1 reached max iter, 0 convergence, -1 linesearch failed
 
 @dataclass
 class OptimizeResult:
@@ -86,13 +81,11 @@ def optimize_RSP(
     omega = np.ravel(omega)
     ang = np.ravel(ang)
 
-    # % Default max iter
     # if ~exist('itmax', 'var')
     #     itmax = 300;
     # end
     # (handled by default argument)
 
-    # % Default linear constraints
     # if ~exist('A_const', 'var') || (size(A_const,2) ~= size(Reduction,2) + Src.nf)
     #     dof = size(Reduction,2);
     #     A_const = sparse(1:length(param.tri_fix), dof+param.tri_fix, 1, length(param.tri_fix), dof+Src.nf);
@@ -114,7 +107,6 @@ def optimize_RSP(
         # Assume that the cross field already respects boundary conditions
         b_const = np.zeros(n_tri_fix)
 
-    # % Line-search parameters
     # rho = 0.9;
     # beta = 1;
 
@@ -122,14 +114,12 @@ def optimize_RSP(
     rho = 0.9
     beta = 1.0
 
-    # % List of edges respecting integrability condition
     # ide_free = setdiff((1:Src.ne)', param.ide_fix);
 
     # List of edges respecting integrability condition
     all_edges = np.arange(Src.ne)
     ide_free = np.setdiff1d(all_edges, param.ide_fix)
 
-    # % Initilization of optimization variables
     # om = omega;
     # angn = ang;
     # ut = reshape(Reduction*[u; v], [Src.nf,6]);
@@ -152,7 +142,6 @@ def optimize_RSP(
     n_dual = len(ide_free) + A_const.shape[0]
     lam = np.zeros(n_dual)  # 'lambda' is reserved keyword
 
-    # %
     # d0d = dec.d0d;
     # d0d(param.ide_hard,:) = 0;
     # d0d(param.ide_bound,:) = 0;
@@ -164,7 +153,6 @@ def optimize_RSP(
     if hasattr(param, 'ide_bound') and len(param.ide_bound) > 0:
         d0d = _zero_rows(d0d, param.ide_bound)
 
-    # % Keep track of objective evolution
     # flag = 1;
     # fct = zeros(itmax+1,1);
     # fct_const = zeros(itmax+1,2);
@@ -189,7 +177,6 @@ def optimize_RSP(
         # weight.om = om;
         weight.om = om
 
-        # % Compute derivate of constraints
         # [F,Jf,Hf] = oracle_integrability_condition(Src, param, dec, om, ut, vt, angn, lambda, Reduction, ide_free);
         # F = [F; A_const*[u; v; zeros(Src.nf,1)] - b_const];
         # Jf = [Jf; A_const];
@@ -211,7 +198,6 @@ def optimize_RSP(
         fct_const[it, 0] = np.linalg.norm(F)
         fct_const[it, 1] = np.max(np.abs(F)) if len(F) > 0 else 0.0
 
-        # % Compute derivate of objective functions
         # [fct(it),Hfct,dfct] = objective_ortho_param(energy_type, weight, Src, dec, param, angn, ut, vt, Reduction);
 
         # Compute derivative of objective functions
@@ -228,7 +214,6 @@ def optimize_RSP(
         fct_grad_norm[it, 1] = np.max(np.abs(grad))
         err[it] = np.sqrt(fct_const[it, 0]**2 + fct_grad_norm[it, 0]**2)
 
-        # % Newton on KKT conditions
         # A = [Hfct + Hf, Jf'; Jf, sparse(n_dual,n_dual)]; A = (A + A')/2;
         # b =-[dfct + Jf'*lambda; F];
 
@@ -243,7 +228,6 @@ def optimize_RSP(
 
         b_kkt = -np.concatenate([dfct + Jf.T @ lam, F])
 
-        # % Solve quadratic problem
         # H = blkdiag(dec.star0p, dec.star0p, dec.star0d, dec.star1p(ide_free,ide_free), dec.star0d(param.tri_fix,param.tri_fix));
         # H = (H + H')/2;
         # f = zeros(size(H,1),1);
@@ -285,7 +269,6 @@ def optimize_RSP(
             if residual >= 1e-5:
                 raise RuntimeError(f'Optimization failed. Residual: {residual}')
 
-        # % Line-search
         # run = true;
         # t = 1;
 
@@ -295,13 +278,11 @@ def optimize_RSP(
 
         # while run
         while run:
-            # % Step size
             # t = min(1, beta/err(it));
 
             # Step size
             t = min(1.0, beta / err[it]) if err[it] > 0 else 1.0
 
-            # % Update variables
             # u_new = u + t*x(1:Src.nv);
             # v_new = v + t*x(Src.nv+1:2*Src.nv);
             # ut_new = reshape(Reduction*[u_new; v_new], [Src.nf,6]);
@@ -326,7 +307,6 @@ def optimize_RSP(
             om_new = om + t * (d0d @ alp_new)
             lam_new = lam + t * x[2*Src.nv + Src.nf:]
 
-            # % Update constraints
             # [F,Jf] = oracle_integrability_condition(Src, param, dec, om_new, ut_new, vt_new, angn_new, lambda_new, Reduction, ide_free);
             # F = [F; A_const*[u_new; v_new; zeros(Src.nf,1)] - b_const];
             # Jf = [Jf; A_const];
@@ -340,7 +320,6 @@ def optimize_RSP(
             F_new = np.concatenate([F_new, A_const @ uv_zeros_new - b_const])
             Jf_new = sp.vstack([Jf_new, A_const])
 
-            # % Update objective
             # [fct(it+1),~,dfct] = objective_ortho_param(energy_type, weight, Src, dec, param, angn_new, ut_new, vt_new, Reduction);
 
             # Update objective
@@ -361,7 +340,6 @@ def optimize_RSP(
             fct_grad_norm[it + 1, 1] = np.max(np.abs(grad_new))
             err[it + 1] = np.sqrt(fct_const[it + 1, 0]**2 + fct_grad_norm[it + 1, 0]**2)
 
-            # % Check if the search is over
             # if t == 1
             #     if_end_search = err(it+1) < err(it)^2/(2*beta);
             # else
@@ -375,7 +353,6 @@ def optimize_RSP(
                 if_end_search = err[it + 1] < err[it] - beta / 2
 
             # if if_end_search
-            #     % Found new variables
             #     run = false;
             #     u = u_new;
             #     ut = ut_new;
@@ -388,7 +365,6 @@ def optimize_RSP(
             #
             #     beta = beta/rho;
             # else
-            #     % Keep the search going by reducing the step size
             #     beta = beta*rho;
             # end
 
@@ -427,7 +403,6 @@ def optimize_RSP(
             flag = -1
             break
 
-        # % Display optimization energies
         # disp(['Total error : ', num2str(err(it+1,1)), ' -- Objective : ', num2str(fct(it+1,1))]);
         # disp(['Grad norm : ', num2str(fct_grad_norm(it+1,1)), ' -- Max : ', num2str(fct_grad_norm(it+1,2))]);
         # disp(['Integrability : ', num2str(fct_const(it+1,1)), ' -- Max : ', num2str(fct_const(it+1,2))]);
@@ -441,7 +416,6 @@ def optimize_RSP(
         err_ang = np.abs(alp) * 180 / np.pi
         print(f'Max frame field angle change : {np.max(np.abs(err_ang)):.6e}')
 
-        # % Show new frame field
         # if if_plot
         #     plot_frame_field(1, Src, param, angn, err_ang);
         #     title(['New frame field ', num2str(it)]); colorbar;
@@ -456,7 +430,6 @@ def optimize_RSP(
             plt.colorbar()
             plt.show()
 
-        # % Check that boundary constraints still hold
         # if ~isempty(param.tri_fix)
         #     err_ang_bound = (180/pi)*wrapToPi(4*angn(param.tri_fix) - 4*ang(param.tri_fix))/4;
         #     assert(max(abs(err_ang_bound)) < 1e-3, 'Boundary constraints not respected.');
@@ -467,7 +440,6 @@ def optimize_RSP(
             err_ang_bound = (180 / np.pi) * wrap_to_pi(4 * angn[param.tri_fix] - 4 * ang[param.tri_fix]) / 4
             assert np.max(np.abs(err_ang_bound)) < 1e-3, 'Boundary constraints not respected.'
 
-        # % Stop optimization when converged
         # if (err(it+1) < 1e-5) && (max(abs(err_ang)) < 1e-3)
         #     flag = 0;
         #     break;
@@ -481,7 +453,6 @@ def optimize_RSP(
     # disp('-- end loop --');
     print('-- end loop --')
 
-    # % Show convergence plots
     # if if_plot
     #     figure;
     #     semilogy([fct_grad_norm(1:it+1,1), fct_grad_norm(1:it+1,2)], 'linewidth', 2);

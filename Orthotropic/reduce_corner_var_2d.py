@@ -1,8 +1,7 @@
-# === ISSUES ===
-# - sort_triangles: call from Preprocess.sort_triangles (already converted)
-# - cell2mat: use np.vstack on list of arrays
-# - repelem: use np.repeat with appropriate counts
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -83,9 +82,7 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
         base_tri[i] = tri_ord[0]
 
         # if tri_ord(end) == 0
-        #     % Boundary vertex
         # else
-        #     % Interior vertex
         # end
 
         # In Python, boundary is indicated by tri_ord[-1] == -1 (sentinel value)

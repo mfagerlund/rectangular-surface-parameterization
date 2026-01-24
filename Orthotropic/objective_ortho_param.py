@@ -1,6 +1,7 @@
-# === ISSUES ===
-# - blkdiag: use scipy.sparse.block_diag
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -66,7 +67,6 @@ def objective_ortho_param(
 
     # if strcmp(energy_type, 'distortion')
     if energy_type == 'distortion':
-        # % H_u = (1 - weight.w_conf_ar)*Ar + weight.w_conf_ar*Conf;
         # H_u = (1 - weight.w_conf_ar)*AeT;
         # H_v =       weight.w_conf_ar*AeT;
         # H_ang = sparse(Src.nf, Src.nf);
@@ -95,9 +95,6 @@ def objective_ortho_param(
 
     # elseif strcmp(energy_type, 'chebyshev')
     elif energy_type == 'chebyshev':
-        # % Chebyshev Net: |J\[1;1]| = sqrt(2) (unit diagonal on the shape)
-        # % linearization of log(exp(-2*a-2*b)/2+exp(-2*a+2*b)/2) = 0
-        # % err_diag = log(exp(2*ut*[-integral_tri;-integral_tri])/2 + exp(2*ut*[-integral_tri; integral_tri])/2);
         # err_diag = log(exp(- 2*ut*integral_tri - 2*vt*integral_tri)/2 + exp(- 2*ut*integral_tri + 2*vt*integral_tri)/2);
 
         # ut @ integral_tri: per-face average of ut corners
@@ -110,7 +107,6 @@ def objective_ortho_param(
             np.exp(-2 * ut_avg + 2 * vt_avg) / 2
         )
 
-        # % Jacobian
         # da = -2*ones(Src.nf,1)/3;
         # db = (2/3)*(exp(4*vt*integral_tri) - 1)./(exp(4*vt*integral_tri) + 1);
         da = -2 * np.ones(nf) / 3
@@ -137,7 +133,6 @@ def objective_ortho_param(
         Da = sp.coo_matrix((Da_vals, (I_idx, J_idx)), shape=(nf, 3 * nf)).tocsr()
         Db = sp.coo_matrix((Db_vals, (I_idx, J_idx)), shape=(nf, 3 * nf)).tocsr()
 
-        # % Second order
         # daa = zeros(Src.nf,1);
         # dab = zeros(Src.nf,1);
         # dbb = (16/9)*exp(4*vt*integral_tri)./(exp(4*vt*integral_tri) + 1).^2;
@@ -206,11 +201,9 @@ def objective_ortho_param(
 
     # elseif strcmp(energy_type, 'alignment')
     elif energy_type == 'alignment':
-        # % Stay close to given direction
         # ang_dir = weight.ang_dir;
         ang_dir = weight.ang_dir
 
-        # % Aspect ratio constraint
         # log_aspect_ratio = log(weight.aspect_ratio)/2;
         # diff = [ut(:); vt(:)] - repmat(log_aspect_ratio, [6,1]);
         # H_uv = weight.w_ratio*Conf;
@@ -250,7 +243,6 @@ def objective_ortho_param(
         df_uv = Reduction.T @ (H_uv @ diff)
         fct = diff @ (H_uv @ diff)
 
-        # % Angle constraint
         # H_ang = weight.w_ang*dec.star0d;
         # df_ang = H_ang*(angn - ang_dir);
         # fct = fct + (angn - ang_dir)'*(H_ang*(angn - ang_dir));

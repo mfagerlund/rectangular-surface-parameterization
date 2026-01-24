@@ -1,7 +1,7 @@
-# === ISSUES ===
-# - persistent (MATLAB): Python uses module-level dict for caching
-# - cell arrays: Python uses dict with integer keys
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from typing import Tuple, Optional, Dict, Any

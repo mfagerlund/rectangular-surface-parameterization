@@ -1,9 +1,7 @@
-# === ISSUES ===
-# - quadprog: use scipy.optimize.minimize or solve via KKT for quadratic programming
-# - wrapToPi: implemented as wrap_to_pi using np.arctan2(np.sin(x), np.cos(x))
-# - eigs: use scipy.sparse.linalg.eigsh for generalized eigenvalue problem
-# - brush_frame_field: imported from brush_frame_field.py
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import scipy.sparse as sp
@@ -17,10 +15,6 @@ def wrap_to_pi(x: np.ndarray) -> np.ndarray:
 
 
 # function [omega,ang,sing] = compute_face_cross_field(Src, param, dec, smoothing_iter)
-# % Compute amooth cross field
-# % - omega: field rotation
-# % -   ang: field angle
-# % -  sing: field cingularities
 
 def compute_face_cross_field(
     Src,
@@ -46,10 +40,6 @@ def compute_face_cross_field(
     # power = 4;
     power = 4
 
-    # %% Change connection
-    # % If hardedge or boundary take care of acute angles
-    # % cf "Frame Fields for CAD models", Advances in Visual Computing, 2021
-    # % https://inria.hal.science/hal-03537852/
     # if ~isempty(param.tri_fix)
     #     ifcadff = true;
     # else
@@ -67,22 +57,18 @@ def compute_face_cross_field(
 
     omega_cadff = None
 
-    # % Compute new connection transforming acute angles into right angle
     # if ifcadff
     #     tol = pi/16;
     #
-    #     % Find indices of acute corner angle
     #     id = param.K(param.idx_fix_plus) > pi/2;
     #     idx = param.Vp2V(param.idx_fix_plus(id));
     #     idxp = param.Vp2V(param.idx_fix_plus);
     #
-    #     % Deform Gaussian curvature
     #     d = (Src.X(idx,1)' - Src.X(idxp,1)).^2 + (Src.X(idx,2)' - Src.X(idxp,2)).^2 + (Src.X(idx,3)' - Src.X(idxp,3)).^2;
     #     K_new = param.K(param.idx_fix_plus);
     #     K_new((K_new >-tol) & (K_new < tol) & any(d < 1e-3*repmat(max(d,[],1), [size(d,1),1]),2)) = 0;
     #     K_new(id) = pi/2;
     #
-    #     % Find new connection
     #     H = dec.star1d + 1e-3*(dec.d1d'*dec.star2d*dec.d1d); H = (H' + H)/2;
     #     A = sparse(1:length(param.ide_fix), param.ide_fix, 0, length(param.ide_fix), Src.ne);
     #     b = zeros(length(param.ide_fix),1);
@@ -146,8 +132,6 @@ def compute_face_cross_field(
         # Solve QP: min 0.5 * x' * H * x  s.t. Aeq * x = beq
         omega_cadff = solve_qp_equality(H, Aeq, beq)
 
-    # %% Compute cross field
-    # % Build connection Laplacian
     # I = [param.ide_int,param.ide_int];
     # J = param.E2T(param.ide_int,1:2);
     # if ifcadff
@@ -190,7 +174,6 @@ def compute_face_cross_field(
     Wcon = d0d_cplx.conj().T @ dec.star1d @ d0d_cplx
     Wcon = (Wcon + Wcon.conj().T) / 2
 
-    # % Set constraints
     # tri_fix = param.tri_fix;
     # z_fix = ones(length(tri_fix),1); % reference frame is algned with constraint edge by construction
     # tri_free = setdiff((1:Src.nf)', tri_fix);
@@ -201,7 +184,6 @@ def compute_face_cross_field(
     all_tri = np.arange(Src.nf)
     tri_free = np.setdiff1d(all_tri, tri_fix)
 
-    # % Compute initial cross field
     # z = zeros(Src.nf,1);
     # z(tri_fix) = z_fix;
     # if ~isempty(tri_fix) % If boundaries: solve Poisson problem
@@ -260,7 +242,6 @@ def compute_face_cross_field(
     # z = z./abs(z);
     z = z / np.abs(z)
 
-    # % Smoothing by heat flow
     # A = Wcon + dt*dec.star0d;
     # for i = 1:smoothing_iter
     #     if ~isempty(tri_fix)
@@ -293,8 +274,6 @@ def compute_face_cross_field(
     # assert(all(~isnan(z)), 'NaN vector field.');
     assert not np.any(np.isnan(z)), 'NaN vector field.'
 
-    # %% Extract angles in reference basis
-    # % Compute rotation
     # ang = angle(z)/power;
     # if ifcadff
     #     omega = wrapToPi(power*(dec.d0d*ang + param.para_trans - omega_cadff))/power + omega_cadff;
@@ -319,13 +298,11 @@ def compute_face_cross_field(
     if hasattr(param, 'ide_fix') and len(param.ide_fix) > 0:
         omega[param.ide_fix] = 0
 
-    # % Compute singularities
     # sing = (dec.d1d*(param.para_trans - omega) + param.Kt_invisible)/(2*pi);
 
     # Compute singularities
     sing = (dec.d1d @ (param.para_trans - omega) + param.Kt_invisible) / (2 * np.pi)
 
-    # % Brush cross field
     # ang = brush_frame_field(param, omega, tri_fix, ang(tri_fix));
 
     # Brush cross field

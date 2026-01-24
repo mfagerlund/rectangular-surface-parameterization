@@ -1,16 +1,13 @@
-# === ISSUES ===
-# - vec(): MATLAB vec() flattens column-major; use .ravel(order='F') or .flatten()
-# - circshift: use np.roll
-# - intersect(..., 'rows', 'stable'): need custom implementation preserving order
-# - ismember: use np.isin
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from typing import Tuple, Optional
 
 
 # function [tri_ord,edge_ord,sign_edge] = sort_triangles_comp(idx, T, E2T, T2T, E2V, T2E)
-# % sort ring triangles around idx
 
 def sort_triangles_comp(
     idx: int,
@@ -201,7 +198,6 @@ def sort_triangles_comp(
     # while ~isempty(tovisit)
     #     [t,~,id] = intersect(T2T(tri_ord(k),:), tovisit);
     #
-    #     % pick a consistent ordering
     #     if length(t) == 2
     #         if k == 1
     #             t1 = T(t(1),:);
@@ -278,7 +274,6 @@ def sort_triangles_comp(
         # Append -1 (Python's "no neighbor" marker, MATLAB uses 0)
         tri_ord = np.append(tri_ord, -1)
 
-    # % sort edges
     # if nargout >= 2
 
     edge_ord = None

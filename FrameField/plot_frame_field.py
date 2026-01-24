@@ -1,8 +1,7 @@
-# === ISSUES ===
-# - trisurf: use matplotlib.pyplot.plot_trisurf for 3D mesh rendering
-# - quiver3: use matplotlib Axes3D.quiver for 3D vector field visualization
-# - shading interp: matplotlib uses shading='gouraud' for smooth vertex coloring
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 import matplotlib.pyplot as plt

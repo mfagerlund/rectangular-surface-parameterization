@@ -1,6 +1,7 @@
-# === ISSUES ===
-# - None: straightforward file parsing
-# === END ISSUES ===
+
+
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
 
 import numpy as np
 from typing import Tuple, Optional
@@ -8,26 +9,6 @@ import warnings
 
 
 # function [V,F,UV,TF,N,NF,SI] = readOBJ(filename,varargin)
-#   % READOBJ reads an OBJ file with vertex/face information
-#   %
-#   % [V,F,UV,TF,N,NF] = readOBJ(filename)
-#   % [V,F,UV,TF,N,NF] = readOBJ(filename,'ParameterName',ParameterValue,...)
-#   %
-#   % Input:
-#   %  filename  path to .obj file
-#   %  Optional:
-#   %    'Quads' whether to output face information in X by 4 matrices (faces
-#   %      with degree larger than 4 are still triangulated). A trailing zero
-#   %      will mean a triangle was read.
-#   % Outputs:
-#   %  V  #V by 3 list of vertices
-#   %  F  #F by 3 list of triangle indices
-#   %  UV  #V by 2 list of texture coordinates
-#   %  TF  #F by 3 list of triangle texture coordinates
-#   %  N  #V by 3 list of normals
-#   %  NF  #F by 3 list of triangle corner normal indices into N
-#   %
-#   % See also: load_mesh, readOBJfast, readOFF
 
 def readOBJ(filename: str, quads: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
@@ -48,7 +29,6 @@ def readOBJ(filename: str, quads: bool = False) -> Tuple[np.ndarray, np.ndarray,
 
     Note: MATLAB returns 1-indexed faces; Python returns 0-indexed faces.
     """
-    # % simplex size
     # if quads
     #     ss = 4;
     # else
@@ -58,7 +38,6 @@ def readOBJ(filename: str, quads: bool = False) -> Tuple[np.ndarray, np.ndarray,
     # simplex size
     ss = 4 if quads else 3
 
-    # % Amortized array allocation
     # Use lists for dynamic allocation in Python
 
     # Amortized array allocation
@@ -266,7 +245,6 @@ def readOBJ(filename: str, quads: bool = False) -> Tuple[np.ndarray, np.ndarray,
                     SI_list.append(s[:2])
 
             # elseif strcmp( type, '#' ) == 1
-            #     % ignore line
 
             elif type_token == '#':
                 # ignore comment line
