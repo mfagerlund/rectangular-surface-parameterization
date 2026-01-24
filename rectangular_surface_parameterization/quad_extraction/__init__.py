@@ -84,6 +84,16 @@ from .extract_quads import (
     extract_quads_from_parameterization,
 )
 
+# Quality metrics
+from .quad_quality import (
+    QuadMetrics,
+    MeshQualityReport,
+    measure_mesh_quality,
+    measure_singularity_error,
+    benchmark_mesh,
+    load_obj_quads,
+)
+
 __all__ = [
     # Data structures
     "GridVertex",
@@ -130,4 +140,11 @@ __all__ = [
     # Main API
     "extract_quads",
     "extract_quads_from_parameterization",
+    # Quality metrics
+    "QuadMetrics",
+    "MeshQualityReport",
+    "measure_mesh_quality",
+    "measure_singularity_error",
+    "benchmark_mesh",
+    "load_obj_quads",
 ]
