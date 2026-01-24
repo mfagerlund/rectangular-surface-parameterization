@@ -142,7 +142,21 @@ See [LICENSE](LICENSE) for full terms. Commercial licensing available from the o
 
 ## Acknowledgments
 
+### Rectangular Surface Parameterization
 - **Etienne Corman** and **Keenan Crane** for the algorithm and original MATLAB implementation
 - **Yoann Coudert-Osmont** for the quantization code
-- **libQEx** authors for the quad mesh extraction library
+
+### Quad Mesh Extraction (QEx)
+This project includes a Python port of the QEx algorithm for quad mesh extraction:
+
+- **Hans-Christian Ebke**, **David Bommes**, **Marcel Campen**, and **Leif Kobbelt** for the QEx algorithm
+- **libQEx**: [github.com/hcebke/libQEx](https://github.com/hcebke/libQEx) (GPL-3.0)
+
+> Ebke et al. 2013. "QEx: Robust Quad Mesh Extraction." *ACM Trans. Graph.* 32(6).
+> DOI: [10.1145/2508363.2508372](https://doi.org/10.1145/2508363.2508372)
+
+See [docs/qex_python_port_plan.md](docs/qex_python_port_plan.md) for implementation details.
+
+### Other Dependencies
 - **PyMeshLab** for mesh preprocessing and repair
+- **OpenMesh** (used by libQEx C++ binaries)

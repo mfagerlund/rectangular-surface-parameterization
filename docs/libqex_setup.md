@@ -52,12 +52,45 @@ libQEx implements the QEx algorithm (SIGGRAPH Asia 2013):
 3. **Find intersections**: Where u-isolines and v-isolines cross = quad vertices
 4. **Build connectivity**: Connect adjacent integer points to form quads
 
+## Python Port
+
+This project includes a **pure Python/NumPy port** of the QEx algorithm that doesn't
+require the C++ binaries. See [qex_python_port_plan.md](qex_python_port_plan.md) for details.
+
+```python
+from rectangular_surface_parameterization.quad_extraction import extract_quads
+quad_verts, quad_faces, tri_faces = extract_quads(vertices, triangles, uv_per_triangle)
+```
+
 ## License
 
 libQEx is GPL-3.0. See `bin/BINARIES.txt` for details.
 
-## References
+## References & Acknowledgements
 
-- [libQEx GitHub](https://github.com/hcebke/libQEx)
-- [QEx Paper](https://dl.acm.org/doi/10.1145/2508363.2508372) (SIGGRAPH Asia 2013)
+### QEx Paper
+
+> Hans-Christian Ebke, David Bommes, Marcel Campen, and Leif Kobbelt. 2013.
+> **QEx: Robust Quad Mesh Extraction.**
+> *ACM Trans. Graph.* 32, 6, Article 168 (November 2013).
+> DOI: [10.1145/2508363.2508372](https://doi.org/10.1145/2508363.2508372)
+
+```bibtex
+@article{Ebke:2013:QEx,
+  author = {Ebke, Hans-Christian and Bommes, David and Campen, Marcel and Kobbelt, Leif},
+  title = {QEx: Robust Quad Mesh Extraction},
+  journal = {ACM Trans. Graph.},
+  volume = {32},
+  number = {6},
+  year = {2013},
+  pages = {168:1--168:10},
+  doi = {10.1145/2508363.2508372},
+  publisher = {ACM},
+}
+```
+
+### Links
+
+- [libQEx GitHub Repository](https://github.com/hcebke/libQEx)
+- [QEx Paper (ACM DL)](https://dl.acm.org/doi/10.1145/2508363.2508372)
 - [OpenMesh](https://www.graphics.rwth-aachen.de/software/openmesh/)

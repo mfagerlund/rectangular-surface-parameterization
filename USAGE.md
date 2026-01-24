@@ -344,6 +344,9 @@ cp qex_extract /path/to/rectangular-surface-parameterization/bin/
 
 See `docs/libqex_setup.md` for detailed instructions.
 
+> **Note:** A pure Python port of QEx is also available that doesn't require binaries.
+> See `docs/qex_python_port_plan.md` for details.
+
 ### CI-Built Binaries
 
 Binaries for all platforms are built automatically via GitHub Actions when a new release
