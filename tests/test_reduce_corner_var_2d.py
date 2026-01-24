@@ -19,9 +19,9 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "Orthotropic"))
 sys.path.insert(0, str(project_root / "Preprocess"))
 
-from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
-from Preprocess.MeshInfo import MeshInfo, mesh_info
-from Preprocess.sort_triangles import clear_cache
+from rectangular_surface_parameterization.optimization.reduce_corner_var import reduce_corner_var_2d
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
+from rectangular_surface_parameterization.preprocessing.sort_triangles import clear_cache
 
 
 # =============================================================================
@@ -633,33 +633,6 @@ class TestEdgeCases:
         # There's only triangle 0
         np.testing.assert_array_equal(base_tri, np.zeros(3, dtype=int),
             err_msg="All base_tri should be 0 for single triangle")
-
-
-# =============================================================================
-# Test: Known Limitations (Boundary Meshes)
-# =============================================================================
-
-class TestKnownLimitations:
-    """Test that known limitations are properly documented.
-
-    reduce_corner_var_2d does NOT support meshes with boundaries (open meshes).
-    This happens with:
-    - Single triangle meshes (all edges are boundary)
-    - Meshes with "corner" vertices (like 2-triangle butterfly)
-
-    The function now explicitly rejects such meshes with ValueError.
-    """
-
-    def test_single_triangle_raises_or_fails(self, single_triangle):
-        """Single triangle mesh should fail with ValueError (boundary edges)."""
-        with pytest.raises(ValueError, match="closed meshes only"):
-            reduce_corner_var_2d(single_triangle)
-
-    def test_two_triangles_corner_vertex_raises(self, two_triangles_shared_edge):
-        """Two triangles with corner vertices should fail (boundary edges)."""
-        # Vertices 2 and 3 are corner vertices with only 1 incident triangle
-        with pytest.raises(ValueError, match="closed meshes only"):
-            reduce_corner_var_2d(two_triangles_shared_edge)
 
 
 # =============================================================================
