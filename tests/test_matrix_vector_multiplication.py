@@ -1,5 +1,5 @@
 """
-Pytest tests for ComputeParam/matrix_vector_multiplication.py.
+Pytest tests for parameterization/matrix_ops.py.
 
 Tests the matrix_vector_multiplication function which builds block-diagonal
 sparse matrices for element-wise matrix-vector multiplication (used for

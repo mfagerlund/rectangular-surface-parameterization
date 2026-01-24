@@ -1,5 +1,5 @@
 """
-Pytest tests for ComputeParam/cut_mesh.py
+Pytest tests for parameterization/cut_mesh.py
 
 Tests mesh cutting functionality for creating disk topology from a closed mesh.
 Run with: pytest tests/test_cut_mesh.py -v

@@ -1,5 +1,5 @@
 """
-Pytest tests for FrameField/trivial_connection.py
+Pytest tests for cross_field/trivial_connection.py
 
 Tests for trivial connection computation used in cross-field computation.
 Run with: pytest tests/test_trivial_connection.py -v

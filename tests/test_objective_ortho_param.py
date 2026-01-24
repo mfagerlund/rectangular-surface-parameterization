@@ -1,5 +1,5 @@
 """
-Pytest tests for Orthotropic/objective_ortho_param.py
+Pytest tests for optimization/objective.py
 
 Tests the objective function for orthotropic parameterization optimization,
 which computes energy, Hessian, and gradient for different energy types.

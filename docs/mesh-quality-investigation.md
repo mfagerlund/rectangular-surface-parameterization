@@ -23,7 +23,7 @@ This document summarizes the mesh quality issues discovered when testing the RSP
 AssertionError: Negative vertex area.
 ```
 
-**Location:** `Preprocess/dec_tri.py:207`
+**Location:** `preprocessing/dec.py:207`
 
 **Cause:** The Voronoi area calculation produces negative values. This typically happens when:
 - The mesh has non-Delaunay triangulation (obtuse triangles)
@@ -40,7 +40,7 @@ MatrixRankWarning: Matrix is exactly singular
 AssertionError: NaN vector field.
 ```
 
-**Location:** `FrameField/compute_face_cross_field.py:294`
+**Location:** `cross_field/face_field.py:294`
 
 **Warnings before failure:**
 - `Non Delaunay mesh: risk of convergence issues!`
@@ -58,7 +58,7 @@ AssertionError: NaN vector field.
 AssertionError: Gaussian curvature does not match topology.
 ```
 
-**Location:** `Preprocess/preprocess_ortho_param.py:635`
+**Location:** `preprocessing/preprocess.py:635`
 
 **Cause:** The sum of discrete Gaussian curvature should equal 2πχ (where χ is the Euler characteristic). This fails when:
 - The mesh has boundaries (holes)
@@ -74,7 +74,7 @@ AssertionError: Gaussian curvature does not match topology.
 ValueError: cannot reshape array of size 2946 into shape (1472,2)
 ```
 
-**Location:** `Preprocess/connectivity.py:132`
+**Location:** `preprocessing/connectivity.py:132`
 
 **Warning before failure:**
 - `Trivially triangulating high degree facets`

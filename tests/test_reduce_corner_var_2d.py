@@ -1,5 +1,5 @@
 """
-Pytest tests for Orthotropic/reduce_corner_var_2d.py
+Pytest tests for optimization/reduce_corner_var.py
 
 Tests the reduce_corner_var_2d function which computes cross field jumps
 and variable reduction for corner variables.

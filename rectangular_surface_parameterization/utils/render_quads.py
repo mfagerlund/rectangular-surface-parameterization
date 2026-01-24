@@ -2,9 +2,9 @@
 Quad mesh renderer that properly displays quads (not triangulated).
 
 Usage:
-    python Utils/render_quads.py Results/bunny_clean_quads.obj
-    python Utils/render_quads.py Results/bunny_clean_quads.obj -o output.png
-    python Utils/render_quads.py Results/bunny_clean_quads.obj --wireframe
+    python -m rectangular_surface_parameterization.utils.render_quads mesh_quads.obj
+    python -m rectangular_surface_parameterization.utils.render_quads mesh_quads.obj -o output.png
+    python -m rectangular_surface_parameterization.utils.render_quads mesh_quads.obj --wireframe
 """
 
 import numpy as np

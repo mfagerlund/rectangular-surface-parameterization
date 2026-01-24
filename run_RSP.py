@@ -9,7 +9,7 @@ Usage:
     python run_RSP.py mesh.obj [options]
 
 Example:
-    python run_RSP.py C:/Dev/Colonel/Data/Meshes/sphere320.obj -o output/
+    python run_RSP.py Mesh/sphere320.obj -o output/
 """
 
 

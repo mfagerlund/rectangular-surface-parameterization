@@ -15,26 +15,105 @@ import subprocess
 import tempfile
 from pathlib import Path
 import os
+import sys
+import urllib.request
+import platform
+
+# GitHub release info
+GITHUB_REPO = "mfagerlund/rectangular-surface-parameterization"
+RELEASE_TAG = "v0.1.0"  # Update when releasing
 
 
-def _find_qex_exe():
-    """Find the qex_extract.exe executable."""
-    this_dir = Path(__file__).parent
-    bin_dir = this_dir.parent / "bin"
+def _get_platform_binary_name():
+    """Get the binary name for the current platform."""
+    system = platform.system().lower()
+    machine = platform.machine().lower()
 
-    exe_name = "qex_extract.exe"
+    if system == "windows":
+        return "qex_extract-windows-x64", "qex_extract.exe"
+    elif system == "darwin":
+        if machine == "arm64":
+            return "qex_extract-macos-arm64", "qex_extract"
+        else:
+            return "qex_extract-macos-x64", "qex_extract"
+    elif system == "linux":
+        return "qex_extract-linux-x64", "qex_extract"
+    else:
+        return None, None
+
+
+def _download_binary(bin_dir, verbose=True):
+    """Download qex_extract binary from GitHub Releases."""
+    artifact_name, exe_name = _get_platform_binary_name()
+    if artifact_name is None:
+        raise RuntimeError(f"No pre-built binary available for {platform.system()} {platform.machine()}")
+
+    url = f"https://github.com/{GITHUB_REPO}/releases/download/{RELEASE_TAG}/{artifact_name}"
+    exe_path = bin_dir / exe_name
+
+    if verbose:
+        print(f"Downloading qex_extract from {url}...")
+
+    try:
+        bin_dir.mkdir(parents=True, exist_ok=True)
+        urllib.request.urlretrieve(url, exe_path)
+
+        # Make executable on Unix
+        if os.name != "nt":
+            exe_path.chmod(exe_path.stat().st_mode | 0o755)
+
+        if verbose:
+            print(f"Downloaded to {exe_path}")
+
+        return str(exe_path)
+
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            raise FileNotFoundError(
+                f"Binary not found at {url}\n"
+                f"Release {RELEASE_TAG} may not exist yet.\n"
+                f"Build from source - see bin/BINARIES.txt for instructions."
+            ) from e
+        raise
+
+
+def _find_qex_exe(auto_download=True):
+    """Find the qex_extract executable.
+
+    Looks in repo root bin/ directory. If not found and auto_download=True,
+    attempts to download from GitHub Releases.
+    """
+    # Repo root is two levels up from this file (utils/ -> rectangular_surface_parameterization/ -> repo root)
+    repo_root = Path(__file__).parent.parent.parent
+    bin_dir = repo_root / "bin"
+
+    # Platform-specific executable name
+    _, exe_name = _get_platform_binary_name()
+    if exe_name is None:
+        exe_name = "qex_extract.exe" if os.name == "nt" else "qex_extract"
+
     exe_path = bin_dir / exe_name
 
     if exe_path.exists():
         return str(exe_path)
 
-    # Check current directory
+    # Check current directory as fallback
     if Path(exe_name).exists():
         return exe_name
 
+    # Try to download if not found
+    if auto_download:
+        try:
+            return _download_binary(bin_dir)
+        except Exception as e:
+            # Fall through to error message
+            pass
+
     raise FileNotFoundError(
         f"Could not find {exe_name}. Expected at {exe_path}\n"
-        "See bin/BINARIES.txt for build instructions."
+        f"Download pre-built binaries from GitHub Releases:\n"
+        f"  https://github.com/{GITHUB_REPO}/releases\n"
+        f"Or build from source - see bin/BINARIES.txt for instructions."
     )
 
 

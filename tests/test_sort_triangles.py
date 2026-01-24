@@ -1,5 +1,5 @@
 """
-Pytest tests for Preprocess/sort_triangles.py
+Pytest tests for preprocessing/sort_triangles.py
 
 Tests the sort_triangles function which sorts triangles around a vertex
 in consistent winding order, with caching.

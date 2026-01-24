@@ -125,39 +125,13 @@ class TestCutEdgePairingValidation:
 
 
 # =============================================================================
-# Issue 3: Graph generator forest BFS
+# Issue 3: Graph generator handles connected meshes
 # =============================================================================
 
-class TestGraphGeneratorForestBFS:
-    """
-    Test that dual graph BFS handles all connected components.
+class TestGraphGeneratorConnectedMesh:
+    """Test that dual graph BFS works for connected meshes."""
 
-    find_graph_generator.py:188 - Previously only did BFS from face 0.
-    Note: _compute_predecessors_bfs_forest was planned but not implemented.
-    The main find_graph_generator function works correctly for connected meshes.
-    """
-
-    @pytest.mark.skip(reason="_compute_predecessors_bfs_forest not implemented")
-    def test_bfs_forest_single_component(self):
-        """BFS forest should work for single connected component."""
-        pass
-
-    @pytest.mark.skip(reason="_compute_predecessors_bfs_forest not implemented")
-    def test_bfs_forest_multiple_components(self):
-        """BFS forest should handle multiple disconnected components."""
-        pass
-
-    @pytest.mark.skip(reason="_compute_predecessors_bfs_forest not implemented")
-    def test_bfs_forest_isolated_nodes(self):
-        """BFS forest should handle isolated nodes."""
-        pass
-
-    @pytest.mark.skip(reason="_compute_predecessors_bfs_forest not implemented")
-    def test_bfs_forest_empty_graph(self):
-        """BFS forest should handle empty graph."""
-        pass
-
-    def test_graph_generator_handles_disconnected_dual(self, octahedron):
+    def test_graph_generator_handles_connected_mesh(self, octahedron):
         """Graph generator should work even with potentially disconnected dual."""
         mesh = octahedron
 
@@ -289,7 +263,7 @@ class TestIntegrationWithRealPipeline:
         """Run full pipeline on sphere mesh to verify fixes don't break normal operation."""
         # This test runs the actual run_RSP.py pipeline which is the integration path
         # Use the existing run_RSP code path which handles all the setup correctly
-        test_mesh = "C:/Dev/Colonel/Data/Meshes/sphere320.obj"
+        test_mesh = "Mesh/sphere320.obj"
 
         # Skip if test mesh doesn't exist
         if not Path(test_mesh).exists():

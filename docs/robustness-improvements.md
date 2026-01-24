@@ -4,7 +4,7 @@ This document describes improvements made to handle meshes that previously faile
 
 ## Changes Made
 
-### 1. Mesh Preprocessing Utility (`Utils/preprocess_mesh.py`)
+### 1. Mesh Preprocessing Utility (`rectangular_surface_parameterization/utils/preprocess_mesh.py`)
 
 **New file** that uses PyMeshLab to clean meshes before running RSP.
 
@@ -30,7 +30,7 @@ This document describes improvements made to handle meshes that previously faile
 
 **Usage:**
 ```python
-from Utils.preprocess_mesh import preprocess_mesh, check_mesh_quality
+from rectangular_surface_parameterization.utils.preprocess_mesh import preprocess_mesh, check_mesh_quality
 
 # Check mesh quality
 check_mesh_quality("bunny.obj")
@@ -41,7 +41,7 @@ clean_path = preprocess_mesh("bunny.obj", "bunny_clean.obj")
 
 **Command line:**
 ```bash
-python Utils/preprocess_mesh.py bunny.obj bunny_clean.obj
+python -m rectangular_surface_parameterization.utils.preprocess_mesh bunny.obj bunny_clean.obj
 ```
 
 **Requirements:**
@@ -49,7 +49,7 @@ python Utils/preprocess_mesh.py bunny.obj bunny_clean.obj
 pip install pymeshlab
 ```
 
-### 2. DEC Operator Fixes (`Preprocess/dec_tri.py`)
+### 2. DEC Operator Fixes (`rectangular_surface_parameterization/preprocessing/dec.py`)
 
 **Problem:** Meshes with unreferenced vertices caused "Negative vertex area" assertion.
 
@@ -75,7 +75,7 @@ if np.any(vor_area < 0):
 
 **Impact:** Stanford bunny (35,947 vertices with 1,113 unreferenced) now passes DEC computation.
 
-### 3. libQEx Wrapper Fixes (`Utils/libqex_wrapper.py`)
+### 3. libQEx Wrapper Fixes (`rectangular_surface_parameterization/utils/libqex_wrapper.py`)
 
 **Problem:** Some extracted quads had invalid vertex indices or were degenerate.
 
@@ -116,13 +116,13 @@ For meshes that fail:
 
 1. **Check quality first:**
    ```python
-   from Utils.preprocess_mesh import check_mesh_quality
+   from rectangular_surface_parameterization.utils.preprocess_mesh import check_mesh_quality
    check_mesh_quality("problematic_mesh.obj")
    ```
 
 2. **Preprocess if needed:**
    ```python
-   from Utils.preprocess_mesh import preprocess_mesh
+   from rectangular_surface_parameterization.utils.preprocess_mesh import preprocess_mesh
    preprocess_mesh("problematic_mesh.obj", "mesh_clean.obj")
    ```
 

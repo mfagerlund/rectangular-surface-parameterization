@@ -1,5 +1,5 @@
 """
-Pytest tests for Preprocess/connectivity.py
+Pytest tests for preprocessing/connectivity.py
 
 Tests the connectivity function which computes adjacency properties
 from a list of triangles.

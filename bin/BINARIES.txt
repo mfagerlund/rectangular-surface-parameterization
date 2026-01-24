@@ -1,77 +1,75 @@
 # Pre-built Binaries for Quad Extraction (libQEx)
 
-Windows x64 only. Built with Visual Studio 2022, CMake 3.28.
+## Download
 
-## Contents
+Pre-built binaries for all platforms are available from GitHub Releases:
+https://github.com/mfagerlund/rectangular-surface-parameterization/releases
 
-- qex_extract.exe - Command-line quad extraction tool (for Python wrapper)
-- QEx.dll         - libQEx shared library (links OpenMesh statically)
-- QExStatic.lib   - libQEx static library
-- OpenMeshCore.lib - OpenMesh core (static)
-- OpenMeshTools.lib - OpenMesh tools (static)
+Download the appropriate binary for your platform:
+- `qex_extract-windows-x64` - Windows x64
+- `qex_extract-linux-x64` - Linux x64
+- `qex_extract-macos-x64` - macOS Intel
+- `qex_extract-macos-arm64` - macOS Apple Silicon (M1/M2)
 
-## Usage
+Place the binary in this `bin/` directory and rename to `qex_extract` (or `qex_extract.exe` on Windows).
 
-For Python integration via ctypes, use QEx.dll.
-For C++ projects, link against QExStatic.lib + OpenMesh*.lib.
+## License Information
 
-## Build Instructions
+These binaries are built from open source software. License texts are included
+in the `LICENSES/` subdirectory for compliance with binary redistribution terms.
 
-If you need to rebuild these binaries:
+### libQEx (GPL-3.0-or-later)
+- Source: https://github.com/hcebke/libQEx
+- License: GNU General Public License v3.0 or later
+- License text: `LICENSES/GPL-3.0.txt`
+
+### OpenMesh (BSD-3-Clause)
+- Source: https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh
+- License: BSD 3-Clause License
+- License text: `LICENSES/BSD-3-Clause.txt`
+
+**GPL Compliance:** The qex_extract binary links against libQEx (GPL-3.0).
+Per GPL Section 6, the complete corresponding source code is available at:
+- libQEx: https://github.com/hcebke/libQEx
+- OpenMesh: https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh
+
+The binaries are built automatically by GitHub Actions from these public sources.
+See `.github/workflows/build-libqex.yml` for the exact build process and commit hashes.
+
+## Build from Source
+
+If you prefer to build from source:
 
 ### Prerequisites
 - CMake 3.10+
-- Visual Studio 2019 or 2022 with C++ workload
+- C++ compiler with C++11 support
 - Git
 
 ### Build Steps
 
-1. Create build directory:
-   mkdir C:\Slask\libqex_build && cd C:\Slask\libqex_build
-
-2. Clone OpenMesh:
-   git clone --recursive https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git OpenMesh-src
-   cd OpenMesh-src
-   git submodule update --init --recursive
-
-3. Build OpenMesh:
-   mkdir build && cd build
-   cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_INSTALL_PREFIX=../install
+1. Clone and build OpenMesh:
+   ```bash
+   git clone https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
+   cd OpenMesh && mkdir build && cd build
+   cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF
    cmake --build . --config Release
-   cmake --install . --config Release
-   cd ../..
+   cmake --install . --config Release --prefix ../install
+   ```
 
-4. Clone libQEx:
-   git clone https://github.com/hcebke/libQEx.git libQEx-src
-   cd libQEx-src
-
-5. Build libQEx:
-   mkdir build && cd build
-   cmake .. -G "Visual Studio 17 2022" -A x64 ^
-     -DOpenMesh_DIR=C:/Slask/libqex_build/OpenMesh-src/install/share/OpenMesh ^
-     -DCMAKE_CXX_FLAGS="-D_USE_MATH_DEFINES"
+2. Clone and build libQEx:
+   ```bash
+   git clone https://github.com/hcebke/libQEx.git
+   cd libQEx && mkdir build && cd build
+   cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/path/to/openmesh/install
    cmake --build . --config Release
+   ```
 
-6. Copy libQEx binaries to bin/:
-   copy Release\QEx.dll C:\Dev\Corman-Crane\bin\
-   copy Release\QExStatic.lib C:\Dev\Corman-Crane\bin\
-   copy ..\..\..\OpenMesh-src\install\lib\OpenMeshCore.lib C:\Dev\Corman-Crane\bin\
-   copy ..\..\..\OpenMesh-src\install\lib\OpenMeshTools.lib C:\Dev\Corman-Crane\bin\
+3. Copy the `qex_extract` binary to this `bin/` directory.
 
-7. Build qex_extract.exe (command-line tool for Python wrapper):
-   cd C:\Slask\libqex_build
-   mkdir qex_tool\build && cd qex_tool\build
-   cmake .. -G "Visual Studio 17 2022" -A x64 ^
-     -DOpenMesh_DIR=C:/Slask/libqex_build/OpenMesh-src/install/share/OpenMesh/cmake
-   cmake --build . --config Release
-   copy Release\qex_extract.exe C:\Dev\Corman-Crane\bin\
-
-## Source Repositories
-
-- libQEx: https://github.com/hcebke/libQEx (GPL-3.0)
-- OpenMesh: https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh (BSD-3-Clause)
+See `.github/workflows/build-libqex.yml` for platform-specific build details.
 
 ## Note
 
 These binaries are for the optional quad extraction step (Stage 6), which is
 beyond the scope of the Corman-Crane paper but included for completeness.
+The core RSP parameterization (Stages 1-5) works without these binaries.

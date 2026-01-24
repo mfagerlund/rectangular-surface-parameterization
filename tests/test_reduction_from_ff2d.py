@@ -1,5 +1,5 @@
 """
-Pytest tests for Orthotropic/reduction_from_ff2d.py
+Pytest tests for optimization/reduction.py
 
 Tests the reduction_from_ff2d function which builds the reduction matrix
 from a 2D frame field.
@@ -21,7 +21,7 @@ from pathlib import Path
 import sys
 import scipy.sparse as sp
 
-# Add parent directory and Preprocess/Orthotropic to path
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Preprocess"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Orthotropic"))
@@ -1093,7 +1093,7 @@ class TestRealMeshes:
     def sphere_mesh(self):
         """Load sphere mesh if available."""
         from rectangular_surface_parameterization.io.read_obj import readOBJ
-        path = Path(r"C:\Dev\Colonel\Data\Meshes\sphere320.obj")
+        path = Path("Mesh/sphere320.obj")
         if not path.exists():
             pytest.skip(f"Sphere mesh not found: {path}")
         X, T, *_ = readOBJ(str(path))
@@ -1103,7 +1103,7 @@ class TestRealMeshes:
     def torus_mesh(self):
         """Load torus mesh if available."""
         from rectangular_surface_parameterization.io.read_obj import readOBJ
-        path = Path(r"C:\Dev\Colonel\Data\Meshes\torus.obj")
+        path = Path("Mesh/torus.obj")
         if not path.exists():
             pytest.skip(f"Torus mesh not found: {path}")
         X, T, *_ = readOBJ(str(path))

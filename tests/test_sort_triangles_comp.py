@@ -1,5 +1,5 @@
 """
-Pytest tests for Preprocess/sort_triangles_comp.py
+Pytest tests for preprocessing/sort_triangles_comp.py
 
 Tests the sort_triangles_comp function which sorts ring triangles
 around a vertex in consistent order.

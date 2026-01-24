@@ -1,5 +1,5 @@
 """
-Pytest tests for Orthotropic/oracle_integrability_condition.py
+Pytest tests for optimization/oracle_integrability.py
 
 Tests the integrability condition oracle function that computes constraints
 and their derivatives for the optimization.

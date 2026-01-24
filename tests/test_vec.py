@@ -1,5 +1,5 @@
 """
-Pytest tests for Utils/vec.py - vector flattening utility.
+Pytest tests for vec.py - vector flattening utility.
 
 Tests that vec() correctly flattens arrays to 1D.
 Run with: pytest tests/test_vec.py -v

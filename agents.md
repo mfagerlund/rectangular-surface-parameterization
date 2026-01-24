@@ -14,11 +14,12 @@ Phases: Load mesh -> geometry -> cross field -> cut graph -> sparse ops -> optim
 
 ## Implementation - `run_RSP.py`
 Entry point. Line-by-line translation from official MATLAB code.
-- `Preprocess/` - MeshInfo, angles, curvature, connectivity, DEC operators
-- `FrameField/` - trivial connection, cross field computation
-- `Orthotropic/` - optimization (reduce_corner_var_2d, optimize_RSP)
-- `ComputeParam/` - cut_mesh, mesh_to_disk_seamless, parametrization_from_scales
-- `Utils/` - I/O, visualization
+- `rectangular_surface_parameterization/preprocessing/` - MeshInfo, angles, curvature, connectivity, DEC operators
+- `rectangular_surface_parameterization/cross_field/` - trivial connection, cross field computation
+- `rectangular_surface_parameterization/optimization/` - reduce_corner_var_2d, optimize_RSP
+- `rectangular_surface_parameterization/parameterization/` - cut_mesh, mesh_to_disk_seamless, parametrization_from_scales
+- `rectangular_surface_parameterization/io/` - I/O
+- `rectangular_surface_parameterization/utils/` - visualization, preprocessing
 
 ## Requirements
 Python 3.8+, NumPy, SciPy, Matplotlib. Install: `pip install numpy scipy matplotlib`
@@ -56,15 +57,13 @@ Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) fo
 ![Torus UV Layout](docs/images/torus_uv_layout.png)
 *Torus parameterization showing characteristic cut structure for genus-1 surface. **0 flipped triangles.***
 
-## References (READ)
-MATLAB impl: https://github.com/etcorman/RectangularSurfaceParameterization (local: `C:\Slask\RectangularSurfaceParameterization`)
-Paper: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025.pdf`
-Supplement: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025-supplement.pdf`
-Quad extraction: `D:\Data\GDrive\FlatrPDFs\2461912.2462014_integer-grid-maps-reliable-quad-meshing.pdf`,
-`D:\Data\GDrive\FlatrPDFs\1531326.1531383_mixed-integer-quadrangulation.pdf`
+## References
+- MATLAB implementation: https://github.com/etcorman/RectangularSurfaceParameterization
+- Paper: https://www.cs.cmu.edu/~kmcrane/Projects/RectangularSurfaceParameterization/
+- Quad extraction (libQEx): https://github.com/hcebke/libQEx
 
 ## Visualization Utilities
-`Utils/visualize_uv.py` - works with MATLAB-ported implementation:
+`rectangular_surface_parameterization/io/visualize.py`:
 - `plot_uv_with_flips(Xp, T, detJ)` - UV layout with flipped triangles in red
 - `plot_uv_checkerboard(Xp, T, detJ)` - checkerboard pattern, flips in red
 - `plot_mesh_with_flips(X, T, detJ)` - 3D mesh with flipped faces highlighted
@@ -73,7 +72,6 @@ Quad extraction: `D:\Data\GDrive\FlatrPDFs\2461912.2462014_integer-grid-maps-rel
 - `compute_uv_quality(Xp, T, X, T_orig)` - quality metrics (flip count, angle error)
 
 ## Current Status
-See `verification-plan.md`. Summary:
 | Stage | Status |
 |-------|--------|
 | 1. Geometry | VERIFIED (54 pytest tests pass) |
@@ -95,8 +93,6 @@ Run `python -m rectangular_surface_parameterization.utils.verify_pipeline <mesh>
 | 3. Cut Graph | `stage3_cut_graph.png` | Cut edges connect all cones |
 | 4. Optimization | `stage4_scale_u.png`, `stage4_scale_v.png` | Smooth scale fields |
 | 5. UV Recovery | `stage5_uv_layout.png`, `stage5_checkerboard.png` | 0 flipped triangles (no red) |
-
-See `verification-visualisation-plan.md` for implementation details.
 
 ## Quad Extraction (Beyond Paper)
 
@@ -135,10 +131,10 @@ To build from source (optional):
 
 ## Mesh Preprocessing
 
-Many real-world meshes fail the RSP pipeline due to quality issues. Use `Utils/preprocess_mesh.py`:
+Many real-world meshes fail the RSP pipeline due to quality issues. Use the preprocessing utilities:
 
 ```python
-from Utils.preprocess_mesh import preprocess_mesh, check_mesh_quality
+from rectangular_surface_parameterization.utils.preprocess_mesh import preprocess_mesh, check_mesh_quality
 
 # Diagnose issues
 check_mesh_quality("mesh.obj")
@@ -151,14 +147,14 @@ Or use `--preprocess` flag with `extract_quads.py`.
 
 ### Robustness Fixes
 The pipeline includes fixes for common mesh issues:
-- **Unreferenced vertices**: Handled in `Preprocess/dec_tri.py` (assigns small Voronoi area)
-- **Curvature mismatches**: Relaxed to warnings in `Preprocess/preprocess_ortho_param.py`
-- **Invalid quad indices**: Filtered in `Utils/libqex_wrapper.py`
+- **Unreferenced vertices**: Handled in `preprocessing/dec.py` (assigns small Voronoi area)
+- **Curvature mismatches**: Relaxed to warnings in `preprocessing/preprocess.py`
+- **Invalid quad indices**: Filtered in `utils/libqex_wrapper.py`
 
 See `docs/robustness-improvements.md` for details.
 
 ## Docs
-`verification-plan.md`, `verification-visualisation-plan.md`, `docs/algo_integer_grid_maps.md`, `docs/libqex_setup.md`, `docs/robustness-improvements.md`, `docs/mesh-quality-investigation.md`
+`docs/algo_integer_grid_maps.md`, `docs/libqex_setup.md`, `docs/robustness-improvements.md`, `docs/mesh-quality-investigation.md`
 
 ## Future Work
 

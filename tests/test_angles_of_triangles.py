@@ -1,5 +1,5 @@
 """
-Pytest tests for Preprocess/angles_of_triangles.py
+Pytest tests for preprocessing/angles.py
 
 Tests the angles_of_triangles function which computes corner angles
 for triangles given vertex positions and triangle indices.

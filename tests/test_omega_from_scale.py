@@ -1,5 +1,5 @@
 """
-Pytest tests for Orthotropic/omega_from_scale.py
+Pytest tests for optimization/omega_from_scale.py
 
 Tests the omega_from_scale function which builds frame rotation from scale factors
 at triangle corners.

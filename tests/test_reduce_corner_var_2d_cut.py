@@ -1,5 +1,5 @@
 """
-Pytest tests for Orthotropic/reduce_corner_var_2d_cut.py
+Pytest tests for optimization/reduce_corner_var_cut.py
 
 Tests the reduce_corner_var_2d_cut function which reduces corner variables
 to vertex variables with cut edges on a mesh.

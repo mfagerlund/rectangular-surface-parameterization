@@ -1,5 +1,5 @@
 """
-Pytest tests for Preprocess/dec_tri.py
+Pytest tests for preprocessing/dec.py
 
 Tests the DEC (Discrete Exterior Calculus) operators.
 Run with: pytest tests/test_dec_tri.py -v

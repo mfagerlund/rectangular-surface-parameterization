@@ -5,9 +5,9 @@ These tests verify the actual converted functions work correctly,
 not just the underlying math via helper functions.
 
 Addresses coverage gaps:
-- compute_face_cross_field (FrameField/compute_face_cross_field.py)
-- preprocess_ortho_param (Preprocess/preprocess_ortho_param.py)
-- compute_curvature_cross_field (FrameField/compute_curvature_cross_field.py)
+- compute_face_cross_field (cross_field/face_field.py)
+- preprocess_ortho_param (preprocessing/preprocess.py)
+- compute_curvature_cross_field (cross_field/curvature_field.py)
 - CADFF axis fix regression test
 """
 
@@ -183,7 +183,7 @@ def octahedron_data(octahedron):
 
 
 # =============================================================================
-# preprocess_ortho_param tests (Preprocess/preprocess_ortho_param.py)
+# preprocess_ortho_param tests (preprocessing/preprocess.py)
 # =============================================================================
 
 class TestPreprocessOrthoParam:
@@ -316,7 +316,7 @@ class TestPreprocessOrthoParam:
 
 
 # =============================================================================
-# compute_face_cross_field tests (FrameField/compute_face_cross_field.py)
+# compute_face_cross_field tests (cross_field/face_field.py)
 # =============================================================================
 
 class TestComputeFaceCrossField:
@@ -407,7 +407,7 @@ class TestComputeFaceCrossField:
 
 
 # =============================================================================
-# compute_curvature_cross_field tests (FrameField/compute_curvature_cross_field.py)
+# compute_curvature_cross_field tests (cross_field/curvature_field.py)
 # =============================================================================
 
 class TestComputeCurvatureCrossField:

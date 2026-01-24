@@ -59,7 +59,7 @@ def run_rsp(mesh_path, output_dir, verbose=False):
         sys.executable, "run_RSP.py",
         mesh_path,
         "-o", str(output_dir),
-        "--no-quantization",  # Skip quantization (requires external program)
+        # Quantization is off by default (requires external QuantizationYoann binary)
     ]
     if verbose:
         cmd.append("-v")

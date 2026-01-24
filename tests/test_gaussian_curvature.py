@@ -1,5 +1,5 @@
 """
-Pytest tests for Preprocess/gaussian_curvature.py
+Pytest tests for preprocessing/gaussian_curvature.py
 
 Tests Gaussian curvature computation using angle defect formula:
 - Interior vertex: K = 2*pi - sum(angles)
@@ -767,7 +767,7 @@ class TestRealMeshes:
     def sphere_mesh(self):
         """Load sphere mesh if available."""
         from pathlib import Path
-        obj_path = Path(r"C:\Dev\Colonel\Data\Meshes\sphere320.obj")
+        obj_path = Path("Mesh/sphere320.obj")
         if not obj_path.exists():
             pytest.skip(f"Sphere mesh not found: {obj_path}")
 
@@ -779,7 +779,7 @@ class TestRealMeshes:
     def torus_mesh(self):
         """Load torus mesh if available."""
         from pathlib import Path
-        obj_path = Path(r"C:\Dev\Colonel\Data\Meshes\torus.obj")
+        obj_path = Path("Mesh/torus.obj")
         if not obj_path.exists():
             pytest.skip(f"Torus mesh not found: {obj_path}")
 

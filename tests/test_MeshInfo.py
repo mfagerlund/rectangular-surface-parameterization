@@ -1,5 +1,5 @@
 """
-Pytest tests for Preprocess/MeshInfo.py
+Pytest tests for preprocessing/mesh_info.py
 
 Tests the MeshInfo dataclass and mesh_info() function.
 Run with: pytest tests/test_MeshInfo.py -v

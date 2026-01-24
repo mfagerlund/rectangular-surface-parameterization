@@ -1,5 +1,5 @@
 """
-Pytest tests for Orthotropic/optimize_RSP.py
+Pytest tests for optimization/solver.py
 
 Tests the main optimization loop for Rectangular Surface Parameterization
 using Newton's method on the KKT conditions.

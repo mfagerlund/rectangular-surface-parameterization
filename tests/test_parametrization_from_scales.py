@@ -1,5 +1,5 @@
 """
-Pytest tests for ComputeParam/parametrization_from_scales.py
+Pytest tests for parameterization/integrate.py
 
 Tests UV coordinate recovery from scale factors computed by the optimization.
 Run with: pytest tests/test_parametrization_from_scales.py -v

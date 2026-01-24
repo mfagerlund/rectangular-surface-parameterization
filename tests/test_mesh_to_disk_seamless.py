@@ -1,5 +1,5 @@
 """
-Pytest tests for ComputeParam/mesh_to_disk_seamless.py
+Pytest tests for parameterization/seamless.py
 
 Tests the mesh cutting and seamless constraint building for UV parameterization.
 Run with: pytest tests/test_mesh_to_disk_seamless.py -v
