@@ -36,7 +36,9 @@ jobs:
           sudo apt-get install -y cmake build-essential
 
       - name: Clone OpenMesh
-        run: git clone --depth 1 https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
+        run: |
+          git clone --depth 1 https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
+          echo "OpenMesh commit: $(git -C OpenMesh rev-parse HEAD)" >> $GITHUB_STEP_SUMMARY
 
       - name: Build OpenMesh (Unix)
         if: runner.os != 'Windows'
@@ -59,7 +61,9 @@ jobs:
           cmake --install . --config Release
 
       - name: Clone libQEx
-        run: git clone --depth 1 https://github.com/hcebke/libQEx.git
+        run: |
+          git clone --depth 1 https://github.com/hcebke/libQEx.git
+          echo "libQEx commit: $(git -C libQEx rev-parse HEAD)" >> $GITHUB_STEP_SUMMARY
 
       - name: Build libQEx (Unix)
         if: runner.os != 'Windows'

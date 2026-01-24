@@ -93,8 +93,9 @@ The cross field computation can fail on certain meshes:
 ## Licensing
 
 - **sphere320.obj, torus.obj:** Public domain / freely usable
-- **B36.obj, pig.obj, SquareMyles.obj:** From the original MATLAB implementation by
-  Etienne Corman and Keenan Crane, redistributed under AGPL-3.0-or-later
+- **B36.obj, pig.obj, SquareMyles.obj:** Included in the original MATLAB implementation by
+  Etienne Corman and Keenan Crane. The MATLAB code is AGPL-3.0-or-later, but the meshes
+  themselves have no explicit license. For commercial use, contact the original authors.
 
 ## Adding New Test Meshes
 

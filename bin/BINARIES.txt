@@ -44,7 +44,8 @@ Per GPL Section 6, the complete corresponding source code is available at:
 - OpenMesh: https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh
 
 The binaries are built automatically by GitHub Actions from these public sources.
-See `.github/workflows/build-libqex.yml` for the exact build process and commit hashes.
+See `.github/workflows/build-libqex.yml` for the build process. The workflow records
+the exact commit hashes used in the GitHub Actions run summary for each release.
 
 ## Build from Source
 

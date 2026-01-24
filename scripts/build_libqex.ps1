@@ -8,13 +8,17 @@
 # Usage:
 #   .\scripts\build_libqex.ps1
 #
+# Environment variables:
+#   LIBQEX_BUILD_DIR - Override build directory (default: %TEMP%\libqex_build)
+#
 # Output:
-#   bin/qex.dll, bin/OpenMesh*.dll
+#   bin/qex_extract.exe, bin/OpenMesh*.dll
 
 $ErrorActionPreference = "Stop"
 
 $RepoRoot = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$BuildDir = "C:\Slask\libqex_build"  # Use C:\Slask to avoid cluttering repo
+# Build directory - defaults to temp, can be overridden with environment variable
+$BuildDir = if ($env:LIBQEX_BUILD_DIR) { $env:LIBQEX_BUILD_DIR } else { Join-Path $env:TEMP "libqex_build" }
 $BinDir = Join-Path $RepoRoot "bin"
 $DepsDir = $BuildDir
 
@@ -250,5 +254,5 @@ Get-ChildItem -Path $BinDir -Filter "*.dll" | ForEach-Object { Write-Host "  $_"
 Get-ChildItem -Path $BinDir -Filter "*.exe" | ForEach-Object { Write-Host "  $_" }
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Test: bin\qex_demo.exe <input.obj> <output.obj>" -ForegroundColor White
-Write-Host "  2. Commit binaries: git add bin/*.dll bin/*.exe && git commit" -ForegroundColor White
+Write-Host "  1. Test: bin\qex_extract.exe <input.obj> <output.obj>" -ForegroundColor White
+Write-Host "  2. Note: Binaries are gitignored. For releases, use GitHub Actions workflow." -ForegroundColor White
