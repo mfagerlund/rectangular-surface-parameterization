@@ -67,17 +67,10 @@ rsp = "run_RSP:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = [
-    "rectangular_surface_parameterization*",
-    "Preprocess*",
-    "FrameField*",
-    "Orthotropic*",
-    "ComputeParam*",
-    "Utils*"
-]
+include = ["rectangular_surface_parameterization*"]
 
 [tool.setuptools]
-py-modules = ["run_RSP", "extract_quads"]
+py-modules = ["run_RSP", "extract_quads", "quadmesh"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
