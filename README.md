@@ -16,10 +16,13 @@ _ACM Transactions on Graphics (SIGGRAPH)_, 2025
 Computes an orthogonal (rectangular) UV parameterization of a triangle mesh, aligned to a cross field. The resulting UVs can be used for quad meshing, texture mapping, or architectural/fabrication applications where rectangular grid patterns are desired.
 
 **Key features:**
-- Cross field computation (smooth, curvature-aligned, or user-specified)
+- Cross field computation (smooth, curvature-aligned, or trivial connection)
 - Seamless parameterization with integrability constraints
 - Hard edge and boundary alignment support
 - Integration with [libQEx](https://github.com/hcebke/libQEx) for quad mesh extraction
+
+<!-- TODO: Add hero image showing input mesh -> quad mesh result -->
+<!-- ![Example result](images/hero_example.png) -->
 
 ## Installation
 
@@ -35,28 +38,67 @@ pip install numpy scipy matplotlib
 pip install pymeshlab
 ```
 
-## Quick Start
+## Command-Line Interface
+
+Two main commands are provided:
+
+### `run_RSP.py` - Parameterization
+
+Computes UV parameterization for a triangle mesh.
 
 ```bash
-# Basic parameterization
 python run_RSP.py mesh.obj -o Results/ -v
+```
 
-# Full pipeline: parameterization + quad extraction
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-o, --output` | `Results/` | Output directory |
+| `-v, --verbose` | off | Verbose output |
+| `--frame-field` | `smooth` | Cross field type: `smooth`, `curvature`, `trivial` |
+| `--energy` | `distortion` | Energy type: `distortion`, `chebyshev`, `alignment` |
+| `--w-conf-ar` | `0.5` | Conformal/area weight (0=area, 0.5=isometric, 1=conformal) |
+| `--no-hardedge` | off | Disable hard edge constraints |
+| `--no-boundary` | off | Disable boundary alignment |
+| `--save-viz` | off | Save UV visualization PNGs |
+| `--plot` | off | Show interactive matplotlib plots |
+
+**Output:** `<mesh>_param.obj` with UV coordinates
+
+### `extract_quads.py` - Full Pipeline
+
+Runs parameterization + quad mesh extraction via libQEx.
+
+```bash
 python extract_quads.py mesh.obj -o Results/ --scale 10
 ```
 
-See **[USAGE.md](USAGE.md)** for complete command-line reference, options, and examples.
+**Options:**
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-o, --output` | `Results/` | Output directory |
+| `--scale` | `1.0` | UV scale factor (higher = more quads) |
+| `--preprocess` | off | Clean mesh with PyMeshLab first |
+| `--skip-rsp` | off | Use existing `*_param.obj` file |
+
+**Output:** `<mesh>_quads.obj`
+
+> **Note:** Quad extraction requires Windows x64 (pre-built libQEx binaries included).
+> Parameterization works on all platforms.
+
+See **[USAGE.md](USAGE.md)** for complete reference including troubleshooting and Python API.
 
 ## Python Conversion Notes
 
 This is a **line-by-line port** of the original MATLAB implementation by Mattias Fagerlund.
-The Python code preserves the exact structure and algorithms of the MATLAB source, with
-commented MATLAB code alongside each Python section for verification.
+The Python code preserves the exact structure and algorithms of the MATLAB source.
+
+For the original version with interleaved MATLAB comments alongside each Python section,
+see [commit 7d1aab4](https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4).
 
 **Core port:**
 - Complete translation of all MATLAB algorithms to Python/NumPy/SciPy
-- Identical numerical results to the original implementation
-- All pipeline stages verified against MATLAB output
+- All pipeline stages verified with test suites (see `tests/`)
 
 **Additional pipeline extensions (beyond the original):**
 - Mesh preprocessing utilities for handling real-world meshes
@@ -96,3 +138,4 @@ See [LICENSE](LICENSE) for full terms. Commercial licensing available from the o
 - **Etienne Corman** and **Keenan Crane** for the algorithm and original MATLAB implementation
 - **Yoann Coudert-Osmont** for the quantization code
 - **libQEx** authors for the quad mesh extraction library
+- **PyMeshLab** for mesh preprocessing and repair

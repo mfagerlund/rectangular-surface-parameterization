@@ -1,5 +1,5 @@
 
-# function [SrcCut,idx_cut_inv,ide_cut_inv,edge_cut] = cut_mesh(X, T, E2V, E2T, T2E, T2T, idcone, edge_jump_tag)
+# function [disk_mesh,idx_cut_inv,ide_cut_inv,edge_cut] = cut_mesh(X, T, E2V, E2T, T2E, T2T, idcone, edge_jump_tag)
 # 
 # nv = size(X,1);
 # ne = size(E2V,1);
@@ -71,15 +71,15 @@
 #     Xc = X;
 # end
 # 
-# SrcCut = MeshInfo(Xc, Tc);
-# chiCut = SrcCut.nf - SrcCut.ne + SrcCut.nv;
+# disk_mesh = MeshInfo(Xc, Tc);
+# chiCut = disk_mesh.num_faces - disk_mesh.num_edges + disk_mesh.num_vertices;
 # if chiCut ~= 1
 #     warning('Not topological disk after cut.');
 # end
 # 
-# [~,ide_cut_inv] = ismember(sort(idx_cut_inv(SrcCut.E2V),2), E2V, 'rows');
+# [~,ide_cut_inv] = ismember(sort(idx_cut_inv(disk_mesh.E2V),2), E2V, 'rows');
 # assert(all(ide_cut_inv ~= 0))
-# ids = idx_cut_inv(SrcCut.E2V(:,1)) == E2V(ide_cut_inv,1);
+# ids = idx_cut_inv(disk_mesh.E2V(:,1)) == E2V(ide_cut_inv,1);
 # ide_cut_inv = ids.*ide_cut_inv - (~ids).*ide_cut_inv;
 # 
 # end
@@ -153,15 +153,15 @@ from collections import deque
 
 @dataclass
 class MeshInfo:
-    X: np.ndarray
-    T: np.ndarray
+    vertices: np.ndarray
+    triangles: np.ndarray
     E2V: np.ndarray
     E2T: np.ndarray
     T2E: np.ndarray
     T2T: np.ndarray
-    nv: int
-    ne: int
-    nf: int
+    num_vertices: int
+    num_edges: int
+    num_faces: int
 
 
 def _rows_view(a: np.ndarray) -> np.ndarray:
@@ -250,15 +250,15 @@ def _build_meshinfo(X: np.ndarray, T: np.ndarray) -> MeshInfo:
                 T2T[f, local] = a
 
     return MeshInfo(
-        X=X,
-        T=T,
+        vertices=X,
+        triangles=T,
         E2V=E2V,
         E2T=E2T,
         T2E=T2E,
         T2T=T2T,
-        nv=nv,
-        ne=ne,
-        nf=nf,
+        num_vertices=nv,
+        num_edges=ne,
+        num_faces=nf,
     )
 
 
@@ -471,21 +471,21 @@ def cut_mesh(X, T, E2V, E2T, T2E, T2T, idcone, edge_jump_tag):
         Tc = T.copy()
         Xc = X.copy()
 
-    SrcCut = _build_meshinfo(Xc, Tc)
-    chi_cut = SrcCut.nf - SrcCut.ne + SrcCut.nv
+    disk_mesh = _build_meshinfo(Xc, Tc)
+    chi_cut = disk_mesh.num_faces - disk_mesh.num_edges + disk_mesh.num_vertices
     if chi_cut != 1:
         print("Warning: Not topological disk after cut.")
 
     orig_edge_map = {tuple(row): i for i, row in enumerate(E2V)}
-    mapped_edges = np.sort(idx_cut_inv[SrcCut.E2V], axis=1)
+    mapped_edges = np.sort(idx_cut_inv[disk_mesh.E2V], axis=1)
     ide_cut_inv = np.array([orig_edge_map.get(tuple(row), -1) for row in mapped_edges], dtype=int)
     if np.any(ide_cut_inv < 0):
         raise AssertionError("Failed to map cut edges to original edges.")
 
-    ids = idx_cut_inv[SrcCut.E2V[:, 0]] == E2V[ide_cut_inv, 0]
+    ids = idx_cut_inv[disk_mesh.E2V[:, 0]] == E2V[ide_cut_inv, 0]
     ide_cut_inv = np.where(ids, ide_cut_inv + 1, -(ide_cut_inv + 1))
 
     if one_based:
         idx_cut_inv = idx_cut_inv + 1
 
-    return SrcCut, idx_cut_inv, ide_cut_inv, edge_cut
+    return disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut

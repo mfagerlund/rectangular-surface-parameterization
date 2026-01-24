@@ -139,9 +139,9 @@ def setup_oracle_inputs(mesh, dec, random_seed=42):
     """
     np.random.seed(random_seed)
 
-    nf = mesh.nf
-    ne = mesh.ne
-    nv = mesh.nv
+    nf = mesh.num_faces
+    ne = mesh.num_edges
+    nv = mesh.num_vertices
 
     # Create param structure
     param = MockParam(nf, ne)
@@ -162,7 +162,7 @@ def setup_oracle_inputs(mesh, dec, random_seed=42):
     n_reduced = 2 * nv
     Reduction = csr_matrix(np.hstack([
         dec.Reduction_tri.toarray(),  # For ut (3*nf rows)
-        np.zeros((3 * mesh.nf, nv))
+        np.zeros((3 * mesh.num_faces, nv))
     ]))
     # Stack for vt as well
     Reduction_full = csr_matrix(np.vstack([
@@ -421,7 +421,7 @@ class TestFiniteDifferenceGradient:
 
         # Finite difference for perturbation in ut
         eps = 1e-6
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         # Test a few randomly selected entries in ut
         for _ in range(min(5, nf * 3)):
@@ -465,7 +465,7 @@ class TestFiniteDifferenceGradient:
 
         # Finite difference for perturbation in vt
         eps = 1e-6
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         for _ in range(min(5, nf * 3)):
             i = np.random.randint(0, nf)
@@ -500,7 +500,7 @@ class TestFiniteDifferenceGradient:
 
         # Finite difference for perturbation in ang
         eps = 1e-6
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         for i in range(nf):
             ang_pert = ang.copy()
@@ -529,9 +529,9 @@ class TestSimpleMeshInputs:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf, ne)
         omega = np.zeros(ne)
@@ -563,8 +563,8 @@ class TestSimpleMeshInputs:
         param, omega, ut, vt, ang, Reduction, ide_free = setup_oracle_inputs(mesh, dec)
 
         # Set scale factors to zero (identity scaling)
-        ut = np.zeros((mesh.nf, 3))
-        vt = np.zeros((mesh.nf, 3))
+        ut = np.zeros((mesh.num_faces, 3))
+        vt = np.zeros((mesh.num_faces, 3))
 
         F, Jf = oracle_integrability_condition(
             mesh, param, dec, omega, ut, vt, ang, np.zeros(len(ide_free)),
@@ -581,8 +581,8 @@ class TestSimpleMeshInputs:
         param, omega, ut, vt, ang, Reduction, ide_free = setup_oracle_inputs(mesh, dec)
 
         # Uniform scale
-        ut = np.ones((mesh.nf, 3)) * 0.5
-        vt = np.ones((mesh.nf, 3)) * 0.5
+        ut = np.ones((mesh.num_faces, 3)) * 0.5
+        vt = np.ones((mesh.num_faces, 3)) * 0.5
 
         F, Jf = oracle_integrability_condition(
             mesh, param, dec, omega, ut, vt, ang, np.zeros(len(ide_free)),
@@ -596,9 +596,9 @@ class TestSimpleMeshInputs:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         # Create param with non-zero ang_basis
         ang_basis = np.random.randn(nf, 3) * 0.2
@@ -637,7 +637,7 @@ class TestEdgeSubsetSelection:
         param, omega, ut, vt, ang, Reduction, _ = setup_oracle_inputs(mesh, dec)
 
         # Use only first half of edges
-        ne = mesh.ne
+        ne = mesh.num_edges
         ide_free_subset = np.arange(ne // 2)
 
         F, Jf = oracle_integrability_condition(
@@ -695,9 +695,9 @@ class TestHardAndBoundaryEdges:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         # Mark first edge as hard
         ide_hard = np.array([0])
@@ -725,9 +725,9 @@ class TestHardAndBoundaryEdges:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         # Find actual boundary edges
         E2T = mesh.E2T[:, :2]
@@ -782,9 +782,9 @@ class TestConstraintSatisfaction:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf, ne)
 
@@ -855,9 +855,9 @@ class TestDifferentTopologies:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         # Find boundary edges and mark them
         E2T = mesh.E2T[:, :2]
@@ -895,9 +895,9 @@ class TestDefaultIdeFree:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         # Create param with specific ide_free
         custom_ide_free = np.array([0, 1, 2])
@@ -938,8 +938,8 @@ class TestNumericalStability:
         param, omega, ut, vt, ang, Reduction, ide_free = setup_oracle_inputs(mesh, dec)
 
         # Large scale factors
-        ut = np.ones((mesh.nf, 3)) * 10.0
-        vt = np.ones((mesh.nf, 3)) * 10.0
+        ut = np.ones((mesh.num_faces, 3)) * 10.0
+        vt = np.ones((mesh.num_faces, 3)) * 10.0
 
         F, Jf = oracle_integrability_condition(
             mesh, param, dec, omega, ut, vt, ang, np.zeros(len(ide_free)),
@@ -956,7 +956,7 @@ class TestNumericalStability:
         param, omega, ut, vt, ang, Reduction, ide_free = setup_oracle_inputs(mesh, dec)
 
         # Large angles (multiple full rotations)
-        ang = np.ones(mesh.nf) * 4 * np.pi
+        ang = np.ones(mesh.num_faces) * 4 * np.pi
 
         F, Jf = oracle_integrability_condition(
             mesh, param, dec, omega, ut, vt, ang, np.zeros(len(ide_free)),
@@ -1010,9 +1010,9 @@ class TestJacobianDirectionalDerivative:
         dec = safe_dec_tri(mesh)
 
         np.random.seed(200)
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf, ne)
         omega = np.random.randn(ne) * 0.1
@@ -1072,9 +1072,9 @@ class TestJacobianDirectionalDerivative:
         dec = safe_dec_tri(mesh)
 
         np.random.seed(201)
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf, ne)
         omega = np.random.randn(ne) * 0.1
@@ -1267,9 +1267,9 @@ class TestOmegaFromScaleIntegration:
         dec = safe_dec_tri(mesh)
 
         np.random.seed(500)
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf, ne)
 
@@ -1314,8 +1314,8 @@ class TestOmegaFromScaleIntegration:
         param, omega, ut, vt, ang, Reduction, ide_free = setup_oracle_inputs(mesh, dec)
 
         # Different omega configurations
-        omega1 = np.zeros(mesh.ne)
-        omega2 = np.ones(mesh.ne) * 0.5
+        omega1 = np.zeros(mesh.num_edges)
+        omega2 = np.ones(mesh.num_edges) * 0.5
 
         F1, _ = oracle_integrability_condition(
             mesh, param, dec, omega1, ut, vt, ang, np.zeros(len(ide_free)),

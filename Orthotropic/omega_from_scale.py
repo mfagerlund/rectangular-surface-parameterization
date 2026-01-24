@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 
 
 def omega_from_scale(
-    Src,
+    mesh,
     param,
     dec,
     ut: np.ndarray,
@@ -22,7 +22,7 @@ def omega_from_scale(
     Build frame rotation from scale factors ut and vt defined at corners.
 
     Args:
-        Src: Mesh data structure with T2E, ne, nf, cot_corner_angle
+        mesh: Mesh data structure with T2E, ne, nf, cot_corner_angle
         param: Parameter structure with ang_basis
         dec: DEC structure with star1p, d0p_tri
         ut: Scale factors u at corners (nf x 3)
@@ -38,11 +38,11 @@ def omega_from_scale(
         dO: (ne x nf sparse matrix) derivative of omega wrt ang
             (only if compute_derivative is True)
     """
-    # function [O,Or,dO] = omega_from_scale(Src, param, dec, ut, vt, ang, Reduction)
+    # function [O,Or,dO] = omega_from_scale(mesh, param, dec, ut, vt, ang, Reduction)
 
 
-    # cot_ang = Src.cot_corner_angle;
-    cot_ang = Src.cot_corner_angle  # (nf x 3)
+    # cot_ang = mesh.cot_corner_angle;
+    cot_ang = mesh.cot_corner_angle  # (nf x 3)
 
     # cos_2ff1 = cos(2*ang + 2*param.ang_basis(:,1));
     # sin_2ff1 = sin(2*ang + 2*param.ang_basis(:,1));
@@ -57,18 +57,18 @@ def omega_from_scale(
     cos_2ff3 = np.cos(2 * ang + 2 * param.ang_basis[:, 2])
     sin_2ff3 = np.sin(2 * ang + 2 * param.ang_basis[:, 2])
 
-    # I = Src.T2E(:,[1 1 1 2 2 2 3 3 3]);
+    # I = mesh.T2E(:,[1 1 1 2 2 2 3 3 3]);
     # T2E is (nf x 3), signed edge indices encoded as (edge_idx + 1) * sign
     # We need to extract edge indices and signs
-    T2E = Src.T2E  # (nf x 3), signed 1-based encoding
-    ne = Src.ne
-    nf = Src.nf
+    T2E = mesh.T2E  # (nf x 3), signed 1-based encoding
+    ne = mesh.num_edges
+    nf = mesh.num_faces
 
     # Decode signed edge indices: edge_idx = abs(T2E) - 1, sign = sign(T2E)
     edge_idx = np.abs(T2E) - 1  # (nf x 3)
     edge_sign = np.sign(T2E)  # (nf x 3)
 
-    # J = repmat(reshape((1:3*Src.nf)', [Src.nf,3]), [1,3]);
+    # J = repmat(reshape((1:3*mesh.num_faces)', [mesh.num_faces,3]), [1,3]);
     # Creates (nf x 9) matrix with columns: [corner1, corner1, corner1, corner2, corner2, corner2, corner3, corner3, corner3]
     # In MATLAB, corners are 1:3*nf reshaped to (nf,3)
     # Corner indices: corners 0,1,2 of face f are at f*3+0, f*3+1, f*3+2 (row-major)
@@ -99,7 +99,7 @@ def omega_from_scale(
     S3_c3 = cot_ang[:, 1] * (-cos_2ff3 - sin_2ff3 * cot_ang[:, 0])
 
     # Build I, J, S arrays for Dv_tri sparse matrix (ne x 3*nf)
-    # I = Src.T2E(:,[1 1 1 2 2 2 3 3 3]) -> repeat each edge column 3 times
+    # I = mesh.T2E(:,[1 1 1 2 2 2 3 3 3]) -> repeat each edge column 3 times
     # Each face contributes 9 entries
     I_arr = np.column_stack([
         edge_idx[:, 0], edge_idx[:, 0], edge_idx[:, 0],
@@ -128,7 +128,7 @@ def omega_from_scale(
         S3_c1, S3_c2, S3_c3
     ]).ravel()  # (9*nf,)
 
-    # Dv_tri = sparse(abs(I), J, S, Src.ne, 3*Src.nf);
+    # Dv_tri = sparse(abs(I), J, S, mesh.num_edges, 3*mesh.num_faces);
     Dv_tri = sp.coo_matrix((S_arr, (I_arr, J_arr)), shape=(ne, 3 * nf)).tocsr()
 
     # O = [-dec.star1p*dec.d0p_tri, Dv_tri];
@@ -152,12 +152,12 @@ def omega_from_scale(
         vt2 = vt[:, 1]
         vt3 = vt[:, 2]
 
-        # I = Src.T2E;
-        # J = repmat((1:Src.nf)', [1,3]);
+        # I = mesh.T2E;
+        # J = repmat((1:mesh.num_faces)', [1,3]);
         # S = sign(I).*[cot_ang(:,3).*(cos_2ff1.*(cot_ang(:,2).*(vt3 - vt1) + cot_ang(:,1).*(vt3 - vt2)) - sin_2ff1.*(vt2 - vt1)), ...
         #               cot_ang(:,1).*(cos_2ff2.*(cot_ang(:,3).*(vt1 - vt2) + cot_ang(:,2).*(vt1 - vt3)) - sin_2ff2.*(vt3 - vt2)), ...
         #               cot_ang(:,2).*(cos_2ff3.*(cot_ang(:,1).*(vt2 - vt3) + cot_ang(:,3).*(vt2 - vt1)) - sin_2ff3.*(vt1 - vt3))];
-        # dO = sparse(abs(I), J, S, Src.ne, Src.nf);
+        # dO = sparse(abs(I), J, S, mesh.num_edges, mesh.num_faces);
 
         dO_S1 = cot_ang[:, 2] * (cos_2ff1 * (cot_ang[:, 1] * (vt3 - vt1) + cot_ang[:, 0] * (vt3 - vt2)) - sin_2ff1 * (vt2 - vt1))
         dO_S2 = cot_ang[:, 0] * (cos_2ff2 * (cot_ang[:, 2] * (vt1 - vt2) + cot_ang[:, 1] * (vt1 - vt3)) - sin_2ff2 * (vt3 - vt2))

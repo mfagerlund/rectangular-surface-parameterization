@@ -55,10 +55,10 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
 
     # Compute angle defect (discrete Gaussian curvature) at each vertex
     # angle_defect[v] = 2*pi - sum of corner angles at v
-    angle_defect = np.full(Src.nv, 2 * np.pi)
-    for f in range(Src.nf):
+    angle_defect = np.full(Src.num_vertices, 2 * np.pi)
+    for f in range(Src.num_faces):
         for i in range(3):
-            v = Src.T[f, i]
+            v = Src.triangles[f, i]
             angle_defect[v] -= Src.corner_angle[f, i]
 
     # Handle boundary vertices (should have pi - sum, not 2pi - sum)
@@ -77,8 +77,8 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     for ax, elev, azim, title in [(ax1, 30, 45, 'View 1 (elev=30, azim=45)'),
                                    (ax2, 30, 135, 'View 2 (elev=30, azim=135)')]:
         # Draw mesh as wireframe
-        ax.plot_trisurf(Src.X[:, 0], Src.X[:, 1], Src.X[:, 2],
-                        triangles=Src.T,
+        ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2],
+                        triangles=Src.triangles,
                         color='lightblue', edgecolor='black', linewidth=0.2, alpha=0.8)
         ax.view_init(elev=elev, azim=azim)
         ax.set_xlabel('X')
@@ -87,7 +87,7 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
         ax.set_title(title)
 
     fig.suptitle(f'Stage 1: Geometry - Mesh Wireframe\n'
-                 f'Vertices: {Src.nv}, Faces: {Src.nf}, Edges: {Src.ne}',
+                 f'Vertices: {Src.num_vertices}, Faces: {Src.num_faces}, Edges: {Src.num_edges}',
                  fontsize=12)
     plt.tight_layout()
     plt.savefig(output_dir / 'stage1_mesh.png', dpi=150)
@@ -104,7 +104,7 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
 
     # 3D view with curvature coloring
     # Map curvature to face colors (average of vertex curvatures)
-    face_curvature = np.mean(angle_defect[Src.T], axis=1)
+    face_curvature = np.mean(angle_defect[Src.triangles], axis=1)
 
     # Normalize for colormap
     vmax = max(abs(face_curvature.min()), abs(face_curvature.max()))
@@ -116,16 +116,16 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     cmap = plt.cm.RdBu_r
 
     # Build polygon collection for 3D
-    verts = Src.X[Src.T]  # (nf, 3, 3)
+    verts = Src.vertices[Src.triangles]  # (nf, 3, 3)
     facecolors = cmap(norm(face_curvature))
 
     poly = Poly3DCollection(verts, facecolors=facecolors, edgecolor='black', linewidth=0.1, alpha=0.9)
     ax1.add_collection3d(poly)
 
     # Set axis limits
-    ax1.set_xlim(Src.X[:, 0].min(), Src.X[:, 0].max())
-    ax1.set_ylim(Src.X[:, 1].min(), Src.X[:, 1].max())
-    ax1.set_zlim(Src.X[:, 2].min(), Src.X[:, 2].max())
+    ax1.set_xlim(Src.vertices[:, 0].min(), Src.vertices[:, 0].max())
+    ax1.set_ylim(Src.vertices[:, 1].min(), Src.vertices[:, 1].max())
+    ax1.set_zlim(Src.vertices[:, 2].min(), Src.vertices[:, 2].max())
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
     ax1.set_zlabel('Z')
@@ -154,19 +154,19 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
 
     # Return metrics
     metrics = {
-        'vertex_count': Src.nv,
-        'face_count': Src.nf,
-        'edge_count': Src.ne,
+        'vertex_count': Src.num_vertices,
+        'face_count': Src.num_faces,
+        'edge_count': Src.num_edges,
         'euler_char': euler_char,
         'total_curvature': total_curvature,
         'expected_curvature': 2 * np.pi * euler_char,
     }
 
     print(f"\nStage 1 Metrics:")
-    print(f"  Vertices: {Src.nv}")
-    print(f"  Faces: {Src.nf}")
-    print(f"  Edges: {Src.ne}")
-    print(f"  Euler characteristic: {euler_char} (V - E + F = {Src.nv} - {Src.ne} + {Src.nf} = {Src.nv - Src.ne + Src.nf})")
+    print(f"  Vertices: {Src.num_vertices}")
+    print(f"  Faces: {Src.num_faces}")
+    print(f"  Edges: {Src.num_edges}")
+    print(f"  Euler characteristic: {euler_char} (V - E + F = {Src.num_vertices} - {Src.num_edges} + {Src.num_faces} = {Src.num_vertices - Src.num_edges + Src.num_faces})")
     print(f"  Total curvature: {total_curvature:.6f} rad (expected: {2*np.pi*euler_char:.6f} for χ={euler_char})")
 
     return metrics
@@ -207,7 +207,7 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
     ax2 = fig.add_subplot(122, projection='3d')
 
     # Compute face barycenters
-    barycenters = (Src.X[Src.T[:, 0], :] + Src.X[Src.T[:, 1], :] + Src.X[Src.T[:, 2], :]) / 3
+    barycenters = (Src.vertices[Src.triangles[:, 0], :] + Src.vertices[Src.triangles[:, 1], :] + Src.vertices[Src.triangles[:, 2], :]) / 3
 
     # Compute cross directions in 3D
     # e1 = exp(1i*ang), e2 = 1i*e1
@@ -232,8 +232,8 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
         return idx
 
     # Compute mesh center and slightly larger radius to keep lines visible
-    mesh_center = np.mean(Src.X, axis=0)
-    mesh_radius = np.max(np.linalg.norm(Src.X - mesh_center, axis=1)) * 1.02  # Slightly outside
+    mesh_center = np.mean(Src.vertices, axis=0)
+    mesh_radius = np.max(np.linalg.norm(Src.vertices - mesh_center, axis=1)) * 1.02  # Slightly outside
 
     def project_to_surface(point, face_idx):
         """Project point onto mesh surface (slightly outside to be visible)."""
@@ -286,7 +286,7 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
     # Generate streamlines from seed points
     n_seeds = 80
     np.random.seed(42)  # Reproducible
-    seed_faces = np.random.choice(Src.nf, n_seeds, replace=False)
+    seed_faces = np.random.choice(Src.num_faces, n_seeds, replace=False)
 
     streamlines_E1 = []
     streamlines_E2 = []
@@ -321,8 +321,8 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
     for ax, elev, azim, title in [(ax1, 30, 45, 'View 1 (elev=30, azim=45)'),
                                    (ax2, 30, 135, 'View 2 (elev=30, azim=135)')]:
         # Draw mesh surface (light gray, semi-transparent)
-        ax.plot_trisurf(Src.X[:, 0], Src.X[:, 1], Src.X[:, 2],
-                        triangles=Src.T,
+        ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2],
+                        triangles=Src.triangles,
                         color='whitesmoke', edgecolor='lightgray', linewidth=0.1, alpha=0.4)
 
         # Draw E1 streamlines in red
@@ -339,7 +339,7 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
 
         # Mark singularities
         if np.any(sing_pos_mask):
-            ax.scatter(Src.X[sing_pos_mask, 0], Src.X[sing_pos_mask, 1], Src.X[sing_pos_mask, 2],
+            ax.scatter(Src.vertices[sing_pos_mask, 0], Src.vertices[sing_pos_mask, 1], Src.vertices[sing_pos_mask, 2],
                        c='orange', s=80, marker='o', edgecolors='black', linewidths=1, depthshade=False)
 
         ax.view_init(elev=elev, azim=azim)
@@ -365,18 +365,18 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
     ax2 = fig.add_subplot(122)
 
     # 3D view with singularities marked
-    ax1.plot_trisurf(Src.X[:, 0], Src.X[:, 1], Src.X[:, 2],
-                     triangles=Src.T,
+    ax1.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2],
+                     triangles=Src.triangles,
                      color='lightblue', edgecolor='gray', linewidth=0.1, alpha=0.7)
 
     # Mark positive singularities (red dots)
     if np.any(sing_pos_mask):
-        ax1.scatter(Src.X[sing_pos_mask, 0], Src.X[sing_pos_mask, 1], Src.X[sing_pos_mask, 2],
+        ax1.scatter(Src.vertices[sing_pos_mask, 0], Src.vertices[sing_pos_mask, 1], Src.vertices[sing_pos_mask, 2],
                     c='red', s=100, marker='o', label=f'+1/4 singularities ({n_sing_pos})', depthshade=False)
 
     # Mark negative singularities (blue dots)
     if np.any(sing_neg_mask):
-        ax1.scatter(Src.X[sing_neg_mask, 0], Src.X[sing_neg_mask, 1], Src.X[sing_neg_mask, 2],
+        ax1.scatter(Src.vertices[sing_neg_mask, 0], Src.vertices[sing_neg_mask, 1], Src.vertices[sing_neg_mask, 2],
                     c='blue', s=100, marker='s', label=f'-1/4 singularities ({n_sing_neg})', depthshade=False)
 
     ax1.set_xlabel('X')
@@ -458,10 +458,10 @@ def verify_cut_graph(Src: MeshInfo, k21: np.ndarray, sing: np.ndarray,
     n_cut_edges = len(cut_edge_indices)
 
     # Identify cone singularities (interior vertices with |sing| > 0.1)
-    idx_int = np.asarray(param.idx_int) if hasattr(param, 'idx_int') else np.arange(Src.nv)
+    idx_int = np.asarray(param.idx_int) if hasattr(param, 'idx_int') else np.arange(Src.num_vertices)
     cone_mask = np.abs(sing) > 0.1
     # For interior vertices only
-    interior_cone_mask = np.zeros(Src.nv, dtype=bool)
+    interior_cone_mask = np.zeros(Src.num_vertices, dtype=bool)
     interior_cone_mask[idx_int] = cone_mask[idx_int]
     cone_vertices = np.where(interior_cone_mask)[0]
     n_cones = len(cone_vertices)
@@ -475,7 +475,7 @@ def verify_cut_graph(Src: MeshInfo, k21: np.ndarray, sing: np.ndarray,
     ax2 = fig.add_subplot(122, projection='3d')
 
     # Lift cut edges slightly outward so they render on top
-    mesh_center = np.mean(Src.X, axis=0)
+    mesh_center = np.mean(Src.vertices, axis=0)
     lift_factor = 1.03  # 3% outward
 
     def lift_point(p):
@@ -486,21 +486,21 @@ def verify_cut_graph(Src: MeshInfo, k21: np.ndarray, sing: np.ndarray,
     for ax, elev, azim, title in [(ax1, 30, 45, 'View 1 (elev=30, azim=45)'),
                                    (ax2, 30, 135, 'View 2 (elev=30, azim=135)')]:
         # Draw mesh as wireframe only (no filled faces for better visibility)
-        ax.plot_trisurf(Src.X[:, 0], Src.X[:, 1], Src.X[:, 2],
-                        triangles=Src.T,
+        ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2],
+                        triangles=Src.triangles,
                         color='lightblue', edgecolor='darkgray', linewidth=0.2, alpha=0.3)
 
         # Draw cut edges as thick red lines, lifted outward
         for e in cut_edge_indices:
             v0, v1 = Src.E2V[e]
-            p0 = lift_point(Src.X[v0])
-            p1 = lift_point(Src.X[v1])
+            p0 = lift_point(Src.vertices[v0])
+            p1 = lift_point(Src.vertices[v1])
             ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]],
                     color='red', linewidth=3.5, solid_capstyle='round')
 
         # Mark cone vertices with large dots, also lifted
         if len(cone_vertices) > 0:
-            cone_pos = np.array([lift_point(Src.X[v]) for v in cone_vertices])
+            cone_pos = np.array([lift_point(Src.vertices[v]) for v in cone_vertices])
             ax.scatter(cone_pos[:, 0], cone_pos[:, 1], cone_pos[:, 2],
                        c='yellow', s=200, marker='o', edgecolors='black',
                        linewidths=2, depthshade=False, label=f'Cones ({n_cones})',
@@ -575,7 +575,7 @@ def verify_optimization(Src: MeshInfo, ut: np.ndarray, vt: np.ndarray,
 
     def plot_face_scalar(ax, values, title, cmap='coolwarm'):
         """Plot mesh with face colors based on scalar values."""
-        verts = Src.X[Src.T]  # (nf, 3, 3)
+        verts = Src.vertices[Src.triangles]  # (nf, 3, 3)
 
         # Center colormap around 0 if values span positive and negative
         vmax = max(abs(values.min()), abs(values.max()))
@@ -590,9 +590,9 @@ def verify_optimization(Src: MeshInfo, ut: np.ndarray, vt: np.ndarray,
                                 linewidth=0.1, alpha=0.9)
         ax.add_collection3d(poly)
 
-        ax.set_xlim(Src.X[:, 0].min(), Src.X[:, 0].max())
-        ax.set_ylim(Src.X[:, 1].min(), Src.X[:, 1].max())
-        ax.set_zlim(Src.X[:, 2].min(), Src.X[:, 2].max())
+        ax.set_xlim(Src.vertices[:, 0].min(), Src.vertices[:, 0].max())
+        ax.set_ylim(Src.vertices[:, 1].min(), Src.vertices[:, 1].max())
+        ax.set_zlim(Src.vertices[:, 2].min(), Src.vertices[:, 2].max())
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
@@ -891,8 +891,8 @@ def verify_all(mesh_path: str, output_dir: str, stage: Optional[int] = None) -> 
             ang_dir: Optional[np.ndarray] = None
 
         weight = Weight()
-        u = np.zeros(Src.nv)
-        v = np.zeros(Src.nv)
+        u = np.zeros(Src.num_vertices)
+        v = np.zeros(Src.num_vertices)
         result = optimize_RSP(omega, ang, u, v, Src, param, dec, Reduction,
                               'distortion', weight, False, 200)
         ut = result.ut
@@ -909,22 +909,22 @@ def verify_all(mesh_path: str, output_dir: str, stage: Optional[int] = None) -> 
     # Compute UV recovery if needed for stage 5
     if stage is None or stage >= 5:
         print("Computing UV parameterization...")
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             Src, param, angn, sing, k21,
             ifseamless_const=True, ifboundary=True, ifhardedge=True
         )
         Xp, dX = parametrization_from_scales(
-            Src, SrcCut, dec_cut, param, angn,
+            Src, disk_mesh, dec_cut, param, angn,
             result.om, ut, vt, Align, Rot
         )
-        disto, _, _, _ = extract_scale_from_param(Xp, Src.X, Src.T, param, SrcCut.T, angn)
+        disto, _, _, _ = extract_scale_from_param(Xp, Src.vertices, Src.triangles, param, disk_mesh.triangles, angn)
 
     # Stage 5: UV Recovery
     if stage is None or stage == 5:
         print("\n" + "="*60)
         print("STAGE 5: UV RECOVERY")
         print("="*60)
-        all_metrics['stage5'] = verify_uv_recovery(Xp, SrcCut.T, disto.detJ, output_dir)
+        all_metrics['stage5'] = verify_uv_recovery(Xp, disk_mesh.triangles, disto.detJ, output_dir)
 
     return all_metrics
 

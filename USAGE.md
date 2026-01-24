@@ -2,6 +2,34 @@
 
 Command-line reference for rectangular-surface-parameterization.
 
+## Pipeline Overview
+
+The algorithm transforms a triangle mesh into a quad mesh through these stages:
+
+<!-- TODO: Add pipeline diagram showing: Input Mesh -> Cross Field -> Cut Graph -> UV Layout -> Quad Mesh -->
+<!-- ![Pipeline overview](images/pipeline_overview.png) -->
+
+1. **Cross Field** - Compute a smooth 4-directional field on the surface
+2. **Cut Graph** - Find cuts to unfold the mesh to a disk topology
+3. **Optimization** - Solve for scale factors that make the field integrable
+4. **UV Recovery** - Integrate the field to get UV coordinates
+5. **Quad Extraction** - Extract quads from integer UV grid lines (optional, via libQEx)
+
+### Key Concepts
+
+**Singularities** are points where the cross field cannot be defined smoothly. They appear
+where 3 or 5 quads meet instead of the regular 4. The algorithm automatically places
+singularities based on the mesh's Gaussian curvature (Euler characteristic constraint).
+
+<!-- TODO: Add image showing singularities on a mesh (colored vertices) -->
+<!-- ![Singularities](images/singularities.png) -->
+
+**Seamlessness** ensures that UV coordinates match up across cuts, allowing the quad grid
+to wrap around the surface without visible seams.
+
+<!-- TODO: Add image showing UV layout with seam edges highlighted -->
+<!-- ![UV layout with seams](images/uv_seams.png) -->
+
 ## Basic Commands
 
 ### Parameterization Only
@@ -41,18 +69,53 @@ The `--scale` parameter controls quad density (higher = more quads).
 
 ## Cross Field Options
 
-Control how the guiding cross field is computed:
+The cross field determines the orientation of the UV grid on the surface. Different methods
+produce different quad layouts.
+
+### `--frame-field smooth` (default)
+
+Computes the **smoothest possible** cross field by minimizing directional variation across
+the mesh using heat flow diffusion. Good general-purpose choice when you don't need
+alignment to surface features.
+
+<!-- TODO: Add image showing smooth cross field on bunny -->
+<!-- ![Smooth cross field](images/crossfield_smooth.png) -->
 
 ```bash
-# Curvature-aligned (default) - follows principal curvatures
-python run_RSP.py mesh.obj --frame-field curvature
-
-# Smoothest field - minimizes field variation
 python run_RSP.py mesh.obj --frame-field smooth
+```
 
-# Trivial connection - user-specified singularities
+### `--frame-field curvature`
+
+Aligns the cross field to **principal curvature directions**. On a cylinder, one direction
+follows the axis while the other wraps around. On a saddle, directions follow the curves
+of steepest ascent/descent. Best for organic shapes where you want quads to follow the
+natural geometry.
+
+<!-- TODO: Add image showing curvature-aligned cross field on bunny -->
+<!-- ![Curvature cross field](images/crossfield_curvature.png) -->
+
+```bash
+python run_RSP.py mesh.obj --frame-field curvature
+```
+
+### `--frame-field trivial`
+
+Uses a **trivial connection** where singularities are placed at boundary vertices based on
+their Gaussian curvature. Produces a field with minimal internal singularities. Useful for
+meshes with boundaries where you want predictable singularity placement.
+
+<!-- TODO: Add image showing trivial cross field -->
+<!-- ![Trivial cross field](images/crossfield_trivial.png) -->
+
+```bash
 python run_RSP.py mesh.obj --frame-field trivial
 ```
+
+### Cross Field Comparison
+
+<!-- TODO: Add side-by-side comparison of all three methods on same mesh -->
+<!-- ![Cross field comparison](images/crossfield_comparison.png) -->
 
 ## Constraint Options
 
@@ -74,21 +137,57 @@ python run_RSP.py mesh.obj --hard-edges --boundary --seamless
 
 ## Energy Types
 
-Control the optimization objective:
+The energy type controls what the optimizer tries to achieve. Different energies produce
+different trade-offs between angle preservation, area preservation, and alignment.
+
+### `--energy distortion` (default)
+
+Minimizes **metric distortion** - how much the UV mapping stretches or compresses the mesh.
+The `--w-conf-ar` parameter controls the trade-off:
+
+| Value | Effect | Use Case |
+|-------|--------|----------|
+| `0.0` | Area-preserving | Equal-sized quads regardless of 3D shape |
+| `0.5` | Isometric (default) | Balance between angles and areas |
+| `1.0` | Conformal | Preserve angles, allow area variation |
+
+<!-- TODO: Add comparison showing same mesh with different w-conf-ar values -->
+<!-- ![Distortion energy comparison](images/energy_distortion_comparison.png) -->
 
 ```bash
-# Distortion energy (default)
-# --w-conf-ar 0.0 = area-preserving
-# --w-conf-ar 0.5 = isometric
-# --w-conf-ar 1.0 = conformal
 python run_RSP.py mesh.obj --energy distortion --w-conf-ar 0.5
+```
 
-# Chebyshev net (for fabrication applications)
+### `--energy chebyshev`
+
+Optimizes for **Chebyshev nets** where grid lines maintain constant spacing. Used in
+architectural applications and fabric/material simulation where you need a net that can
+be physically constructed from inextensible strips.
+
+<!-- TODO: Add image showing Chebyshev net result -->
+<!-- ![Chebyshev net](images/energy_chebyshev.png) -->
+
+```bash
 python run_RSP.py mesh.obj --energy chebyshev
+```
 
-# Alignment energy (match target directions)
+### `--energy alignment`
+
+Prioritizes **alignment to the cross field directions** over distortion minimization.
+Use with `--frame-field curvature` to get quads that strictly follow principal curvatures,
+even at the cost of some stretching.
+
+<!-- TODO: Add image showing alignment energy result -->
+<!-- ![Alignment energy](images/energy_alignment.png) -->
+
+```bash
 python run_RSP.py mesh.obj --energy alignment
 ```
+
+### Energy Comparison
+
+<!-- TODO: Add side-by-side comparison of energy types on same mesh -->
+<!-- ![Energy comparison](images/energy_comparison.png) -->
 
 ## Mesh Preprocessing
 
@@ -130,12 +229,23 @@ pytest tests/ -v
 
 ## Test Meshes
 
-```bash
-# Genus 0 (sphere-like)
-python run_RSP.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o Results/
+Test meshes are included in the `Mesh/` folder. See [Mesh/README.md](Mesh/README.md) for details.
 
-# Genus 1 (torus)
-python run_RSP.py "C:/Dev/Colonel/Data/Meshes/torus.obj" -o Results/
+```bash
+# Simple verification (genus 0)
+python run_RSP.py Mesh/sphere320.obj -o Results/ -v
+
+# Torus (genus 1, no singularities)
+python run_RSP.py Mesh/torus.obj -o Results/ -v
+
+# Smooth cross field with hard edges (from MATLAB examples)
+python run_RSP.py Mesh/B36.obj -o Results/ --frame-field smooth -v
+
+# Curvature-aligned (from MATLAB examples)
+python run_RSP.py Mesh/pig.obj -o Results/ --frame-field curvature --energy alignment -v
+
+# Chebyshev net (from MATLAB examples)
+python run_RSP.py Mesh/SquareMyles.obj -o Results/ --frame-field trivial --energy chebyshev -v
 ```
 
 ## Troubleshooting

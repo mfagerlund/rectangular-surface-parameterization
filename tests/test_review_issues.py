@@ -99,12 +99,12 @@ class TestCutEdgePairingValidation:
         sing[3] = 0.5
 
         # Should not raise
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
-        assert SrcCut.nf > 0
+        assert disk_mesh.num_faces > 0
 
     def test_no_seamless_const_skips_validation(self, tetrahedron):
         """When ifseamless_const=False, pairing validation is skipped."""
@@ -116,12 +116,12 @@ class TestCutEdgePairingValidation:
         # Any k21 configuration should work when seamless constraints disabled
         k21[:] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        assert SrcCut.nf > 0
+        assert disk_mesh.num_faces > 0
 
 
 # =============================================================================
@@ -162,10 +162,10 @@ class TestGraphGeneratorForestBFS:
         mesh = octahedron
 
         # Edge lengths
-        l = np.ones(mesh.ne)
+        l = np.ones(mesh.num_edges)
 
         # Should not raise even if dual graph has multiple components
-        cycle, cocycle = find_graph_generator(l, mesh.T, mesh.E2T, mesh.E2V, init=0)
+        cycle, cocycle = find_graph_generator(l, mesh.triangles, mesh.E2T, mesh.E2V, init=0)
 
         # For a closed mesh with genus 0, should have no generators
         assert len(cycle) == 0, "Sphere should have no cycle generators"
@@ -187,8 +187,8 @@ class TestUVScaleExtractionValidation:
     def test_valid_indices_passes(self, tetrahedron):
         """Valid T/T_cut indices should work normally."""
         mesh = tetrahedron
-        nf = mesh.nf
-        nv = mesh.nv
+        nf = mesh.num_faces
+        nv = mesh.num_vertices
 
         # Create mock param with e1r, e2r
         class MockParam:
@@ -204,12 +204,12 @@ class TestUVScaleExtractionValidation:
 
         # UV coordinates (same vertices as original - no cutting)
         Xp = np.random.rand(nv, 2)
-        T_cut = mesh.T.copy()  # Same as T (no cutting)
+        T_cut = mesh.triangles.copy()  # Same as T (no cutting)
         ang = np.zeros(nf)
 
         # Should not raise
         disto, ut, theta, u_tri = extract_scale_from_param(
-            Xp, mesh.X, mesh.T, param, T_cut, ang
+            Xp, mesh.vertices, mesh.triangles, param, T_cut, ang
         )
 
         assert disto is not None
@@ -218,8 +218,8 @@ class TestUVScaleExtractionValidation:
     def test_index_mismatch_raises_error(self, tetrahedron):
         """T indices exceeding v length should raise IndexError."""
         mesh = tetrahedron
-        nf = mesh.nf
-        nv = mesh.nv
+        nf = mesh.num_faces
+        nv = mesh.num_vertices
 
         class MockParam:
             def __init__(self):
@@ -241,14 +241,14 @@ class TestUVScaleExtractionValidation:
         # This should raise ValueError with a helpful message
         with pytest.raises(ValueError, match="T/T_cut mismatch"):
             extract_scale_from_param(
-                Xp_small, mesh.X, mesh.T, param, T_cut_small, ang
+                Xp_small, mesh.vertices, mesh.triangles, param, T_cut_small, ang
             )
 
     def test_matching_dimensions_works(self, tetrahedron):
         """When T and T_cut have matching vertex counts, should work."""
         mesh = tetrahedron
-        nf = mesh.nf
-        nv = mesh.nv
+        nf = mesh.num_faces
+        nv = mesh.num_vertices
 
         class MockParam:
             def __init__(self):
@@ -265,14 +265,14 @@ class TestUVScaleExtractionValidation:
         Xp = np.random.rand(nv_cut, 2)
 
         # T_cut references the cut mesh vertices
-        T_cut = mesh.T.copy()
+        T_cut = mesh.triangles.copy()
         T_cut[0, 0] = nv  # Use one of the new vertices
 
         ang = np.zeros(nf)
 
         # Should work because v (computed from T_cut) has enough elements
         disto, ut, theta, u_tri = extract_scale_from_param(
-            Xp, mesh.X, mesh.T, param, T_cut, ang
+            Xp, mesh.vertices, mesh.triangles, param, T_cut, ang
         )
 
         assert ut is not None

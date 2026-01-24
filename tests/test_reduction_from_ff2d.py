@@ -213,14 +213,14 @@ class TestK21Range:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -233,14 +233,14 @@ class TestK21Range:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -253,14 +253,14 @@ class TestK21Range:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -273,14 +273,14 @@ class TestK21Range:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -301,14 +301,14 @@ class TestK21Defaults:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -329,22 +329,22 @@ class TestReductionShape:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         # Reduction is block_diag([v2t_smooth, s_diag @ v2t])
         # v2t_smooth: (3*nf, nv), s_diag @ v2t: (3*nf, nv)
         # So Reduction: (6*nf, 2*nv)
-        expected_rows = 6 * Src.nf
-        expected_cols = 2 * Src.nv
+        expected_rows = 6 * Src.num_faces
+        expected_cols = 2 * Src.num_vertices
 
         assert Reduction.shape == (expected_rows, expected_cols), \
             f"Expected shape ({expected_rows}, {expected_cols}), got {Reduction.shape}"
@@ -355,19 +355,19 @@ class TestReductionShape:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
-        expected_rows = 6 * Src.nf
-        expected_cols = 2 * Src.nv
+        expected_rows = 6 * Src.num_faces
+        expected_cols = 2 * Src.num_vertices
 
         assert Reduction.shape == (expected_rows, expected_cols), \
             f"Expected shape ({expected_rows}, {expected_cols}), got {Reduction.shape}"
@@ -378,19 +378,19 @@ class TestReductionShape:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
-        expected_rows = 6 * Src.nf  # 6 * 12 = 72
-        expected_cols = 2 * Src.nv  # 2 * 8 = 16
+        expected_rows = 6 * Src.num_faces  # 6 * 12 = 72
+        expected_cols = 2 * Src.num_vertices  # 2 * 8 = 16
 
         assert Reduction.shape == (expected_rows, expected_cols), \
             f"Expected shape ({expected_rows}, {expected_cols}), got {Reduction.shape}"
@@ -401,19 +401,19 @@ class TestReductionShape:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
-        expected_rows = 6 * Src.nf  # 6 * 20 = 120
-        expected_cols = 2 * Src.nv  # 2 * 12 = 24
+        expected_rows = 6 * Src.num_faces  # 6 * 20 = 120
+        expected_cols = 2 * Src.num_vertices  # 2 * 12 = 24
 
         assert Reduction.shape == (expected_rows, expected_cols), \
             f"Expected shape ({expected_rows}, {expected_cols}), got {Reduction.shape}"
@@ -432,14 +432,14 @@ class TestReductionSparsity:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -451,14 +451,14 @@ class TestReductionSparsity:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -471,14 +471,14 @@ class TestReductionSparsity:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -488,8 +488,8 @@ class TestReductionSparsity:
         # Second block (rows 3*nf:6*nf, cols nv:2*nv) - s_diag @ v2t
         # Off-diagonal blocks should be zero
 
-        top_right = R_dense[:3 * Src.nf, Src.nv:]
-        bottom_left = R_dense[3 * Src.nf:, :Src.nv]
+        top_right = R_dense[:3 * Src.num_faces, Src.num_vertices:]
+        bottom_left = R_dense[3 * Src.num_faces:, :Src.num_vertices]
 
         assert np.allclose(top_right, 0), "Top-right block should be zero (block diagonal)"
         assert np.allclose(bottom_left, 0), "Bottom-left block should be zero (block diagonal)"
@@ -500,20 +500,20 @@ class TestReductionSparsity:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         # Each block has at most 3*nf non-zeros (one per corner)
         # Total nnz should be at most 2 * 3 * nf
-        max_nnz = 2 * 3 * Src.nf
+        max_nnz = 2 * 3 * Src.num_faces
         actual_nnz = Reduction.nnz
 
         assert actual_nnz <= max_nnz, \
@@ -534,14 +534,14 @@ class TestDifferentAngles:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -554,15 +554,15 @@ class TestDifferentAngles:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         # Constant angle across all faces
-        ang = np.full(Src.nf, np.pi / 4)
-        omega = np.zeros(Src.ne)
+        ang = np.full(Src.num_faces, np.pi / 4)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -578,15 +578,15 @@ class TestDifferentAngles:
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(42)
-        para_trans = np.random.randn(Src.ne)
+        para_trans = np.random.randn(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         # Random angles
-        ang = np.random.rand(Src.nf) * 2 * np.pi
-        omega = np.random.randn(Src.ne)
+        ang = np.random.rand(Src.num_faces) * 2 * np.pi
+        omega = np.random.randn(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -600,17 +600,17 @@ class TestDifferentAngles:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         # Alternating angles across faces
-        ang = np.zeros(Src.nf)
+        ang = np.zeros(Src.num_faces)
         ang[::2] = 0.0
         ang[1::2] = np.pi / 2
-        omega = np.zeros(Src.ne)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -624,15 +624,15 @@ class TestDifferentAngles:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
+        ang = np.zeros(Src.num_faces)
         # Non-zero omega should affect k21 computation
-        omega = np.full(Src.ne, np.pi / 4)
+        omega = np.full(Src.num_edges, np.pi / 4)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -647,14 +647,14 @@ class TestDifferentAngles:
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         # Non-zero parallel transport angles
-        para_trans = np.full(Src.ne, np.pi / 3)
+        para_trans = np.full(Src.num_edges, np.pi / 3)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -676,20 +676,20 @@ class TestSignBits:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         # Extract the second block (s_diag @ v2t)
         R_dense = Reduction.toarray()
-        second_block = R_dense[3 * Src.nf:, Src.nv:]
+        second_block = R_dense[3 * Src.num_faces:, Src.num_vertices:]
 
         # Non-zero values should be +1 or -1
         nonzero_vals = second_block[second_block != 0]
@@ -702,20 +702,20 @@ class TestSignBits:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         # Extract the first block (v2t_smooth)
         R_dense = Reduction.toarray()
-        first_block = R_dense[:3 * Src.nf, :Src.nv]
+        first_block = R_dense[:3 * Src.num_faces, :Src.num_vertices]
 
         # Non-zero values should all be +1
         nonzero_vals = first_block[first_block != 0]
@@ -730,19 +730,19 @@ class TestSignBits:
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(123)
-        para_trans = np.random.randn(Src.ne)
+        para_trans = np.random.randn(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.random.rand(Src.nf) * 2 * np.pi
-        omega = np.random.randn(Src.ne)
+        ang = np.random.rand(Src.num_faces) * 2 * np.pi
+        omega = np.random.randn(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         R_dense = Reduction.toarray()
-        second_block = R_dense[3 * Src.nf:, Src.nv:]
+        second_block = R_dense[3 * Src.num_faces:, Src.num_vertices:]
 
         nonzero_vals = second_block[second_block != 0]
         assert np.all((nonzero_vals == 1) | (nonzero_vals == -1)), \
@@ -762,19 +762,19 @@ class TestK21Length:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         assert len(k21) == 6, f"k21 length should be 6 for tetrahedron, got {len(k21)}"
-        assert len(k21) == Src.ne, f"k21 length should equal ne={Src.ne}"
+        assert len(k21) == Src.num_edges, f"k21 length should equal ne={Src.num_edges}"
 
     def test_k21_length_octahedron(self, octahedron):
         """k21 should have length 12 for octahedron (12 edges)."""
@@ -782,19 +782,19 @@ class TestK21Length:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         assert len(k21) == 12, f"k21 length should be 12 for octahedron, got {len(k21)}"
-        assert len(k21) == Src.ne, f"k21 length should equal ne={Src.ne}"
+        assert len(k21) == Src.num_edges, f"k21 length should equal ne={Src.num_edges}"
 
     def test_k21_length_cube(self, cube):
         """k21 should have length 18 for cube (18 edges)."""
@@ -802,19 +802,19 @@ class TestK21Length:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         assert len(k21) == 18, f"k21 length should be 18 for cube, got {len(k21)}"
-        assert len(k21) == Src.ne, f"k21 length should equal ne={Src.ne}"
+        assert len(k21) == Src.num_edges, f"k21 length should equal ne={Src.num_edges}"
 
     def test_k21_length_icosahedron(self, icosahedron):
         """k21 should have length 30 for icosahedron (30 edges)."""
@@ -822,19 +822,19 @@ class TestK21Length:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         assert len(k21) == 30, f"k21 length should be 30 for icosahedron, got {len(k21)}"
-        assert len(k21) == Src.ne, f"k21 length should equal ne={Src.ne}"
+        assert len(k21) == Src.num_edges, f"k21 length should equal ne={Src.num_edges}"
 
 
 # =============================================================================
@@ -850,14 +850,14 @@ class TestK21Type:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -872,14 +872,14 @@ class TestK21Type:
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(999)
-        para_trans = np.random.randn(Src.ne)
+        para_trans = np.random.randn(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.random.rand(Src.nf) * 2 * np.pi
-        omega = np.random.randn(Src.ne)
+        ang = np.random.rand(Src.num_faces) * 2 * np.pi
+        omega = np.random.randn(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -937,15 +937,15 @@ class TestEdgeCases:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         # Large angle values
-        ang = np.full(Src.nf, 10 * np.pi)  # 5 full rotations
-        omega = np.zeros(Src.ne)
+        ang = np.full(Src.num_faces, 10 * np.pi)  # 5 full rotations
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -959,15 +959,15 @@ class TestEdgeCases:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         # Negative angles
-        ang = np.full(Src.nf, -np.pi / 3)
-        omega = np.zeros(Src.ne)
+        ang = np.full(Src.num_faces, -np.pi / 3)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -980,15 +980,15 @@ class TestEdgeCases:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         # Very small angles
-        ang = np.full(Src.nf, 1e-10)
-        omega = np.full(Src.ne, 1e-10)
+        ang = np.full(Src.num_faces, 1e-10)
+        omega = np.full(Src.num_edges, 1e-10)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -1001,20 +1001,20 @@ class TestEdgeCases:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.array([], dtype=int)
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         np.random.seed(42)
-        ang = np.random.rand(Src.nf) * 2 * np.pi
-        omega = np.random.randn(Src.ne)
+        ang = np.random.rand(Src.num_faces) * 2 * np.pi
+        omega = np.random.randn(Src.num_edges)
 
         # Should not crash with empty ide_int
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
-        assert len(k21) == Src.ne
+        assert len(k21) == Src.num_edges
         assert np.all(k21 == 1), "All k21 should be 1 when ide_int is empty"
 
 
@@ -1036,18 +1036,18 @@ class TestConsistency:
 
         # First run
         np.random.seed(12345)
-        para_trans1 = np.random.randn(Src.ne)
+        para_trans1 = np.random.randn(Src.num_edges)
         param1 = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans1)
-        ang1 = np.random.rand(Src.nf) * 2 * np.pi
-        omega1 = np.random.randn(Src.ne)
+        ang1 = np.random.rand(Src.num_faces) * 2 * np.pi
+        omega1 = np.random.randn(Src.num_edges)
         k21_1, Red_1 = reduction_from_ff2d(Src, param1, ang1, omega1, Edge_jump, v2t)
 
         # Second run with same seed
         np.random.seed(12345)
-        para_trans2 = np.random.randn(Src.ne)
+        para_trans2 = np.random.randn(Src.num_edges)
         param2 = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans2)
-        ang2 = np.random.rand(Src.nf) * 2 * np.pi
-        omega2 = np.random.randn(Src.ne)
+        ang2 = np.random.rand(Src.num_faces) * 2 * np.pi
+        omega2 = np.random.randn(Src.num_edges)
         k21_2, Red_2 = reduction_from_ff2d(Src, param2, ang2, omega2, Edge_jump, v2t)
 
         assert np.array_equal(k21_1, k21_2), "k21 should be identical with same seed"
@@ -1060,22 +1060,22 @@ class TestConsistency:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
         # Zero angles
-        ang1 = np.zeros(Src.nf)
-        omega1 = np.zeros(Src.ne)
+        ang1 = np.zeros(Src.num_faces)
+        omega1 = np.zeros(Src.num_edges)
         k21_1, _ = reduction_from_ff2d(Src, param, ang1, omega1, Edge_jump, v2t)
 
         # Different angles (should produce different k21 for some edges)
-        ang2 = np.zeros(Src.nf)
+        ang2 = np.zeros(Src.num_faces)
         ang2[0] = np.pi / 2
         ang2[1] = np.pi
-        omega2 = np.zeros(Src.ne)
+        omega2 = np.zeros(Src.num_edges)
         k21_2, _ = reduction_from_ff2d(Src, param, ang2, omega2, Edge_jump, v2t)
 
         # At least for all-zero case, k21 should all be 1
@@ -1115,14 +1115,14 @@ class TestRealMeshes:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -1135,19 +1135,19 @@ class TestRealMeshes:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
-        expected_rows = 6 * Src.nf
-        expected_cols = 2 * Src.nv
+        expected_rows = 6 * Src.num_faces
+        expected_cols = 2 * Src.num_vertices
 
         assert Reduction.shape == (expected_rows, expected_cols), \
             f"Expected shape ({expected_rows}, {expected_cols}), got {Reduction.shape}"
@@ -1158,14 +1158,14 @@ class TestRealMeshes:
 
         E2T = Src.E2T[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
-        para_trans = np.zeros(Src.ne)
+        para_trans = np.zeros(Src.num_edges)
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.zeros(Src.nf)
-        omega = np.zeros(Src.ne)
+        ang = np.zeros(Src.num_faces)
+        omega = np.zeros(Src.num_edges)
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -1180,20 +1180,20 @@ class TestRealMeshes:
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(777)
-        para_trans = np.random.randn(Src.ne) * 0.5
+        para_trans = np.random.randn(Src.num_edges) * 0.5
 
         param = MockParam(E2T=E2T, ide_int=ide_int, para_trans=para_trans)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
-        ang = np.random.rand(Src.nf) * 2 * np.pi
-        omega = np.random.randn(Src.ne) * 0.5
+        ang = np.random.rand(Src.num_faces) * 2 * np.pi
+        omega = np.random.randn(Src.num_edges) * 0.5
 
         k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
         assert np.all(k21 >= 1), f"k21 should be >= 1, got min {k21.min()}"
         assert np.all(k21 <= 4), f"k21 should be <= 4, got max {k21.max()}"
-        assert Reduction.shape == (6 * Src.nf, 2 * Src.nv)
+        assert Reduction.shape == (6 * Src.num_faces, 2 * Src.num_vertices)
 
 
 if __name__ == "__main__":

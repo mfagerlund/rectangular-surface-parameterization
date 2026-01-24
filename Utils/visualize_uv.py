@@ -333,7 +333,7 @@ def compute_uv_quality(
 
 def visualize_run_RSP_result(
     Src,
-    SrcCut,
+    disk_mesh,
     Xp: np.ndarray,
     disto,
     output_dir: str = "output",
@@ -349,7 +349,7 @@ def visualize_run_RSP_result(
 
     Args:
         Src: Original MeshInfo
-        SrcCut: Cut MeshInfo
+        disk_mesh: Cut MeshInfo
         Xp: UV coordinates (nv_cut, 2)
         disto: DistortionMetrics from extract_scale_from_param
         output_dir: Output directory
@@ -366,14 +366,14 @@ def visualize_run_RSP_result(
 
     # 1. UV layout with flips
     n_flipped = save_uv_visualization(
-        Xp, SrcCut.T, disto.detJ,
+        Xp, disk_mesh.triangles, disto.detJ,
         str(output_dir / f"{prefix}uv_layout.png")
     )
 
     # 2. 3D mesh with flipped faces highlighted
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
-    plot_mesh_with_flips(Src.X, Src.T, disto.detJ, ax=ax)
+    plot_mesh_with_flips(Src.vertices, Src.triangles, disto.detJ, ax=ax)
     mesh_flips_path = output_dir / f"{prefix}mesh_flips.png"
     plt.savefig(mesh_flips_path, dpi=150)
     plt.close()
@@ -384,7 +384,7 @@ def visualize_run_RSP_result(
 
     # Area distortion
     ax = axes[0, 0]
-    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], SrcCut.T,
+    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], disk_mesh.triangles,
                       np.log10(disto.area + 1e-16), shading='flat', cmap='viridis')
     ax.set_aspect('equal')
     ax.set_title('log10(Area Distortion)')
@@ -392,7 +392,7 @@ def visualize_run_RSP_result(
 
     # Conformal distortion
     ax = axes[0, 1]
-    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], SrcCut.T,
+    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], disk_mesh.triangles,
                       np.abs(np.log10(disto.conf + 1e-16)), shading='flat', cmap='viridis')
     ax.set_aspect('equal')
     ax.set_title('|log10(Conformal)|')
@@ -400,7 +400,7 @@ def visualize_run_RSP_result(
 
     # Jacobian determinant
     ax = axes[1, 0]
-    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], SrcCut.T,
+    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], disk_mesh.triangles,
                       disto.detJ, shading='flat', cmap='RdBu', vmin=-0.5, vmax=0.5)
     ax.set_aspect('equal')
     ax.set_title('Jacobian Determinant (negative = flipped)')
@@ -408,7 +408,7 @@ def visualize_run_RSP_result(
 
     # Orthogonality
     ax = axes[1, 1]
-    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], SrcCut.T,
+    im = ax.tripcolor(Xp[:, 0], Xp[:, 1], disk_mesh.triangles,
                       np.degrees(disto.orth - np.pi/2), shading='flat', cmap='RdBu')
     ax.set_aspect('equal')
     ax.set_title('Orthogonality Error (degrees from 90)')

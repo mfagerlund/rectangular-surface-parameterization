@@ -10,13 +10,15 @@ import warnings
 from typing import Optional, Tuple, Any
 from dataclasses import dataclass
 
+from Orthotropic.optimization_params import OptimizationParams, DEFAULT_PARAMS
+
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:
     """Wrap angle to [-pi, pi]. Equivalent to MATLAB wrapToPi."""
     return np.arctan2(np.sin(x), np.cos(x))
 
 
-# function [u,v,ut,vt,om,angn,flag,it] = optimize_RSP(omega, ang, u, v, Src, param, dec, Reduction, energy_type, weight, if_plot, itmax, A_const, b_const)
+# function [u,v,ut,vt,om,angn,flag,it] = optimize_RSP(omega, ang, u, v, mesh, param, dec, Reduction, energy_type, weight, if_plot, itmax, A_const, b_const)
 #
 
 @dataclass
@@ -37,7 +39,7 @@ def optimize_RSP(
     ang: np.ndarray,
     u: np.ndarray,
     v: np.ndarray,
-    Src,
+    mesh,
     param,
     dec,
     Reduction: sp.spmatrix,
@@ -46,7 +48,8 @@ def optimize_RSP(
     if_plot: bool = False,
     itmax: int = 300,
     A_const: Optional[sp.spmatrix] = None,
-    b_const: Optional[np.ndarray] = None
+    b_const: Optional[np.ndarray] = None,
+    opt_params: Optional[OptimizationParams] = None,
 ) -> OptimizeResult:
     """
     Newton solver minimizing the energy defined in "energy_type" subject to
@@ -57,16 +60,18 @@ def optimize_RSP(
         ang: Initial frame field angles per face (nf,)
         u: Scale factor u at vertices (nv,)
         v: Scale factor v at vertices (nv,)
-        Src: Mesh data structure with nv, ne, nf, T2E
+        mesh: Mesh data structure with nv, ne, nf, T2E
         param: Parameter structure with tri_fix, ide_fix, ide_hard, ide_bound
         dec: DEC structure with d0d, star0p, star0d, star1p
         Reduction: Reduction matrix from vertex to corner variables
         energy_type: Type of energy ('distortion', 'chebyshev', 'alignment')
         weight: Weight parameters structure
         if_plot: Whether to show visualization plots
-        itmax: Maximum iterations (default 300)
+        itmax: Maximum iterations (default 300). Deprecated: use opt_params.itmax.
         A_const: Linear constraint matrix (optional)
         b_const: Linear constraint RHS (optional)
+        opt_params: Optimization parameters (tolerances, line search, etc.).
+            If None, uses DEFAULT_PARAMS.
 
     Returns:
         OptimizeResult with u, v, ut, vt, om, angn, flag, it
@@ -75,54 +80,58 @@ def optimize_RSP(
     from Orthotropic.oracle_integrability_condition import oracle_integrability_condition
     from Orthotropic.objective_ortho_param import objective_ortho_param
 
+    # Use default optimization parameters if not provided
+    if opt_params is None:
+        opt_params = DEFAULT_PARAMS
+
+    # Override itmax from opt_params if using defaults (backwards compatibility)
+    # If itmax was explicitly passed as non-default, honor it
+    if itmax == 300:
+        itmax = opt_params.itmax
+
     # Ensure inputs are 1D arrays
     u = np.ravel(u)
     v = np.ravel(v)
     omega = np.ravel(omega)
     ang = np.ravel(ang)
 
-    # if ~exist('itmax', 'var')
-    #     itmax = 300;
-    # end
-    # (handled by default argument)
-
-    # if ~exist('A_const', 'var') || (size(A_const,2) ~= size(Reduction,2) + Src.nf)
+    # if ~exist('A_const', 'var') || (size(A_const,2) ~= size(Reduction,2) + mesh.num_faces)
     #     dof = size(Reduction,2);
-    #     A_const = sparse(1:length(param.tri_fix), dof+param.tri_fix, 1, length(param.tri_fix), dof+Src.nf);
+    #     A_const = sparse(1:length(param.tri_fix), dof+param.tri_fix, 1, length(param.tri_fix), dof+mesh.num_faces);
     #     b_const = zeros(length(param.tri_fix),1); % Assume that the cross field already respect bnd conditions
     # end
 
     # Default linear constraints
     dof = Reduction.shape[1]
-    if A_const is None or A_const.shape[1] != dof + Src.nf:
+    if A_const is None or A_const.shape[1] != dof + mesh.num_faces:
         n_tri_fix = len(param.tri_fix)
         if n_tri_fix > 0:
             # Build sparse matrix: A_const(i, dof + tri_fix[i]) = 1
             rows = np.arange(n_tri_fix)
             cols = dof + param.tri_fix  # 0-indexed
             data = np.ones(n_tri_fix)
-            A_const = sp.csr_matrix((data, (rows, cols)), shape=(n_tri_fix, dof + Src.nf))
+            A_const = sp.csr_matrix((data, (rows, cols)), shape=(n_tri_fix, dof + mesh.num_faces))
         else:
-            A_const = sp.csr_matrix((0, dof + Src.nf))
+            A_const = sp.csr_matrix((0, dof + mesh.num_faces))
         # Assume that the cross field already respects boundary conditions
         b_const = np.zeros(n_tri_fix)
 
     # rho = 0.9;
     # beta = 1;
 
-    # Line-search parameters
-    rho = 0.9
-    beta = 1.0
+    # Line-search parameters (from opt_params)
+    rho = opt_params.rho
+    beta = opt_params.beta_init
 
-    # ide_free = setdiff((1:Src.ne)', param.ide_fix);
+    # ide_free = setdiff((1:mesh.num_edges)', param.ide_fix);
 
     # List of edges respecting integrability condition
-    all_edges = np.arange(Src.ne)
+    all_edges = np.arange(mesh.num_edges)
     ide_free = np.setdiff1d(all_edges, param.ide_fix)
 
     # om = omega;
     # angn = ang;
-    # ut = reshape(Reduction*[u; v], [Src.nf,6]);
+    # ut = reshape(Reduction*[u; v], [mesh.num_faces,6]);
     # vt = ut(:,4:6);
     # ut = ut(:,1:3);
 
@@ -132,7 +141,7 @@ def optimize_RSP(
     uv = np.concatenate([u, v])
     ut_vt = Reduction @ uv
     # Reshape to (nf, 6) in column-major (Fortran) order
-    ut_vt_reshaped = np.reshape(ut_vt, (Src.nf, 6), order='F')
+    ut_vt_reshaped = np.reshape(ut_vt, (mesh.num_faces, 6), order='F')
     ut = ut_vt_reshaped[:, 0:3]
     vt = ut_vt_reshaped[:, 3:6]
 
@@ -168,7 +177,7 @@ def optimize_RSP(
 
     # for it = 1:itmax
 
-    alp = np.zeros(Src.nf)  # Initialize for later use
+    alp = np.zeros(mesh.num_faces)  # Initialize for later use
 
     for it in range(itmax):
         # disp(['-- Iteration ', num2str(it)]);
@@ -177,18 +186,18 @@ def optimize_RSP(
         # weight.om = om;
         weight.om = om
 
-        # [F,Jf,Hf] = oracle_integrability_condition(Src, param, dec, om, ut, vt, angn, lambda, Reduction, ide_free);
-        # F = [F; A_const*[u; v; zeros(Src.nf,1)] - b_const];
+        # [F,Jf,Hf] = oracle_integrability_condition(mesh, param, dec, om, ut, vt, angn, lambda, Reduction, ide_free);
+        # F = [F; A_const*[u; v; zeros(mesh.num_faces,1)] - b_const];
         # Jf = [Jf; A_const];
 
         # Compute derivative of constraints
         F, Jf, Hf = oracle_integrability_condition(
-            Src, param, dec, om, ut, vt, angn, lam, Reduction, ide_free,
+            mesh, param, dec, om, ut, vt, angn, lam, Reduction, ide_free,
             compute_hessian=True
         )
 
         # Append linear constraints
-        uv_zeros = np.concatenate([u, v, np.zeros(Src.nf)])
+        uv_zeros = np.concatenate([u, v, np.zeros(mesh.num_faces)])
         F = np.concatenate([F, A_const @ uv_zeros - b_const])
         Jf = sp.vstack([Jf, A_const])
 
@@ -198,11 +207,11 @@ def optimize_RSP(
         fct_const[it, 0] = np.linalg.norm(F)
         fct_const[it, 1] = np.max(np.abs(F)) if len(F) > 0 else 0.0
 
-        # [fct(it),Hfct,dfct] = objective_ortho_param(energy_type, weight, Src, dec, param, angn, ut, vt, Reduction);
+        # [fct(it),Hfct,dfct] = objective_ortho_param(energy_type, weight, mesh, dec, param, angn, ut, vt, Reduction);
 
         # Compute derivative of objective functions
         fct[it], Hfct, dfct = objective_ortho_param(
-            energy_type, weight, Src, dec, param, angn, ut, vt, Reduction
+            energy_type, weight, mesh, dec, param, angn, ut, vt, Reduction
         )
 
         # fct_grad_norm(it,1) = norm(dfct + Jf'*lambda);
@@ -260,13 +269,13 @@ def optimize_RSP(
         try:
             x = spsolve(A_kkt, b_kkt)
             residual = np.linalg.norm(A_kkt @ x - b_kkt)
-            if residual >= 1e-5:
+            if residual >= opt_params.kkt_residual_tol:
                 raise ValueError(f'Direct solve residual too large: {residual}')
         except Exception:
             # Fallback: regularized solve
-            x = _solve_qp_equality_constrained(H_reg, A_kkt, b_kkt)
+            x = _solve_qp_equality_constrained(H_reg, A_kkt, b_kkt, opt_params)
             residual = np.linalg.norm(A_kkt @ x - b_kkt)
-            if residual >= 1e-5:
+            if residual >= opt_params.kkt_residual_tol:
                 raise RuntimeError(f'Optimization failed. Residual: {residual}')
 
         # run = true;
@@ -283,48 +292,48 @@ def optimize_RSP(
             # Step size
             t = min(1.0, beta / err[it]) if err[it] > 0 else 1.0
 
-            # u_new = u + t*x(1:Src.nv);
-            # v_new = v + t*x(Src.nv+1:2*Src.nv);
-            # ut_new = reshape(Reduction*[u_new; v_new], [Src.nf,6]);
+            # u_new = u + t*x(1:mesh.num_vertices);
+            # v_new = v + t*x(mesh.num_vertices+1:2*mesh.num_vertices);
+            # ut_new = reshape(Reduction*[u_new; v_new], [mesh.num_faces,6]);
             # vt_new = ut_new(:,4:6);
             # ut_new = ut_new(:,1:3);
-            # alp_new = x(2*Src.nv+1:2*Src.nv+Src.nf);
+            # alp_new = x(2*mesh.num_vertices+1:2*mesh.num_vertices+mesh.num_faces);
             # angn_new = angn + t*alp_new;
             # om_new = om + t*d0d*alp_new;
-            # lambda_new = lambda + t*x(2*Src.nv+Src.nf+1:end);
+            # lambda_new = lambda + t*x(2*mesh.num_vertices+mesh.num_faces+1:end);
 
             # Update variables
-            u_new = u + t * x[0:Src.nv]
-            v_new = v + t * x[Src.nv:2*Src.nv]
+            u_new = u + t * x[0:mesh.num_vertices]
+            v_new = v + t * x[mesh.num_vertices:2*mesh.num_vertices]
             uv_new = np.concatenate([u_new, v_new])
             ut_vt_new = Reduction @ uv_new
-            ut_vt_new_reshaped = np.reshape(ut_vt_new, (Src.nf, 6), order='F')
+            ut_vt_new_reshaped = np.reshape(ut_vt_new, (mesh.num_faces, 6), order='F')
             ut_new = ut_vt_new_reshaped[:, 0:3]
             vt_new = ut_vt_new_reshaped[:, 3:6]
 
-            alp_new = x[2*Src.nv:2*Src.nv + Src.nf]
+            alp_new = x[2*mesh.num_vertices:2*mesh.num_vertices + mesh.num_faces]
             angn_new = angn + t * alp_new
             om_new = om + t * (d0d @ alp_new)
-            lam_new = lam + t * x[2*Src.nv + Src.nf:]
+            lam_new = lam + t * x[2*mesh.num_vertices + mesh.num_faces:]
 
-            # [F,Jf] = oracle_integrability_condition(Src, param, dec, om_new, ut_new, vt_new, angn_new, lambda_new, Reduction, ide_free);
-            # F = [F; A_const*[u_new; v_new; zeros(Src.nf,1)] - b_const];
+            # [F,Jf] = oracle_integrability_condition(mesh, param, dec, om_new, ut_new, vt_new, angn_new, lambda_new, Reduction, ide_free);
+            # F = [F; A_const*[u_new; v_new; zeros(mesh.num_faces,1)] - b_const];
             # Jf = [Jf; A_const];
 
             # Update constraints (no hessian needed here)
             F_new, Jf_new = oracle_integrability_condition(
-                Src, param, dec, om_new, ut_new, vt_new, angn_new, lam_new, Reduction, ide_free,
+                mesh, param, dec, om_new, ut_new, vt_new, angn_new, lam_new, Reduction, ide_free,
                 compute_hessian=False
             )
-            uv_zeros_new = np.concatenate([u_new, v_new, np.zeros(Src.nf)])
+            uv_zeros_new = np.concatenate([u_new, v_new, np.zeros(mesh.num_faces)])
             F_new = np.concatenate([F_new, A_const @ uv_zeros_new - b_const])
             Jf_new = sp.vstack([Jf_new, A_const])
 
-            # [fct(it+1),~,dfct] = objective_ortho_param(energy_type, weight, Src, dec, param, angn_new, ut_new, vt_new, Reduction);
+            # [fct(it+1),~,dfct] = objective_ortho_param(energy_type, weight, mesh, dec, param, angn_new, ut_new, vt_new, Reduction);
 
             # Update objective
             fct[it + 1], _, dfct_new = objective_ortho_param(
-                energy_type, weight, Src, dec, param, angn_new, ut_new, vt_new, Reduction
+                energy_type, weight, mesh, dec, param, angn_new, ut_new, vt_new, Reduction
             )
 
             # fct_const(it+1,1) = norm(F);
@@ -390,7 +399,7 @@ def optimize_RSP(
             #     break;
             # end
 
-            if t < 1e-12:
+            if t < opt_params.step_min:
                 warnings.warn('Linesearch failed.')
                 break
 
@@ -399,7 +408,7 @@ def optimize_RSP(
         #     break;
         # end
 
-        if t < 1e-12:
+        if t < opt_params.step_min:
             flag = -1
             break
 
@@ -417,7 +426,7 @@ def optimize_RSP(
         print(f'Max frame field angle change : {np.max(np.abs(err_ang)):.6e}')
 
         # if if_plot
-        #     plot_frame_field(1, Src, param, angn, err_ang);
+        #     plot_frame_field(1, mesh, param, angn, err_ang);
         #     title(['New frame field ', num2str(it)]); colorbar;
         # end
 
@@ -425,7 +434,7 @@ def optimize_RSP(
         if if_plot:
             import matplotlib.pyplot as plt
             from FrameField.plot_frame_field import plot_frame_field
-            fig = plot_frame_field(None, Src, param, angn, err_ang)
+            fig = plot_frame_field(None, mesh, param, angn, err_ang)
             plt.title(f'New frame field {it + 1}')
             plt.colorbar()
             plt.show()
@@ -438,7 +447,7 @@ def optimize_RSP(
         # Check that boundary constraints still hold
         if len(param.tri_fix) > 0:
             err_ang_bound = (180 / np.pi) * wrap_to_pi(4 * angn[param.tri_fix] - 4 * ang[param.tri_fix]) / 4
-            assert np.max(np.abs(err_ang_bound)) < 1e-3, 'Boundary constraints not respected.'
+            assert np.max(np.abs(err_ang_bound)) < opt_params.angle_change_tol, 'Boundary constraints not respected.'
 
         # if (err(it+1) < 1e-5) && (max(abs(err_ang)) < 1e-3)
         #     flag = 0;
@@ -446,7 +455,7 @@ def optimize_RSP(
         # end
 
         # Stop optimization when converged
-        if (err[it + 1] < 1e-5) and (np.max(np.abs(err_ang)) < 1e-3):
+        if (err[it + 1] < opt_params.err_tol) and (np.max(np.abs(err_ang)) < opt_params.angle_change_tol):
             flag = 0
             break
 
@@ -518,7 +527,8 @@ def _zero_rows(mat: sp.spmatrix, row_indices: np.ndarray) -> sp.spmatrix:
 def _solve_qp_equality_constrained(
     H: sp.spmatrix,
     A_kkt: sp.spmatrix,
-    b_kkt: np.ndarray
+    b_kkt: np.ndarray,
+    opt_params: OptimizationParams,
 ) -> np.ndarray:
     """
     Fallback QP solver when direct KKT solve fails.
@@ -538,6 +548,7 @@ def _solve_qp_equality_constrained(
             but kept for API compatibility and future improvement
         A_kkt: KKT system matrix
         b_kkt: KKT RHS vector
+        opt_params: Optimization parameters with solver tolerances
 
     Returns:
         x: Solution vector
@@ -546,27 +557,37 @@ def _solve_qp_equality_constrained(
 
     # Try LSMR first (often more stable than LSQR for ill-conditioned systems)
     # LSMR is mathematically equivalent to applying MINRES to the normal equations
-    result = lsmr(A_kkt, b_kkt, atol=1e-10, btol=1e-10, maxiter=10000)
+    result = lsmr(
+        A_kkt, b_kkt,
+        atol=opt_params.lsmr_atol,
+        btol=opt_params.lsmr_btol,
+        maxiter=opt_params.lsmr_maxiter,
+    )
     x = result[0]
 
     # Check residual
     residual = np.linalg.norm(A_kkt @ x - b_kkt)
-    if residual < 1e-5:
+    if residual < opt_params.kkt_residual_tol:
         return x
 
     # If LSMR fails, try adding regularization to diagonal
     # This mimics what quadprog would do with positive definite H
     n = A_kkt.shape[0]
-    reg_factor = 1e-8
-    A_reg = A_kkt + reg_factor * sp.eye(n, format='csr')
+    A_reg = A_kkt + opt_params.reg_factor * sp.eye(n, format='csr')
     try:
         x = spsolve(A_reg, b_kkt)
         residual = np.linalg.norm(A_kkt @ x - b_kkt)
-        if residual < 1e-5:
+        if residual < opt_params.kkt_residual_tol:
             return x
     except Exception:
         pass
 
     # Last resort: use LSQR with damping
-    result = lsqr(A_kkt, b_kkt, damp=1e-6, atol=1e-10, btol=1e-10, iter_lim=10000)
+    result = lsqr(
+        A_kkt, b_kkt,
+        damp=opt_params.lsqr_damp,
+        atol=opt_params.lsmr_atol,
+        btol=opt_params.lsmr_btol,
+        iter_lim=opt_params.lsqr_iter_lim,
+    )
     return result[0]

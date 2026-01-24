@@ -10,10 +10,10 @@ from typing import Tuple, List, Optional, Union
 from Preprocess.sort_triangles import sort_triangles
 
 
-# function [Edge_jump,v2t,base_tri] = reduce_corner_var_2d_cut(Src, ide_cut)
+# function [Edge_jump,v2t,base_tri] = reduce_corner_var_2d_cut(mesh, ide_cut)
 
 def reduce_corner_var_2d_cut(
-    Src,
+    mesh,
     ide_cut: Optional[Union[np.ndarray, None]] = None
 ) -> Tuple[sp.csr_matrix, sp.csr_matrix, np.ndarray]:
     """
@@ -24,7 +24,7 @@ def reduce_corner_var_2d_cut(
 
     Parameters
     ----------
-    Src : mesh data structure
+    mesh : mesh data structure
         Contains nv, nf, ne, T, E2T, T2T, E2V, T2E
     ide_cut : ndarray, optional
         Boolean array or index array marking cut edges.
@@ -40,46 +40,46 @@ def reduce_corner_var_2d_cut(
         Base triangle for each corner
     """
     # if ~exist('ide_cut','var') || isempty(ide_cut)
-    #     ide_cut = false(Src.ne,1);
+    #     ide_cut = false(mesh.num_edges,1);
     # end
     # if ~islogical(ide_cut)
-    #     ide_cutb = false(Src.ne,1);
+    #     ide_cutb = false(mesh.num_edges,1);
     #     ide_cutb(ide_cut) = true;
     #     ide_cut = ide_cutb;
     # end
 
     if ide_cut is None or len(ide_cut) == 0:
-        ide_cut = np.zeros(Src.ne, dtype=bool)
+        ide_cut = np.zeros(mesh.num_edges, dtype=bool)
     elif not ide_cut.dtype == bool:
         # Convert index array to boolean mask
-        ide_cutb = np.zeros(Src.ne, dtype=bool)
+        ide_cutb = np.zeros(mesh.num_edges, dtype=bool)
         ide_cutb[ide_cut] = True
         ide_cut = ide_cutb
 
     # Make a mutable copy since we modify ide_cut for boundary edges
     ide_cut = ide_cut.copy()
 
-    # base_tri = zeros(Src.nf,3);
-    # path_vx = cell(Src.nv,1);
-    # path_edge = cell(Src.nv,1);
-    # Tc = reshape((1:3*Src.nf)', [Src.nf,3]);
-    # nv = Src.nv;
+    # base_tri = zeros(mesh.num_faces,3);
+    # path_vx = cell(mesh.num_vertices,1);
+    # path_edge = cell(mesh.num_vertices,1);
+    # Tc = reshape((1:3*mesh.num_faces)', [mesh.num_faces,3]);
+    # nv = mesh.num_vertices;
 
-    base_tri = np.zeros(3 * Src.nf, dtype=int)
+    base_tri = np.zeros(3 * mesh.num_faces, dtype=int)
     # Use dict instead of fixed-size list since we may add more vertices
     path_vx: dict = {}
     path_edge: dict = {}
 
     # Tc: corner indices, reshaped so Tc[f, c] gives corner index for face f, corner c
-    Tc = np.arange(3 * Src.nf).reshape((Src.nf, 3), order='F')
-    nv = Src.nv
+    Tc = np.arange(3 * mesh.num_faces).reshape((mesh.num_faces, 3), order='F')
+    nv = mesh.num_vertices
 
-    # for i = 1:Src.nv
-    for i in range(Src.nv):
-        # [tri_ord,edge_ord,sign_edge] = sort_triangles(i, Src.T, Src.E2T, Src.T2T, Src.E2V, Src.T2E);
+    # for i = 1:mesh.num_vertices
+    for i in range(mesh.num_vertices):
+        # [tri_ord,edge_ord,sign_edge] = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E);
         # edge_ord = edge_ord.*sign_edge;
 
-        tri_ord, edge_ord, sign_edge = sort_triangles(i, Src.T, Src.E2T, Src.T2T, Src.E2V, Src.T2E)
+        tri_ord, edge_ord, sign_edge = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E)
         # Create signed edge indices using 1-based encoding: (idx+1)*sign
         edge_ord_signed = (edge_ord + 1) * sign_edge
 
@@ -173,14 +173,14 @@ def reduce_corner_var_2d_cut(
         # for j = 0:n
         for j in range(n + 1):
             # idt = tri_ord(flag == j);
-            # idvx = sum(Tc(idt,:) .* (Src.T(idt,:) == i), 2);
+            # idvx = sum(Tc(idt,:) .* (mesh.triangles(idt,:) == i), 2);
             # assert(~isempty(idvx))
 
             idt = np.array(tri_ord)[flag == j]
             if len(idt) == 0:
                 continue
 
-            mask = (Src.T[idt, :] == i)
+            mask = (mesh.triangles[idt, :] == i)
             idvx = np.sum(Tc[idt, :] * mask, axis=1)
             assert len(idvx) > 0, "idvx should not be empty"
 
@@ -257,7 +257,7 @@ def reduce_corner_var_2d_cut(
             nv = nv + n
 
     # I = cell2mat(path_edge);
-    # Edge_jump = sparse(I(:,1), abs(I(:,2)), sign(I(:,2)), 3*Src.nf, Src.ne);
+    # Edge_jump = sparse(I(:,1), abs(I(:,2)), sign(I(:,2)), 3*mesh.num_faces, mesh.num_edges);
 
     path_edge_valid = [pe for pe in path_edge.values() if pe is not None and len(pe) > 0]
     if len(path_edge_valid) > 0:
@@ -266,12 +266,12 @@ def reduce_corner_var_2d_cut(
         col_idx = np.abs(I_edge[:, 1]) - 1  # Convert back to 0-based
         vals = np.sign(I_edge[:, 1])
         Edge_jump = sp.coo_matrix((vals, (row_idx, col_idx)),
-                                  shape=(3 * Src.nf, Src.ne)).tocsr()
+                                  shape=(3 * mesh.num_faces, mesh.num_edges)).tocsr()
     else:
-        Edge_jump = sp.csr_matrix((3 * Src.nf, Src.ne))
+        Edge_jump = sp.csr_matrix((3 * mesh.num_faces, mesh.num_edges))
 
     # I = cell2mat(path_vx);
-    # v2t = sparse(I(:,1), I(:,2), 1, 3*Src.nf, nv);
+    # v2t = sparse(I(:,1), I(:,2), 1, 3*mesh.num_faces, nv);
 
     path_vx_valid = [pv for pv in path_vx.values() if pv is not None and len(pv) > 0]
     if len(path_vx_valid) > 0:
@@ -280,8 +280,8 @@ def reduce_corner_var_2d_cut(
         col_idx = I_vx[:, 1]
         vals = np.ones(len(row_idx))
         v2t = sp.coo_matrix((vals, (row_idx, col_idx)),
-                            shape=(3 * Src.nf, nv)).tocsr()
+                            shape=(3 * mesh.num_faces, nv)).tocsr()
     else:
-        v2t = sp.csr_matrix((3 * Src.nf, nv))
+        v2t = sp.csr_matrix((3 * mesh.num_faces, nv))
 
     return Edge_jump, v2t, base_tri

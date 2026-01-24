@@ -98,11 +98,11 @@ class TestFieldsPopulated:
         mesh = mesh_info(X, T)
 
         # Check all required attributes exist
-        assert hasattr(mesh, 'X')
-        assert hasattr(mesh, 'T')
-        assert hasattr(mesh, 'nf')
-        assert hasattr(mesh, 'nv')
-        assert hasattr(mesh, 'ne')
+        assert hasattr(mesh, 'vertices')
+        assert hasattr(mesh, 'triangles')
+        assert hasattr(mesh, 'num_faces')
+        assert hasattr(mesh, 'num_vertices')
+        assert hasattr(mesh, 'num_edges')
         assert hasattr(mesh, 'E2V')
         assert hasattr(mesh, 'T2E')
         assert hasattr(mesh, 'E2T')
@@ -119,11 +119,11 @@ class TestFieldsPopulated:
         X, T = single_triangle
         mesh = mesh_info(X, T)
 
-        assert mesh.X is not None
-        assert mesh.T is not None
-        assert mesh.nf is not None
-        assert mesh.nv is not None
-        assert mesh.ne is not None
+        assert mesh.vertices is not None
+        assert mesh.triangles is not None
+        assert mesh.num_faces is not None
+        assert mesh.num_vertices is not None
+        assert mesh.num_edges is not None
         assert mesh.E2V is not None
         assert mesh.T2E is not None
         assert mesh.E2T is not None
@@ -147,25 +147,25 @@ class TestTetrahedronCounts:
         """Tetrahedron should have 4 vertices."""
         X, T = tetrahedron
         mesh = mesh_info(X, T)
-        assert mesh.nv == 4, f"Expected 4 vertices, got {mesh.nv}"
+        assert mesh.num_vertices == 4, f"Expected 4 vertices, got {mesh.num_vertices}"
 
     def test_tetrahedron_face_count(self, tetrahedron):
         """Tetrahedron should have 4 faces."""
         X, T = tetrahedron
         mesh = mesh_info(X, T)
-        assert mesh.nf == 4, f"Expected 4 faces, got {mesh.nf}"
+        assert mesh.num_faces == 4, f"Expected 4 faces, got {mesh.num_faces}"
 
     def test_tetrahedron_edge_count(self, tetrahedron):
         """Tetrahedron should have 6 edges."""
         X, T = tetrahedron
         mesh = mesh_info(X, T)
-        assert mesh.ne == 6, f"Expected 6 edges, got {mesh.ne}"
+        assert mesh.num_edges == 6, f"Expected 6 edges, got {mesh.num_edges}"
 
     def test_euler_formula(self, tetrahedron):
         """Verify Euler's formula: V - E + F = 2 for closed genus-0 surface."""
         X, T = tetrahedron
         mesh = mesh_info(X, T)
-        euler = mesh.nv - mesh.ne + mesh.nf
+        euler = mesh.num_vertices - mesh.num_edges + mesh.num_faces
         assert euler == 2, f"Euler characteristic should be 2, got {euler}"
 
 
@@ -191,7 +191,7 @@ class TestNormals:
         mesh = mesh_info(X, T)
 
         norms = np.linalg.norm(mesh.normal, axis=1)
-        np.testing.assert_allclose(norms, np.ones(mesh.nf), atol=1e-10,
+        np.testing.assert_allclose(norms, np.ones(mesh.num_faces), atol=1e-10,
             err_msg="All face normals should have unit length")
 
     def test_vertex_normals_unit_length(self, single_triangle):
@@ -209,7 +209,7 @@ class TestNormals:
         mesh = mesh_info(X, T)
 
         norms = np.linalg.norm(mesh.Nv, axis=1)
-        np.testing.assert_allclose(norms, np.ones(mesh.nv), atol=1e-10,
+        np.testing.assert_allclose(norms, np.ones(mesh.num_vertices), atol=1e-10,
             err_msg="All vertex normals should have unit length")
 
     def test_face_normal_direction_z_positive(self, single_triangle):
@@ -297,7 +297,7 @@ class TestCornerAngles:
         mesh = mesh_info(X, T)
 
         angle_sums = np.sum(mesh.corner_angle, axis=1)
-        np.testing.assert_allclose(angle_sums, np.pi * np.ones(mesh.nf), atol=1e-10,
+        np.testing.assert_allclose(angle_sums, np.pi * np.ones(mesh.num_faces), atol=1e-10,
             err_msg="Each triangle's angles should sum to pi")
 
     def test_equilateral_angles_equal(self, single_triangle):
@@ -349,8 +349,8 @@ class TestConnectivityShapes:
         mesh = mesh_info(X, T)
 
         # nv=3, nf=1, ne=3 for a single triangle
-        assert mesh.X.shape == (3, 3), f"X shape should be (3, 3), got {mesh.X.shape}"
-        assert mesh.T.shape == (1, 3), f"T shape should be (1, 3), got {mesh.T.shape}"
+        assert mesh.vertices.shape == (3, 3), f"X shape should be (3, 3), got {mesh.vertices.shape}"
+        assert mesh.triangles.shape == (1, 3), f"T shape should be (1, 3), got {mesh.triangles.shape}"
         assert mesh.E2V.shape == (3, 2), f"E2V shape should be (3, 2), got {mesh.E2V.shape}"
         assert mesh.T2E.shape == (1, 3), f"T2E shape should be (1, 3), got {mesh.T2E.shape}"
         assert mesh.E2T.shape == (3, 4), f"E2T shape should be (3, 4), got {mesh.E2T.shape}"
@@ -368,8 +368,8 @@ class TestConnectivityShapes:
         mesh = mesh_info(X, T)
 
         # nv=4, nf=4, ne=6 for a tetrahedron
-        assert mesh.X.shape == (4, 3), f"X shape should be (4, 3), got {mesh.X.shape}"
-        assert mesh.T.shape == (4, 3), f"T shape should be (4, 3), got {mesh.T.shape}"
+        assert mesh.vertices.shape == (4, 3), f"X shape should be (4, 3), got {mesh.vertices.shape}"
+        assert mesh.triangles.shape == (4, 3), f"T shape should be (4, 3), got {mesh.triangles.shape}"
         assert mesh.E2V.shape == (6, 2), f"E2V shape should be (6, 2), got {mesh.E2V.shape}"
         assert mesh.T2E.shape == (4, 3), f"T2E shape should be (4, 3), got {mesh.T2E.shape}"
         assert mesh.E2T.shape == (6, 4), f"E2T shape should be (6, 4), got {mesh.E2T.shape}"
@@ -387,9 +387,9 @@ class TestConnectivityShapes:
         mesh = mesh_info(X, T)
 
         # nv=4, nf=2, ne=5 for two triangles sharing one edge
-        assert mesh.nv == 4, f"Expected 4 vertices, got {mesh.nv}"
-        assert mesh.nf == 2, f"Expected 2 faces, got {mesh.nf}"
-        assert mesh.ne == 5, f"Expected 5 edges (6 half-edges, 1 shared), got {mesh.ne}"
+        assert mesh.num_vertices == 4, f"Expected 4 vertices, got {mesh.num_vertices}"
+        assert mesh.num_faces == 2, f"Expected 2 faces, got {mesh.num_faces}"
+        assert mesh.num_edges == 5, f"Expected 5 edges (6 half-edges, 1 shared), got {mesh.num_edges}"
 
         assert mesh.E2V.shape == (5, 2), f"E2V shape should be (5, 2), got {mesh.E2V.shape}"
         assert mesh.T2E.shape == (2, 3), f"T2E shape should be (2, 3), got {mesh.T2E.shape}"
@@ -467,11 +467,11 @@ class TestDataclass:
         mesh = mesh_info(X, T)
 
         # Access all fields
-        _ = mesh.X
-        _ = mesh.T
-        _ = mesh.nf
-        _ = mesh.nv
-        _ = mesh.ne
+        _ = mesh.vertices
+        _ = mesh.triangles
+        _ = mesh.num_faces
+        _ = mesh.num_vertices
+        _ = mesh.num_edges
         _ = mesh.E2V
         _ = mesh.T2E
         _ = mesh.E2T

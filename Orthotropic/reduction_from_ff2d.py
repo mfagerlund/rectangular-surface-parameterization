@@ -8,10 +8,10 @@ import scipy.sparse as sp
 from typing import Tuple
 
 
-# function [k21,Reduction] = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
+# function [k21,Reduction] = reduction_from_ff2d(mesh, param, ang, omega, Edge_jump, v2t)
 
 def reduction_from_ff2d(
-    Src,
+    mesh,
     param,
     ang: np.ndarray,
     omega: np.ndarray,
@@ -26,7 +26,7 @@ def reduction_from_ff2d(
 
     Parameters
     ----------
-    Src : mesh data structure
+    mesh : mesh data structure
         Contains ne, nf, nv, T
     param : parameter structure
         Contains E2T, ide_int, para_trans
@@ -46,11 +46,11 @@ def reduction_from_ff2d(
     Reduction : sparse matrix
         Block diagonal reduction matrix combining ut and vt reductions
     """
-    # k21 = ones(Src.ne,1);
+    # k21 = ones(mesh.num_edges,1);
     # [~,k21i] = min(abs(exp(1i*ang(param.E2T(param.ide_int,2))+(0:3)*1i*pi/2+1i*(omega(param.ide_int)-param.para_trans(param.ide_int))) - exp(1i*ang(param.E2T(param.ide_int,1)))), [], 2);
     # k21(param.ide_int) = k21i;
 
-    k21 = np.ones(Src.ne, dtype=int)
+    k21 = np.ones(mesh.num_edges, dtype=int)
 
     # Get face indices for interior edges (E2T is 0-indexed in Python)
     # E2T[e, 0] = face on one side, E2T[e, 1] = face on other side
@@ -84,31 +84,31 @@ def reduction_from_ff2d(
 
     k21[param.ide_int] = k21i
 
-    # k21T = mod(reshape(Edge_jump*(k21-1), Src.nf,[]), 4);
+    # k21T = mod(reshape(Edge_jump*(k21-1), mesh.num_faces,[]), 4);
 
     # Edge_jump is (3*nf, ne), k21-1 is (ne,)
     # Result is (3*nf,) which we reshape to (nf, 3)
     k21T_flat = Edge_jump @ (k21 - 1)
-    k21T = np.mod(k21T_flat.reshape((Src.nf, 3), order='F'), 4)
+    k21T = np.mod(k21T_flat.reshape((mesh.num_faces, 3), order='F'), 4)
 
     # s = (-1).^k21T;
 
     s = np.power(-1.0, k21T)
 
-    # v2t_smooth = sparse(reshape((1:3*Src.nf)', [Src.nf,3]), Src.T, 1, 3*Src.nf, Src.nv);
-    # Reduction = blkdiag(v2t_smooth, spdiags(s(:), 0, 3*Src.nf, 3*Src.nf)*v2t);
+    # v2t_smooth = sparse(reshape((1:3*mesh.num_faces)', [mesh.num_faces,3]), mesh.triangles, 1, 3*mesh.num_faces, mesh.num_vertices);
+    # Reduction = blkdiag(v2t_smooth, spdiags(s(:), 0, 3*mesh.num_faces, 3*mesh.num_faces)*v2t);
 
     # v2t_smooth: maps vertex values to corner values without jumps
     # Row indices: corner indices (0 to 3*nf-1)
     # Col indices: vertex indices from T
-    row_idx = np.arange(3 * Src.nf).reshape((Src.nf, 3), order='F')
+    row_idx = np.arange(3 * mesh.num_faces).reshape((mesh.num_faces, 3), order='F')
     v2t_smooth = sp.coo_matrix(
-        (np.ones(3 * Src.nf), (row_idx.ravel('F'), Src.T.ravel('F'))),
-        shape=(3 * Src.nf, Src.nv)
+        (np.ones(3 * mesh.num_faces), (row_idx.ravel('F'), mesh.triangles.ravel('F'))),
+        shape=(3 * mesh.num_faces, mesh.num_vertices)
     ).tocsr()
 
     # Sign diagonal matrix
-    s_diag = sp.diags(s.ravel('F'), 0, shape=(3 * Src.nf, 3 * Src.nf), format='csr')
+    s_diag = sp.diags(s.ravel('F'), 0, shape=(3 * mesh.num_faces, 3 * mesh.num_faces), format='csr')
 
     # Build block diagonal reduction matrix
     # First block: v2t_smooth for ut (no sign flips)

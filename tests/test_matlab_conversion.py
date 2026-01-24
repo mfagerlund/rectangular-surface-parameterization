@@ -207,7 +207,7 @@ class TestPreprocessOrthoParam:
     def test_gauss_bonnet_assertion(self, tetrahedron_data):
         """
         preprocess_ortho_param.m:198 -
-        assert(norm(sum(K) - 2*pi*(Src.nf-Src.ne+Src.nv)) < 1e-5)
+        assert(norm(sum(K) - 2*pi*(Src.num_faces-Src.num_edges+Src.num_vertices)) < 1e-5)
 
         This is checked internally, but we verify it externally too.
         """
@@ -221,7 +221,7 @@ class TestPreprocessOrthoParam:
         )
 
         # Verify Gauss-Bonnet for the Kt field
-        chi = Src_out.nf - Src_out.ne + Src_out.nv
+        chi = Src_out.num_faces - Src_out.num_edges + Src_out.num_vertices
         total_K = np.sum(param.Kt)
         expected = 2 * np.pi * chi
 
@@ -262,12 +262,12 @@ class TestPreprocessOrthoParam:
             ifhardedge=False
         )
 
-        assert param.E2T.shape == (Src_out.ne, 2), \
+        assert param.E2T.shape == (Src_out.num_edges, 2), \
             f"E2T shape should be (ne, 2), got {param.E2T.shape}"
 
         # All entries should be valid face indices
         assert np.all(param.E2T >= 0), "E2T should have non-negative entries"
-        assert np.all(param.E2T < Src_out.nf), "E2T entries should be < nf"
+        assert np.all(param.E2T < Src_out.num_faces), "E2T entries should be < nf"
 
     def test_local_basis_orthonormal(self, octahedron_data):
         """Verify e1r and e2r form orthonormal basis tangent to surface."""
@@ -305,7 +305,7 @@ class TestPreprocessOrthoParam:
             ifhardedge=False
         )
 
-        chi = Src_out.nf - Src_out.ne + Src_out.nv
+        chi = Src_out.num_faces - Src_out.num_edges + Src_out.num_vertices
         assert chi == 2, f"Octahedron should have chi=2, got {chi}"
 
         total_K = np.sum(param.Kt)
@@ -357,13 +357,13 @@ class TestComputeFaceCrossField:
             Src_out, param, dec_out, smoothing_iter=5
         )
 
-        assert omega.shape == (Src_out.ne,), f"omega shape should be ({Src_out.ne},)"
-        assert ang.shape == (Src_out.nf,), f"ang shape should be ({Src_out.nf},)"
+        assert omega.shape == (Src_out.num_edges,), f"omega shape should be ({Src_out.num_edges},)"
+        assert ang.shape == (Src_out.num_faces,), f"ang shape should be ({Src_out.num_faces},)"
 
     def test_singularity_gauss_bonnet(self, icosahedron_data):
         """
         trivial_connection.m:27 -
-        assert(norm(sum(sing) - (Src.nf - Src.ne + Src.nv)) < 1e-5)
+        assert(norm(sum(sing) - (Src.num_faces - Src.num_edges + Src.num_vertices)) < 1e-5)
 
         Sum of singularities should equal Euler characteristic.
         """
@@ -379,7 +379,7 @@ class TestComputeFaceCrossField:
             Src_out, param, dec_out, smoothing_iter=10
         )
 
-        chi = Src_out.nf - Src_out.ne + Src_out.nv
+        chi = Src_out.num_faces - Src_out.num_edges + Src_out.num_vertices
         total_sing = np.sum(sing)
 
         # Allow some tolerance due to numerical precision
@@ -402,8 +402,8 @@ class TestComputeFaceCrossField:
 
         # Basic sanity checks
         assert not np.any(np.isnan(omega)), "omega must not contain NaN"
-        assert omega.shape == (Src_out.ne,)
-        assert ang.shape == (Src_out.nf,)
+        assert omega.shape == (Src_out.num_edges,)
+        assert ang.shape == (Src_out.num_faces,)
 
 
 # =============================================================================
@@ -427,11 +427,11 @@ class TestComputeCurvatureCrossField:
             Src_out, param, dec_out, smoothing_iter=5, alpha=1.0
         )
 
-        assert omega.shape == (Src_out.ne,), f"omega shape should be ({Src_out.ne},)"
-        assert ang.shape == (Src_out.nf,), f"ang shape should be ({Src_out.nf},)"
-        assert sing.shape[0] >= Src_out.nv, f"sing should have at least {Src_out.nv} entries"
-        assert kappa.shape == (Src_out.nf, 2), f"kappa shape should be ({Src_out.nf}, 2)"
-        assert Curv.shape == (Src_out.nf, 3), f"Curv shape should be ({Src_out.nf}, 3)"
+        assert omega.shape == (Src_out.num_edges,), f"omega shape should be ({Src_out.num_edges},)"
+        assert ang.shape == (Src_out.num_faces,), f"ang shape should be ({Src_out.num_faces},)"
+        assert sing.shape[0] >= Src_out.num_vertices, f"sing should have at least {Src_out.num_vertices} entries"
+        assert kappa.shape == (Src_out.num_faces, 2), f"kappa shape should be ({Src_out.num_faces}, 2)"
+        assert Curv.shape == (Src_out.num_faces, 3), f"Curv shape should be ({Src_out.num_faces}, 3)"
 
     def test_no_nan_in_output(self, octahedron_data):
         """Verify no NaN values in any output."""
@@ -618,7 +618,7 @@ class TestIcosahedronSurface:
     def test_icosahedron_euler_characteristic(self, icosahedron_data):
         """Verify icosahedron has correct Euler characteristic (chi = 2)."""
         Src, dec = icosahedron_data
-        chi = Src.nf - Src.ne + Src.nv
+        chi = Src.num_faces - Src.num_edges + Src.num_vertices
         assert chi == 2, f"Icosahedron should have chi=2, got {chi}"
 
     def test_icosahedron_preprocess(self, icosahedron_data):
@@ -633,7 +633,7 @@ class TestIcosahedronSurface:
         )
 
         # Verify Gauss-Bonnet
-        chi = Src_out.nf - Src_out.ne + Src_out.nv
+        chi = Src_out.num_faces - Src_out.num_edges + Src_out.num_vertices
         total_K = np.sum(param.Kt)
         expected = 2 * np.pi * chi
 
@@ -659,7 +659,7 @@ class TestIcosahedronSurface:
         assert not np.any(np.isnan(ang)), "ang on icosahedron must not contain NaN"
 
         # Sum of singularities should be 2 (chi = 2)
-        chi = Src_out.nf - Src_out.ne + Src_out.nv
+        chi = Src_out.num_faces - Src_out.num_edges + Src_out.num_vertices
         total_sing = np.sum(sing)
         assert abs(total_sing - chi) < 0.5, \
             f"Icosahedron singularity sum should be ~{chi}, got {total_sing:.4f}"
@@ -684,6 +684,6 @@ class TestIcosahedronSurface:
         assert not np.any(np.isnan(Curv)), "Curv must not contain NaN"
 
         # Shape checks
-        assert omega.shape == (Src_out.ne,)
-        assert kappa.shape == (Src_out.nf, 2)
-        assert Curv.shape == (Src_out.nf, 3)
+        assert omega.shape == (Src_out.num_edges,)
+        assert kappa.shape == (Src_out.num_faces, 2)
+        assert Curv.shape == (Src_out.num_faces, 3)

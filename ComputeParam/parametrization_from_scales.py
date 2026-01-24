@@ -1,5 +1,5 @@
 
-# function [Xp,mu] = parametrization_from_scales(Src, SrcCut, dec_cut, param, ang, omega, ut, vt, Align, Rot)
+# function [Xp,mu] = parametrization_from_scales(Src, disk_mesh, dec_cut, param, ang, omega, ut, vt, Align, Rot)
 #
 # if (exist('Align','var') && ~isempty(Align)) || (exist('Rot','var') && ~isempty(Rot))
 #     ifseamless_const = true;
@@ -8,18 +8,18 @@
 # end
 # if ifseamless_const
 #     if ~exist('Align','var')
-#         Align = sparse(2*SrcCut.nv,0);
+#         Align = sparse(2*disk_mesh.num_vertices,0);
 #     end
 #     if ~exist('Rot','var')
-#         Rot = sparse(2*SrcCut.nv,0);
+#         Rot = sparse(2*disk_mesh.num_vertices,0);
 #     end
 # end
 #
 # u1_int = ut(:,[1 2 3])/2 + ut(:,[2 3 1])/2;
 # u2_int = vt(:,[1 2 3])/2 + vt(:,[2 3 1])/2;
 #
-# expu = [exp(u1_int + u2_int),      zeros(Src.nf,3), ...
-#              zeros(Src.nf,3), exp(u1_int - u2_int)];
+# expu = [exp(u1_int + u2_int),      zeros(Src.num_faces,3), ...
+#              zeros(Src.num_faces,3), exp(u1_int - u2_int)];
 #
 # omega(param.ide_bound) = 0;
 # e1 = exp(1i*ang);
@@ -27,10 +27,10 @@
 # e1_edge = (e1_edge + exp(-1i*omega(abs(Src.T2E)).*sign(Src.T2E)).*e1_edge)/2;
 # e2_edge = 1i*e1_edge;
 #
-# edge = dec_cut.d0p*SrcCut.X;
-# edge1 = edge(abs(SrcCut.T2E(:,1)),:);
-# edge2 = edge(abs(SrcCut.T2E(:,2)),:);
-# edge3 = edge(abs(SrcCut.T2E(:,3)),:);
+# edge = dec_cut.d0p*disk_mesh.vertices;
+# edge1 = edge(abs(disk_mesh.T2E(:,1)),:);
+# edge2 = edge(abs(disk_mesh.T2E(:,2)),:);
+# edge3 = edge(abs(disk_mesh.T2E(:,3)),:);
 # edge_tri_cut = [complex(dot(param.e1r, edge1, 2), dot(param.e2r, edge1, 2)), complex(dot(param.e1r, edge2, 2), dot(param.e2r, edge2, 2)), complex(dot(param.e1r, edge3, 2), dot(param.e2r, edge3, 2))];
 #
 # sigma1_tri = real(conj(e1_edge).*edge_tri_cut);
@@ -38,9 +38,9 @@
 # mu1_tri = expu(:,1:3).*sigma1_tri + expu(:,4:6)  .*sigma2_tri;
 # mu2_tri = expu(:,7:9).*sigma1_tri + expu(:,10:12).*sigma2_tri;
 #
-# mu = zeros(SrcCut.ne,2);
-# mu(:,1) = accumarray(abs(SrcCut.T2E(:)), mu1_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
-# mu(:,2) = accumarray(abs(SrcCut.T2E(:)), mu2_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
+# mu = zeros(disk_mesh.num_edges,2);
+# mu(:,1) = accumarray(abs(disk_mesh.T2E(:)), mu1_tri(:))./accumarray(abs(disk_mesh.T2E(:)), 1);
+# mu(:,2) = accumarray(abs(disk_mesh.T2E(:)), mu2_tri(:))./accumarray(abs(disk_mesh.T2E(:)), 1);
 #
 # W = dec_cut.W + 1e-5*dec_cut.star0p;
 # W = (W + W')/2;
@@ -48,7 +48,7 @@
 #
 # if ifseamless_const
 #     Xp = quadprog(blkdiag(W,W),-div_dX(:), [], [], [Align; Rot], zeros(size(Align,1)+size(Rot,1),1));
-#     Xp = reshape(Xp, [SrcCut.nv,2]);
+#     Xp = reshape(Xp, [disk_mesh.num_vertices,2]);
 # else
 #     Xp = W\div_dX;
 # end
@@ -138,7 +138,7 @@ def solve_qp_equality(H: csr_matrix, Aeq: csr_matrix, beq: np.ndarray) -> np.nda
 
 def parametrization_from_scales(
     Src: MeshInfo,
-    SrcCut: MeshInfo,
+    disk_mesh: MeshInfo,
     dec_cut: DEC,
     param,
     ang: np.ndarray,
@@ -158,7 +158,7 @@ def parametrization_from_scales(
     ----------
     Src : MeshInfo
         Original mesh data structure.
-    SrcCut : MeshInfo
+    disk_mesh : MeshInfo
         Cut mesh (disk topology).
     dec_cut : DEC
         DEC operators for the cut mesh.
@@ -199,18 +199,18 @@ def parametrization_from_scales(
 
     # if ifseamless_const
     #     if ~exist('Align','var')
-    #         Align = sparse(2*SrcCut.nv,0);
+    #         Align = sparse(2*disk_mesh.num_vertices,0);
     #     end
     #     if ~exist('Rot','var')
-    #         Rot = sparse(2*SrcCut.nv,0);
+    #         Rot = sparse(2*disk_mesh.num_vertices,0);
     #     end
     # end
 
     if ifseamless_const:
         if Align is None:
-            Align = csr_matrix((0, 2 * SrcCut.nv))
+            Align = csr_matrix((0, 2 * disk_mesh.num_vertices))
         if Rot is None:
-            Rot = csr_matrix((0, 2 * SrcCut.nv))
+            Rot = csr_matrix((0, 2 * disk_mesh.num_vertices))
 
     # u1_int = ut(:,[1 2 3])/2 + ut(:,[2 3 1])/2;
     # u2_int = vt(:,[1 2 3])/2 + vt(:,[2 3 1])/2;
@@ -221,15 +221,15 @@ def parametrization_from_scales(
     u1_int = ut[:, [0, 1, 2]] / 2 + ut[:, [1, 2, 0]] / 2  # shape (nf, 3)
     u2_int = vt[:, [0, 1, 2]] / 2 + vt[:, [1, 2, 0]] / 2  # shape (nf, 3)
 
-    # expu = [exp(u1_int + u2_int),      zeros(Src.nf,3), ...
-    #              zeros(Src.nf,3), exp(u1_int - u2_int)];
+    # expu = [exp(u1_int + u2_int),      zeros(Src.num_faces,3), ...
+    #              zeros(Src.num_faces,3), exp(u1_int - u2_int)];
 
     # Build the deformation tensor components
     # expu has shape (nf, 12): columns 0-2, 3-5, 6-8, 9-11
     # [exp(u1+u2), 0, 0, exp(u1-u2)] for each edge
     exp_sum = np.exp(u1_int + u2_int)   # shape (nf, 3)
     exp_diff = np.exp(u1_int - u2_int)  # shape (nf, 3)
-    zeros_nf3 = np.zeros((Src.nf, 3))
+    zeros_nf3 = np.zeros((Src.num_faces, 3))
 
     expu = np.column_stack([exp_sum, zeros_nf3, zeros_nf3, exp_diff])  # shape (nf, 12)
 
@@ -264,16 +264,16 @@ def parametrization_from_scales(
 
     e2_edge = 1j * e1_edge  # Perpendicular frame direction
 
-    # edge = dec_cut.d0p*SrcCut.X;
+    # edge = dec_cut.d0p*disk_mesh.vertices;
 
-    edge = dec_cut.d0p @ SrcCut.X  # shape (ne_cut, 3)
+    edge = dec_cut.d0p @ disk_mesh.vertices  # shape (ne_cut, 3)
 
-    # edge1 = edge(abs(SrcCut.T2E(:,1)),:);
-    # edge2 = edge(abs(SrcCut.T2E(:,2)),:);
-    # edge3 = edge(abs(SrcCut.T2E(:,3)),:);
+    # edge1 = edge(abs(disk_mesh.T2E(:,1)),:);
+    # edge2 = edge(abs(disk_mesh.T2E(:,2)),:);
+    # edge3 = edge(abs(disk_mesh.T2E(:,3)),:);
 
-    # SrcCut.T2E is signed 1-based encoding
-    T2E_cut = np.asarray(SrcCut.T2E)
+    # disk_mesh.T2E is signed 1-based encoding
+    T2E_cut = np.asarray(disk_mesh.T2E)
     T2E_cut_abs = np.abs(T2E_cut) - 1  # 0-based edge indices
 
     edge1 = edge[T2E_cut_abs[:, 0], :]  # shape (nf, 3)
@@ -309,12 +309,12 @@ def parametrization_from_scales(
     mu1_tri = expu[:, 0:3] * sigma1_tri + expu[:, 3:6] * sigma2_tri  # shape (nf, 3)
     mu2_tri = expu[:, 6:9] * sigma1_tri + expu[:, 9:12] * sigma2_tri  # shape (nf, 3)
 
-    # mu = zeros(SrcCut.ne,2);
-    # mu(:,1) = accumarray(abs(SrcCut.T2E(:)), mu1_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
-    # mu(:,2) = accumarray(abs(SrcCut.T2E(:)), mu2_tri(:))./accumarray(abs(SrcCut.T2E(:)), 1);
+    # mu = zeros(disk_mesh.num_edges,2);
+    # mu(:,1) = accumarray(abs(disk_mesh.T2E(:)), mu1_tri(:))./accumarray(abs(disk_mesh.T2E(:)), 1);
+    # mu(:,2) = accumarray(abs(disk_mesh.T2E(:)), mu2_tri(:))./accumarray(abs(disk_mesh.T2E(:)), 1);
 
     # Average deformed edge vectors per edge (each edge appears in 1 or 2 triangles)
-    mu = np.zeros((SrcCut.ne, 2))
+    mu = np.zeros((disk_mesh.num_edges, 2))
 
     # T2E_cut_abs flattened in column-major order to match MATLAB
     T2E_flat = T2E_cut_abs.flatten('F')  # shape (3*nf,)
@@ -322,9 +322,9 @@ def parametrization_from_scales(
     mu2_flat = mu2_tri.flatten('F')  # shape (3*nf,)
 
     # Accumulate values and counts per edge
-    mu_sum1 = np.bincount(T2E_flat, weights=mu1_flat, minlength=SrcCut.ne)
-    mu_sum2 = np.bincount(T2E_flat, weights=mu2_flat, minlength=SrcCut.ne)
-    mu_count = np.bincount(T2E_flat, minlength=SrcCut.ne)
+    mu_sum1 = np.bincount(T2E_flat, weights=mu1_flat, minlength=disk_mesh.num_edges)
+    mu_sum2 = np.bincount(T2E_flat, weights=mu2_flat, minlength=disk_mesh.num_edges)
+    mu_count = np.bincount(T2E_flat, minlength=disk_mesh.num_edges)
 
     # Avoid division by zero (shouldn't happen for valid mesh)
     mu_count = np.maximum(mu_count, 1)
@@ -344,7 +344,7 @@ def parametrization_from_scales(
 
     # if ifseamless_const
     #     Xp = quadprog(blkdiag(W,W),-div_dX(:), [], [], [Align; Rot], zeros(size(Align,1)+size(Rot,1),1));
-    #     Xp = reshape(Xp, [SrcCut.nv,2]);
+    #     Xp = reshape(Xp, [disk_mesh.num_vertices,2]);
     # else
     #     Xp = W\div_dX;
     # end
@@ -365,7 +365,7 @@ def parametrization_from_scales(
         Xp_flat = solve_qp_with_linear_term(W_blk, f, Aeq, beq)
 
         # Reshape to (nv_cut, 2)
-        Xp = Xp_flat.reshape((SrcCut.nv, 2), order='F')
+        Xp = Xp_flat.reshape((disk_mesh.num_vertices, 2), order='F')
     else:
         # Simple Poisson solve without constraints
         Xp = spsolve(W.tocsr(), div_dX)

@@ -206,7 +206,7 @@ def main():
     dec = dec_tri(Src)
 
     if verbose:
-        print(f"  Edges: {Src.ne}")
+        print(f"  Edges: {Src.num_edges}")
         print("Preprocessing for orthotropic parameterization...")
 
     param, Src, dec = preprocess_ortho_param(Src, dec, ifboundary, ifhardedge, tol_dihedral_deg)
@@ -216,17 +216,17 @@ def main():
         print(f"  Boundary edges: {len(param.ide_bound)}")
         print(f"  Fixed edges: {len(param.ide_fix)}")
 
-    # col = zeros(Src.nv,1); col(Src.E2V(param.ide_fix,:)) = 1;
+    # col = zeros(Src.num_vertices,1); col(Src.E2V(param.ide_fix,:)) = 1;
     # figure; trisurf(...); title('Constraint')
 
     if ifplot:
-        col = np.zeros(Src.nv)
+        col = np.zeros(Src.num_vertices)
         if len(param.ide_fix) > 0:
             col[Src.E2V[param.ide_fix, :].flatten()] = 1
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot_trisurf(Src.X[:, 0], Src.X[:, 1], Src.X[:, 2], triangles=Src.T,
+        ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2], triangles=Src.triangles,
                         cmap='coolwarm', edgecolor='k', linewidth=0.1)
         ax.set_title('Constraint Edges')
         plt.show()
@@ -238,7 +238,7 @@ def main():
     # elseif strcmp(frame_field_type, 'smooth')
     #     [omega,ang,sing] = compute_face_cross_field(Src, param, dec, 10);
     # elseif strcmp(frame_field_type, 'trivial')
-    #     sing = zeros(Src.nv,1);
+    #     sing = zeros(Src.num_vertices,1);
     #     sing(param.idx_bound) = round(2*param.K(param.idx_bound)/pi)/4;
     #     om_cycle = param.Icycle*param.para_trans;
     #     om_cycle = om_cycle - 2*pi*round(4*om_cycle/(2*pi))/4;
@@ -274,10 +274,10 @@ def main():
         omega, ang, sing = compute_face_cross_field(Src, param, dec, 10)
 
     elif frame_field_type == 'trivial':
-        # sing = zeros(Src.nv,1);
+        # sing = zeros(Src.num_vertices,1);
         # sing(param.idx_bound) = round(2*param.K(param.idx_bound)/pi)/4;
 
-        sing = np.zeros(Src.nv)
+        sing = np.zeros(Src.num_vertices)
         if len(param.idx_bound) > 0:
             # param.K may have extended vertices, use param.Kt for vertex curvature
             sing[param.idx_bound] = np.round(2 * param.Kt[param.idx_bound] / np.pi) / 4
@@ -329,15 +329,15 @@ def main():
 
     # itmax = 200;
     # ifplot = false;
-    # u = zeros(Src.nv,1);
-    # v = zeros(Src.nv,1);
+    # u = zeros(Src.num_vertices,1);
+    # v = zeros(Src.num_vertices,1);
     # [u,v,ut,vt,om,angn,flag] = optimize_RSP(omega, ang, u, v, Src, param, dec, Reduction, energy_type, weight, ifplot, itmax);
 
     if verbose:
         print(f"Optimizing integrability ({energy_type} energy, max {itmax} iterations)...")
 
-    u = np.zeros(Src.nv)
-    v = np.zeros(Src.nv)
+    u = np.zeros(Src.num_vertices)
+    v = np.zeros(Src.num_vertices)
 
     result = optimize_RSP(omega, ang, u, v, Src, param, dec, Reduction, energy_type, weight, ifplot, itmax)
 
@@ -357,22 +357,22 @@ def main():
         else:
             print(f"  Line search failed at iteration {result.it}")
 
-    # [SrcCut,dec_cut,Align,Rot] = mesh_to_disk_seamless(Src, param, angn, sing, k21, ifseamless_const, ifboundary, ifhardedge);
-    # [Xp,dX] = parametrization_from_scales(Src, SrcCut, dec_cut, param, angn, om, ut, vt, Align, Rot);
+    # [disk_mesh,dec_cut,Align,Rot] = mesh_to_disk_seamless(Src, param, angn, sing, k21, ifseamless_const, ifboundary, ifhardedge);
+    # [Xp,dX] = parametrization_from_scales(Src, disk_mesh, dec_cut, param, angn, om, ut, vt, Align, Rot);
 
     if verbose:
         print("Computing parametrization...")
 
-    SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(Src, param, angn, sing, k21, ifseamless_const, ifboundary, ifhardedge)
-    Xp, dX = parametrization_from_scales(Src, SrcCut, dec_cut, param, angn, om, ut, vt, Align, Rot)
+    disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(Src, param, angn, sing, k21, ifseamless_const, ifboundary, ifhardedge)
+    Xp, dX = parametrization_from_scales(Src, disk_mesh, dec_cut, param, angn, om, ut, vt, Align, Rot)
 
     if verbose:
-        print(f"  Cut mesh vertices: {SrcCut.nv}, faces: {SrcCut.nf}")
+        print(f"  Cut mesh vertices: {disk_mesh.num_vertices}, faces: {disk_mesh.num_faces}")
 
-    # disto = extract_scale_from_param(Xp, Src.X, Src.T, param, SrcCut.T, angn);
+    # disto = extract_scale_from_param(Xp, Src.vertices, Src.triangles, param, disk_mesh.triangles, angn);
     # curl_dX = sqrt(sum((dec_cut.d1p*dX).^2,2))./Src.area;
 
-    disto, ut_out, theta_out, u_tri = extract_scale_from_param(Xp, Src.X, Src.T, param, SrcCut.T, angn)
+    disto, ut_out, theta_out, u_tri = extract_scale_from_param(Xp, Src.vertices, Src.triangles, param, disk_mesh.triangles, angn)
 
     curl_dX_vec = dec_cut.d1p @ dX
     curl_dX = np.sqrt(np.sum(curl_dX_vec ** 2, axis=1)) / Src.area
@@ -388,14 +388,14 @@ def main():
     if args.save_viz:
         if verbose:
             print(f"Saving visualizations to {path_save}...")
-        visualize_run_RSP_result(Src, SrcCut, Xp, disto, output_dir=path_save, mesh_name=mesh_name)
+        visualize_run_RSP_result(Src, disk_mesh, Xp, disto, output_dir=path_save, mesh_name=mesh_name)
 
     if ifplot:
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
         # subplot(2,2,1): Integrability
         ax = axes[0, 0]
-        ax.tripcolor(SrcCut.X[:, 0], SrcCut.X[:, 1], SrcCut.T,
+        ax.tripcolor(disk_mesh.vertices[:, 0], disk_mesh.vertices[:, 1], disk_mesh.triangles,
                      np.log10(curl_dX + 1e-16), shading='flat', cmap='viridis')
         ax.set_aspect('equal')
         ax.set_title('Integrability (log10)')
@@ -403,14 +403,14 @@ def main():
 
         # subplot(2,2,2): Param
         ax = axes[0, 1]
-        ax.tripcolor(Xp[:, 0], Xp[:, 1], SrcCut.T,
-                     np.arange(SrcCut.nf), shading='flat', cmap='tab20')
+        ax.tripcolor(Xp[:, 0], Xp[:, 1], disk_mesh.triangles,
+                     np.arange(disk_mesh.num_faces), shading='flat', cmap='tab20')
         ax.set_aspect('equal')
         ax.set_title('Parametrization')
 
         # subplot(2,2,3): log area
         ax = axes[1, 0]
-        ax.tripcolor(SrcCut.X[:, 0], SrcCut.X[:, 1], SrcCut.T,
+        ax.tripcolor(disk_mesh.vertices[:, 0], disk_mesh.vertices[:, 1], disk_mesh.triangles,
                      np.log10(disto.area + 1e-16), shading='flat', cmap='viridis')
         ax.set_aspect('equal')
         ax.set_title('log10(area)')
@@ -418,7 +418,7 @@ def main():
 
         # subplot(2,2,4): log conformal
         ax = axes[1, 1]
-        ax.tripcolor(SrcCut.X[:, 0], SrcCut.X[:, 1], SrcCut.T,
+        ax.tripcolor(disk_mesh.vertices[:, 0], disk_mesh.vertices[:, 1], disk_mesh.triangles,
                      np.abs(np.log10(disto.conf + 1e-16)), shading='flat', cmap='viridis')
         ax.set_aspect('equal')
         ax.set_title('|log10(conformal)|')
@@ -427,27 +427,27 @@ def main():
         plt.tight_layout()
         plt.show()
 
-        # col = zeros(Src.nf,1); col(disto.detJ <= 0) = 1;
+        # col = zeros(Src.num_faces,1); col(disto.detJ <= 0) = 1;
         # id_sing_p = sing > 1/8;
         # id_sing_m = sing <-1/8;
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
-        col = np.zeros(Src.nf)
+        col = np.zeros(Src.num_faces)
         col[disto.detJ <= 0] = 1
 
-        ax.plot_trisurf(Src.X[:, 0], Src.X[:, 1], Src.X[:, 2], triangles=Src.T,
+        ax.plot_trisurf(Src.vertices[:, 0], Src.vertices[:, 1], Src.vertices[:, 2], triangles=Src.triangles,
                         cmap='coolwarm', edgecolor='none', alpha=0.7)
 
         id_sing_p_mask = sing > 1/8
         id_sing_m_mask = sing < -1/8
 
         if np.any(id_sing_p_mask):
-            ax.scatter(Src.X[id_sing_p_mask, 0], Src.X[id_sing_p_mask, 1], Src.X[id_sing_p_mask, 2],
+            ax.scatter(Src.vertices[id_sing_p_mask, 0], Src.vertices[id_sing_p_mask, 1], Src.vertices[id_sing_p_mask, 2],
                        c='red', s=100, marker='o', label='Positive singularity')
         if np.any(id_sing_m_mask):
-            ax.scatter(Src.X[id_sing_m_mask, 0], Src.X[id_sing_m_mask, 1], Src.X[id_sing_m_mask, 2],
+            ax.scatter(Src.vertices[id_sing_m_mask, 0], Src.vertices[id_sing_m_mask, 1], Src.vertices[id_sing_m_mask, 2],
                        c='blue', s=100, marker='o', label='Negative singularity')
 
         n_sing = np.sum(id_sing_p_mask) + np.sum(id_sing_m_mask)
@@ -502,13 +502,13 @@ def main():
         print("Warning: The quantization step will fail.")
         ifquantization = False
 
-    # save_param(ifquantization, path_save, mesh_name, sqrt(area_tot)*Src.X, Src.T, UV, SrcCut.T, sing, Src.E2V(param.ide_hard,:));
+    # save_param(ifquantization, path_save, mesh_name, sqrt(area_tot)*Src.vertices, Src.triangles, UV, disk_mesh.triangles, sing, Src.E2V(param.ide_hard,:));
 
     if verbose:
         print(f"Saving parametrization to {path_save}...")
 
     # Rescale X back to original scale
-    X_original = scale_factor * Src.X
+    X_original = scale_factor * Src.vertices
 
     # Get hard edge vertices (may be empty)
     if len(param.ide_hard) > 0:
@@ -516,7 +516,7 @@ def main():
     else:
         E2V_hardedge = np.zeros((0, 2), dtype=int)
 
-    save_param(ifquantization, path_save, mesh_name, X_original, Src.T, UV, SrcCut.T, sing, E2V_hardedge)
+    save_param(ifquantization, path_save, mesh_name, X_original, Src.triangles, UV, disk_mesh.triangles, sing, E2V_hardedge)
 
     if verbose:
         print("Done!")

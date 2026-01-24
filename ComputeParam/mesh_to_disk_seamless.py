@@ -1,13 +1,13 @@
 
-# function [SrcCut,dec_cut,Align,Rot] = mesh_to_disk_seamless(Src, param, ang, sing, k21, ifseamless_const, ifboundary, ifhardedge)
+# function [disk_mesh,dec_cut,Align,Rot] = mesh_to_disk_seamless(Src, param, ang, sing, k21, ifseamless_const, ifboundary, ifhardedge)
 #
 # idcone = param.idx_int(abs(sing(param.idx_int)) > 0.1); % Cone indices
-# [SrcCut,~,ide_cut_inv,~] = cut_mesh(Src.X, Src.T, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, k21 ~= 1);
-# dec_cut = dec_tri(SrcCut);
+# [disk_mesh,~,ide_cut_inv,~] = cut_mesh(Src.vertices, Src.triangles, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, k21 ~= 1);
+# dec_cut = dec_tri(disk_mesh);
 #
 # if ifseamless_const && nargout > 2
-#     edge_bound_cut = find(any(SrcCut.E2T(:,1:2) == 0, 2));
-#     edge_bound_cut = [edge_bound_cut, sum(SrcCut.E2T(edge_bound_cut,1:2),2)];
+#     edge_bound_cut = find(any(disk_mesh.E2T(:,1:2) == 0, 2));
+#     edge_bound_cut = [edge_bound_cut, sum(disk_mesh.E2T(edge_bound_cut,1:2),2)];
 #     edge_bound_cut = edge_bound_cut(~ismember(abs(ide_cut_inv(edge_bound_cut(:,1))), param.ide_bound),:);
 #     [~,id] = sort(abs(ide_cut_inv(edge_bound_cut(:,1))));
 #     ide_cut = ide_cut_inv(edge_bound_cut(id,1));
@@ -22,14 +22,14 @@
 #     R3 = R1^3;
 #     R = [R0(:), R1(:), R2(:), R3(:)]';
 #     R = matrix_vector_multiplication(R(k21(ide_cut_cor(:,1)),:));
-#     I1 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,2)), sign(ide_cut_cor(:,2)), size(ide_cut_cor,1), SrcCut.ne);
-#     I2 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,3)), sign(ide_cut_cor(:,3)), size(ide_cut_cor,1), SrcCut.ne);
+#     I1 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,2)), sign(ide_cut_cor(:,2)), size(ide_cut_cor,1), disk_mesh.num_edges);
+#     I2 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,3)), sign(ide_cut_cor(:,3)), size(ide_cut_cor,1), disk_mesh.num_edges);
 #     Rot = blkdiag(I1*dec_cut.d0p,I1*dec_cut.d0p) - R*blkdiag(I2*dec_cut.d0p,I2*dec_cut.d0p);
 #
-#     Align = sparse(0,2*SrcCut.nv);
+#     Align = sparse(0,2*disk_mesh.num_vertices);
 #     if (ifboundary && ~isempty(param.ide_bound)) || (ifhardedge && ~isempty(param.ide_hard))
 #         ide_fix_cut = find(ismember(abs(ide_cut_inv), param.ide_fix));
-#         tri_fix_cut = vec(SrcCut.E2T(ide_fix_cut,1:2));
+#         tri_fix_cut = vec(disk_mesh.E2T(ide_fix_cut,1:2));
 #         id = tri_fix_cut ~= 0;
 #         tri_fix_cut = tri_fix_cut(id);
 #         [~,ia] = ismember(param.tri_fix, tri_fix_cut);
@@ -39,11 +39,11 @@
 #         ide_fix_cut = ide_fix_cut(ia);
 #
 #         dir_fix = round(abs(wrapToPi(2*ang(param.tri_fix))/pi) + 1);
-#         Align = sparse(1:length(ide_fix_cut), ide_fix_cut + (2 - dir_fix)*SrcCut.ne, 1, length(ide_fix_cut), 2*SrcCut.ne)*blkdiag(dec_cut.d0p, dec_cut.d0p);
+#         Align = sparse(1:length(ide_fix_cut), ide_fix_cut + (2 - dir_fix)*disk_mesh.num_edges, 1, length(ide_fix_cut), 2*disk_mesh.num_edges)*blkdiag(dec_cut.d0p, dec_cut.d0p);
 #     end
 # else
-#     Align = sparse(0,2*SrcCut.nv);
-#     Rot = sparse(0,2*SrcCut.nv);
+#     Align = sparse(0,2*disk_mesh.num_vertices);
+#     Rot = sparse(0,2*disk_mesh.num_vertices);
 # end
 
 
@@ -109,7 +109,7 @@ def mesh_to_disk_seamless(
 
     Returns
     -------
-    SrcCut : MeshInfo
+    disk_mesh : MeshInfo
         Cut mesh (disk topology).
     dec_cut : DEC
         DEC operators for the cut mesh.
@@ -127,50 +127,50 @@ def mesh_to_disk_seamless(
     sing_at_int = np.abs(sing[idx_int])
     idcone = idx_int[sing_at_int > 0.1]
 
-    # [SrcCut,~,ide_cut_inv,~] = cut_mesh(Src.X, Src.T, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, k21 ~= 1);
+    # [disk_mesh,~,ide_cut_inv,~] = cut_mesh(Src.vertices, Src.triangles, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, k21 ~= 1);
 
     # edge_jump_tag: edges where k21 != 1 (non-trivial rotation)
     # k21 is 1-4 where 1 = identity rotation
     edge_jump_tag = (k21 != 1)
 
     SrcCut_raw, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-        Src.X, Src.T, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, edge_jump_tag
+        Src.vertices, Src.triangles, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, edge_jump_tag
     )
 
     # Convert CutMeshInfo to full MeshInfo for dec_tri
     # IMPORTANT: mesh_info() creates a new edge ordering, so we must recompute ide_cut_inv
-    # to match the new ordering. We do this after building SrcCut.
+    # to match the new ordering. We do this after building disk_mesh.
     from Preprocess.MeshInfo import mesh_info
-    SrcCut = mesh_info(SrcCut_raw.X, SrcCut_raw.T)
+    disk_mesh = mesh_info(SrcCut_raw.vertices, SrcCut_raw.triangles)
 
-    # Recompute ide_cut_inv for SrcCut's edge ordering
+    # Recompute ide_cut_inv for disk_mesh's edge ordering
     # Map each cut mesh edge to its original edge via vertex mapping
     orig_edge_map = {tuple(sorted(row)): i for i, row in enumerate(Src.E2V)}
-    mapped_edges = np.sort(idx_cut_inv[SrcCut.E2V], axis=1)
+    mapped_edges = np.sort(idx_cut_inv[disk_mesh.E2V], axis=1)
     ide_cut_inv = np.array([orig_edge_map.get(tuple(row), -1) for row in mapped_edges], dtype=int)
     if np.any(ide_cut_inv < 0):
         raise AssertionError("Failed to map cut edges to original edges.")
     # Add sign to preserve orientation (1-based signed encoding)
-    ids = idx_cut_inv[SrcCut.E2V[:, 0]] == Src.E2V[ide_cut_inv, 0]
+    ids = idx_cut_inv[disk_mesh.E2V[:, 0]] == Src.E2V[ide_cut_inv, 0]
     ide_cut_inv = np.where(ids, ide_cut_inv + 1, -(ide_cut_inv + 1))
 
-    # dec_cut = dec_tri(SrcCut);
+    # dec_cut = dec_tri(disk_mesh);
 
-    dec_cut = dec_tri(SrcCut)
+    dec_cut = dec_tri(disk_mesh)
 
     # if ifseamless_const && nargout > 2
 
     if ifseamless_const:
-        # edge_bound_cut = find(any(SrcCut.E2T(:,1:2) == 0, 2));
+        # edge_bound_cut = find(any(disk_mesh.E2T(:,1:2) == 0, 2));
 
         # Find boundary edges in cut mesh (edges with only one adjacent face)
         # E2T uses -1 for no neighbor in Python (0 in MATLAB)
-        # SrcCut.E2T has shape (ne, 4) with columns [t0, t1, s0, s1]
-        E2T_cut = SrcCut.E2T[:, :2]  # First two columns are face indices
+        # disk_mesh.E2T has shape (ne, 4) with columns [t0, t1, s0, s1]
+        E2T_cut = disk_mesh.E2T[:, :2]  # First two columns are face indices
         is_boundary = np.any(E2T_cut == -1, axis=1)
         edge_bound_cut_idx = np.where(is_boundary)[0]
 
-        # edge_bound_cut = [edge_bound_cut, sum(SrcCut.E2T(edge_bound_cut,1:2),2)];
+        # edge_bound_cut = [edge_bound_cut, sum(disk_mesh.E2T(edge_bound_cut,1:2),2)];
 
         # Get the single adjacent face for each boundary edge
         # sum of [t0, t1] where one is -1 gives the valid face index (minus -1)
@@ -295,8 +295,8 @@ def mesh_to_disk_seamless(
         R_selected = R_all[k21_at_cut - 1]  # shape (n_pairs, 4)
         R = matrix_vector_multiplication(R_selected)
 
-        # I1 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,2)), sign(ide_cut_cor(:,2)), size(ide_cut_cor,1), SrcCut.ne);
-        # I2 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,3)), sign(ide_cut_cor(:,3)), size(ide_cut_cor,1), SrcCut.ne);
+        # I1 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,2)), sign(ide_cut_cor(:,2)), size(ide_cut_cor,1), disk_mesh.num_edges);
+        # I2 = sparse(1:size(ide_cut_cor,1), abs(ide_cut_cor(:,3)), sign(ide_cut_cor(:,3)), size(ide_cut_cor,1), disk_mesh.num_edges);
 
         # Decode signed 1-based edge indices
         edge1_idx = np.abs(ide_cut_cor[:, 1]).astype(int) - 1  # 0-based
@@ -307,11 +307,11 @@ def mesh_to_disk_seamless(
         row_idx = np.arange(n_pairs)
         I1 = csr_matrix(
             (edge1_sign, (row_idx, edge1_idx)),
-            shape=(n_pairs, SrcCut.ne)
+            shape=(n_pairs, disk_mesh.num_edges)
         )
         I2 = csr_matrix(
             (edge2_sign, (row_idx, edge2_idx)),
-            shape=(n_pairs, SrcCut.ne)
+            shape=(n_pairs, disk_mesh.num_edges)
         )
 
         # Rot = blkdiag(I1*dec_cut.d0p,I1*dec_cut.d0p) - R*blkdiag(I2*dec_cut.d0p,I2*dec_cut.d0p);
@@ -325,9 +325,9 @@ def mesh_to_disk_seamless(
 
         Rot = blk1 - R @ blk2
 
-        # Align = sparse(0,2*SrcCut.nv);
+        # Align = sparse(0,2*disk_mesh.num_vertices);
 
-        Align = csr_matrix((0, 2 * SrcCut.nv))
+        Align = csr_matrix((0, 2 * disk_mesh.num_vertices))
 
         # if (ifboundary && ~isempty(param.ide_bound)) || (ifhardedge && ~isempty(param.ide_hard))
 
@@ -345,10 +345,10 @@ def mesh_to_disk_seamless(
             ide_fix_cut = np.where(is_fix_edge)[0]
 
             if len(ide_fix_cut) > 0:
-                # tri_fix_cut = vec(SrcCut.E2T(ide_fix_cut,1:2));
+                # tri_fix_cut = vec(disk_mesh.E2T(ide_fix_cut,1:2));
 
                 # Get triangles adjacent to fixed cut edges
-                tri_fix_cut_2d = SrcCut.E2T[ide_fix_cut, :2]  # shape (n_fix, 2)
+                tri_fix_cut_2d = disk_mesh.E2T[ide_fix_cut, :2]  # shape (n_fix, 2)
                 tri_fix_cut = tri_fix_cut_2d.flatten('F')  # column-major flatten
 
                 # id = tri_fix_cut ~= 0;
@@ -405,27 +405,27 @@ def mesh_to_disk_seamless(
                     ang_at_fix = ang[tri_fix_param]  # tri_fix_param == param.tri_fix here (no filtering)
                     dir_fix = np.round(np.abs(wrap_to_pi(2 * ang_at_fix) / np.pi) + 1).astype(int)
 
-                    # Align = sparse(1:length(ide_fix_cut), ide_fix_cut + (2 - dir_fix)*SrcCut.ne, 1, length(ide_fix_cut), 2*SrcCut.ne)*blkdiag(dec_cut.d0p, dec_cut.d0p);
+                    # Align = sparse(1:length(ide_fix_cut), ide_fix_cut + (2 - dir_fix)*disk_mesh.num_edges, 1, length(ide_fix_cut), 2*disk_mesh.num_edges)*blkdiag(dec_cut.d0p, dec_cut.d0p);
 
                     n_fix = len(ide_fix_cut_final)
                     # Column indices: ide_fix_cut + (2 - dir_fix) * ne
                     # This selects either the u or v component
-                    col_idx = ide_fix_cut_final + (2 - dir_fix[:n_fix]) * SrcCut.ne
+                    col_idx = ide_fix_cut_final + (2 - dir_fix[:n_fix]) * disk_mesh.num_edges
 
                     row_idx = np.arange(n_fix)
                     selector = csr_matrix(
                         (np.ones(n_fix), (row_idx, col_idx)),
-                        shape=(n_fix, 2 * SrcCut.ne)
+                        shape=(n_fix, 2 * disk_mesh.num_edges)
                     )
 
                     d0p_blk = block_diag((dec_cut.d0p, dec_cut.d0p), format='csr')
                     Align = selector @ d0p_blk
 
     else:
-        # Align = sparse(0,2*SrcCut.nv);
-        # Rot = sparse(0,2*SrcCut.nv);
+        # Align = sparse(0,2*disk_mesh.num_vertices);
+        # Rot = sparse(0,2*disk_mesh.num_vertices);
 
-        Align = csr_matrix((0, 2 * SrcCut.nv))
-        Rot = csr_matrix((0, 2 * SrcCut.nv))
+        Align = csr_matrix((0, 2 * disk_mesh.num_vertices))
+        Rot = csr_matrix((0, 2 * disk_mesh.num_vertices))
 
-    return SrcCut, dec_cut, Align, Rot
+    return disk_mesh, dec_cut, Align, Rot

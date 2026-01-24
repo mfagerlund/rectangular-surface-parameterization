@@ -194,7 +194,7 @@ class TestD0pShape:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, mesh.nv)  # (3, 3)
+        expected_shape = (mesh.num_edges, mesh.num_vertices)  # (3, 3)
         assert dec.d0p.shape == expected_shape, \
             f"d0p shape should be {expected_shape}, got {dec.d0p.shape}"
 
@@ -203,7 +203,7 @@ class TestD0pShape:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, mesh.nv)  # (6, 4)
+        expected_shape = (mesh.num_edges, mesh.num_vertices)  # (6, 4)
         assert dec.d0p.shape == expected_shape, \
             f"d0p shape should be {expected_shape}, got {dec.d0p.shape}"
 
@@ -212,7 +212,7 @@ class TestD0pShape:
         mesh = two_triangles_shared_edge
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, mesh.nv)  # (5, 4)
+        expected_shape = (mesh.num_edges, mesh.num_vertices)  # (5, 4)
         assert dec.d0p.shape == expected_shape, \
             f"d0p shape should be {expected_shape}, got {dec.d0p.shape}"
 
@@ -229,7 +229,7 @@ class TestD1pShape:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nf, mesh.ne)  # (1, 3)
+        expected_shape = (mesh.num_faces, mesh.num_edges)  # (1, 3)
         assert dec.d1p.shape == expected_shape, \
             f"d1p shape should be {expected_shape}, got {dec.d1p.shape}"
 
@@ -238,7 +238,7 @@ class TestD1pShape:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nf, mesh.ne)  # (4, 6)
+        expected_shape = (mesh.num_faces, mesh.num_edges)  # (4, 6)
         assert dec.d1p.shape == expected_shape, \
             f"d1p shape should be {expected_shape}, got {dec.d1p.shape}"
 
@@ -247,7 +247,7 @@ class TestD1pShape:
         mesh = two_triangles_shared_edge
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nf, mesh.ne)  # (2, 5)
+        expected_shape = (mesh.num_faces, mesh.num_edges)  # (2, 5)
         assert dec.d1p.shape == expected_shape, \
             f"d1p shape should be {expected_shape}, got {dec.d1p.shape}"
 
@@ -322,7 +322,7 @@ class TestHodgeStarShapes:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nv, mesh.nv)  # (3, 3)
+        expected_shape = (mesh.num_vertices, mesh.num_vertices)  # (3, 3)
         assert dec.star0p.shape == expected_shape, \
             f"star0p shape should be {expected_shape}, got {dec.star0p.shape}"
 
@@ -331,7 +331,7 @@ class TestHodgeStarShapes:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nv, mesh.nv)  # (4, 4)
+        expected_shape = (mesh.num_vertices, mesh.num_vertices)  # (4, 4)
         assert dec.star0p.shape == expected_shape, \
             f"star0p shape should be {expected_shape}, got {dec.star0p.shape}"
 
@@ -340,7 +340,7 @@ class TestHodgeStarShapes:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, mesh.ne)  # (3, 3)
+        expected_shape = (mesh.num_edges, mesh.num_edges)  # (3, 3)
         assert dec.star1p.shape == expected_shape, \
             f"star1p shape should be {expected_shape}, got {dec.star1p.shape}"
 
@@ -349,7 +349,7 @@ class TestHodgeStarShapes:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, mesh.ne)  # (6, 6)
+        expected_shape = (mesh.num_edges, mesh.num_edges)  # (6, 6)
         assert dec.star1p.shape == expected_shape, \
             f"star1p shape should be {expected_shape}, got {dec.star1p.shape}"
 
@@ -358,7 +358,7 @@ class TestHodgeStarShapes:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nf, mesh.nf)  # (1, 1)
+        expected_shape = (mesh.num_faces, mesh.num_faces)  # (1, 1)
         assert dec.star2p.shape == expected_shape, \
             f"star2p shape should be {expected_shape}, got {dec.star2p.shape}"
 
@@ -367,7 +367,7 @@ class TestHodgeStarShapes:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nf, mesh.nf)  # (4, 4)
+        expected_shape = (mesh.num_faces, mesh.num_faces)  # (4, 4)
         assert dec.star2p.shape == expected_shape, \
             f"star2p shape should be {expected_shape}, got {dec.star2p.shape}"
 
@@ -384,7 +384,7 @@ class TestDualHodgeStarShapes:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nf, mesh.nf)  # (4, 4)
+        expected_shape = (mesh.num_faces, mesh.num_faces)  # (4, 4)
         assert dec.star0d.shape == expected_shape, \
             f"star0d shape should be {expected_shape}, got {dec.star0d.shape}"
 
@@ -393,7 +393,7 @@ class TestDualHodgeStarShapes:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, mesh.ne)  # (6, 6)
+        expected_shape = (mesh.num_edges, mesh.num_edges)  # (6, 6)
         assert dec.star1d.shape == expected_shape, \
             f"star1d shape should be {expected_shape}, got {dec.star1d.shape}"
 
@@ -402,7 +402,7 @@ class TestDualHodgeStarShapes:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nv, mesh.nv)  # (4, 4)
+        expected_shape = (mesh.num_vertices, mesh.num_vertices)  # (4, 4)
         assert dec.star2d.shape == expected_shape, \
             f"star2d shape should be {expected_shape}, got {dec.star2d.shape}"
 
@@ -419,7 +419,7 @@ class TestLaplacianShape:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nv, mesh.nv)  # (3, 3)
+        expected_shape = (mesh.num_vertices, mesh.num_vertices)  # (3, 3)
         assert dec.W.shape == expected_shape, \
             f"W shape should be {expected_shape}, got {dec.W.shape}"
 
@@ -428,7 +428,7 @@ class TestLaplacianShape:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.nv, mesh.nv)  # (4, 4)
+        expected_shape = (mesh.num_vertices, mesh.num_vertices)  # (4, 4)
         assert dec.W.shape == expected_shape, \
             f"W shape should be {expected_shape}, got {dec.W.shape}"
 
@@ -469,7 +469,7 @@ class TestTriangleBasedOperators:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, 3 * mesh.nf)  # (3, 3)
+        expected_shape = (mesh.num_edges, 3 * mesh.num_faces)  # (3, 3)
         assert dec.d0p_tri.shape == expected_shape, \
             f"d0p_tri shape should be {expected_shape}, got {dec.d0p_tri.shape}"
 
@@ -478,7 +478,7 @@ class TestTriangleBasedOperators:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (mesh.ne, 3 * mesh.nf)  # (6, 12)
+        expected_shape = (mesh.num_edges, 3 * mesh.num_faces)  # (6, 12)
         assert dec.d0p_tri.shape == expected_shape, \
             f"d0p_tri shape should be {expected_shape}, got {dec.d0p_tri.shape}"
 
@@ -487,7 +487,7 @@ class TestTriangleBasedOperators:
         mesh = single_triangle
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (3 * mesh.nf, 3 * mesh.nf)  # (3, 3)
+        expected_shape = (3 * mesh.num_faces, 3 * mesh.num_faces)  # (3, 3)
         assert dec.star0p_tri.shape == expected_shape, \
             f"star0p_tri shape should be {expected_shape}, got {dec.star0p_tri.shape}"
 
@@ -496,7 +496,7 @@ class TestTriangleBasedOperators:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (3 * mesh.nf, 3 * mesh.nf)  # (12, 12)
+        expected_shape = (3 * mesh.num_faces, 3 * mesh.num_faces)  # (12, 12)
         assert dec.star0p_tri.shape == expected_shape, \
             f"star0p_tri shape should be {expected_shape}, got {dec.star0p_tri.shape}"
 
@@ -505,7 +505,7 @@ class TestTriangleBasedOperators:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (3 * mesh.nf, 3 * mesh.nf)  # (12, 12)
+        expected_shape = (3 * mesh.num_faces, 3 * mesh.num_faces)  # (12, 12)
         assert dec.W_tri.shape == expected_shape, \
             f"W_tri shape should be {expected_shape}, got {dec.W_tri.shape}"
 
@@ -514,7 +514,7 @@ class TestTriangleBasedOperators:
         mesh = tetrahedron
         dec = safe_dec_tri(mesh)
 
-        expected_shape = (3 * mesh.nf, mesh.nv)  # (12, 4)
+        expected_shape = (3 * mesh.num_faces, mesh.num_vertices)  # (12, 4)
         assert dec.Reduction_tri.shape == expected_shape, \
             f"Reduction_tri shape should be {expected_shape}, got {dec.Reduction_tri.shape}"
 
@@ -706,12 +706,12 @@ class TestGradientOfConstant:
         dec = safe_dec_tri(mesh)
 
         # Constant function on vertices
-        const_func = np.ones(mesh.nv)
+        const_func = np.ones(mesh.num_vertices)
 
         # Apply gradient
         gradient = dec.d0p @ const_func
 
-        np.testing.assert_allclose(gradient, np.zeros(mesh.ne), atol=1e-10,
+        np.testing.assert_allclose(gradient, np.zeros(mesh.num_edges), atol=1e-10,
             err_msg="Gradient of constant should be zero")
 
 

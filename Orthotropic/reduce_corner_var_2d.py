@@ -10,9 +10,9 @@ from typing import Tuple, List
 from Preprocess.sort_triangles import sort_triangles
 
 
-# function [Edge_jump,v2t,base_tri] = reduce_corner_var_2d(Src)
+# function [Edge_jump,v2t,base_tri] = reduce_corner_var_2d(mesh)
 
-def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_matrix, sp.csr_matrix, np.ndarray]:
+def reduce_corner_var_2d(mesh, allow_open_mesh: bool = False) -> Tuple[sp.csr_matrix, sp.csr_matrix, np.ndarray]:
     """
     Reduce corner variables to vertex variables without cut edges.
 
@@ -25,7 +25,7 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
 
     Parameters
     ----------
-    Src : mesh data structure
+    mesh : mesh data structure
         Contains nv, nf, ne, T, E2T, T2T, E2V, T2E
     allow_open_mesh : bool, default False
         If False, raises ValueError for meshes with boundary edges.
@@ -46,34 +46,34 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
         If mesh has boundary edges and allow_open_mesh is False.
     """
     # Check for boundary edges (E2T[:, 1] == -1 indicates boundary)
-    if hasattr(Src, 'E2T'):
-        has_boundary = np.any(Src.E2T[:, 1] < 0)
+    if hasattr(mesh, 'E2T'):
+        has_boundary = np.any(mesh.E2T[:, 1] < 0)
         if has_boundary and not allow_open_mesh:
             raise ValueError(
                 "reduce_corner_var_2d is designed for closed meshes only. "
                 "For meshes with boundaries, use reduce_corner_var_2d_cut instead, "
                 "or set allow_open_mesh=True if you understand the limitations."
             )
-    # base_tri = zeros(Src.nv,1);
-    # path_vx = cell(Src.nv,1);
-    # path_edge = cell(Src.nv,1);
-    # Tc = reshape((1:3*Src.nf)', [Src.nf,3]);
+    # base_tri = zeros(mesh.num_vertices,1);
+    # path_vx = cell(mesh.num_vertices,1);
+    # path_edge = cell(mesh.num_vertices,1);
+    # Tc = reshape((1:3*mesh.num_faces)', [mesh.num_faces,3]);
 
-    base_tri = np.zeros(Src.nv, dtype=int)
-    path_vx: List[np.ndarray] = [None] * Src.nv
-    path_edge: List[np.ndarray] = [None] * Src.nv
+    base_tri = np.zeros(mesh.num_vertices, dtype=int)
+    path_vx: List[np.ndarray] = [None] * mesh.num_vertices
+    path_edge: List[np.ndarray] = [None] * mesh.num_vertices
 
     # Tc: corner indices, reshaped so Tc[f, c] gives corner index for face f, corner c
     # MATLAB: reshape((1:3*nf)', [nf,3]) - column-major
     # This gives [0,nf,2nf; 1,nf+1,2nf+1; ...] in 0-indexed
-    Tc = np.arange(3 * Src.nf).reshape((Src.nf, 3), order='F')
+    Tc = np.arange(3 * mesh.num_faces).reshape((mesh.num_faces, 3), order='F')
 
-    # for i = 1:Src.nv
-    for i in range(Src.nv):
-        # [tri_ord,edge_ord,sign_edge] = sort_triangles(i, Src.T, Src.E2T, Src.T2T, Src.E2V, Src.T2E);
+    # for i = 1:mesh.num_vertices
+    for i in range(mesh.num_vertices):
+        # [tri_ord,edge_ord,sign_edge] = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E);
         # edge_ord = edge_ord.*sign_edge;
 
-        tri_ord, edge_ord, sign_edge = sort_triangles(i, Src.T, Src.E2T, Src.T2T, Src.E2V, Src.T2E)
+        tri_ord, edge_ord, sign_edge = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E)
         # Create signed edge indices using 1-based encoding: (idx+1)*sign
         edge_ord_signed = (edge_ord + 1) * sign_edge
 
@@ -88,12 +88,12 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
         # In Python, boundary is indicated by tri_ord[-1] == -1 (sentinel value)
         if tri_ord[-1] == -1:
             # Boundary vertex case
-            # idvx = sum(Tc(tri_ord(1:end-1),:) .* (Src.T(tri_ord(1:end-1),:) == i), 2);
+            # idvx = sum(Tc(tri_ord(1:end-1),:) .* (mesh.triangles(tri_ord(1:end-1),:) == i), 2);
             # path_vx{i} = [idvx, i*ones(length(idvx),1)];
 
             tri_valid = tri_ord[:-1]  # Exclude the boundary sentinel
             # Find corner indices where vertex i appears in each triangle
-            mask = (Src.T[tri_valid, :] == i)
+            mask = (mesh.triangles[tri_valid, :] == i)
             idvx = np.sum(Tc[tri_valid, :] * mask, axis=1)
 
             path_vx[i] = np.column_stack([idvx, np.full(len(idvx), i)])
@@ -125,10 +125,10 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
                 path_edge[i] = np.zeros((0, 2), dtype=int)
         else:
             # Interior vertex case
-            # idvx = sum(Tc(tri_ord,:) .* (Src.T(tri_ord,:) == i), 2);
+            # idvx = sum(Tc(tri_ord,:) .* (mesh.triangles(tri_ord,:) == i), 2);
             # path_vx{i} = [idvx, i*ones(length(idvx),1)];
 
-            mask = (Src.T[tri_ord, :] == i)
+            mask = (mesh.triangles[tri_ord, :] == i)
             idvx = np.sum(Tc[tri_ord, :] * mask, axis=1)
 
             path_vx[i] = np.column_stack([idvx, np.full(len(idvx), i)])
@@ -159,7 +159,7 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
                 path_edge[i] = np.zeros((0, 2), dtype=int)
 
     # I = cell2mat(path_edge);
-    # Edge_jump = sparse(I(:,1), abs(I(:,2)), sign(I(:,2)), 3*Src.nf, Src.ne);
+    # Edge_jump = sparse(I(:,1), abs(I(:,2)), sign(I(:,2)), 3*mesh.num_faces, mesh.num_edges);
 
     # Concatenate all path_edge arrays
     path_edge_valid = [pe for pe in path_edge if pe is not None and len(pe) > 0]
@@ -170,12 +170,12 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
         col_idx = np.abs(I_edge[:, 1]) - 1  # Convert back to 0-based
         vals = np.sign(I_edge[:, 1])
         Edge_jump = sp.coo_matrix((vals, (row_idx, col_idx)),
-                                  shape=(3 * Src.nf, Src.ne)).tocsr()
+                                  shape=(3 * mesh.num_faces, mesh.num_edges)).tocsr()
     else:
-        Edge_jump = sp.csr_matrix((3 * Src.nf, Src.ne))
+        Edge_jump = sp.csr_matrix((3 * mesh.num_faces, mesh.num_edges))
 
     # I = cell2mat(path_vx);
-    # v2t = sparse(I(:,1), I(:,2), 1, 3*Src.nf, Src.nv);
+    # v2t = sparse(I(:,1), I(:,2), 1, 3*mesh.num_faces, mesh.num_vertices);
 
     path_vx_valid = [pv for pv in path_vx if pv is not None and len(pv) > 0]
     if len(path_vx_valid) > 0:
@@ -184,8 +184,8 @@ def reduce_corner_var_2d(Src, allow_open_mesh: bool = False) -> Tuple[sp.csr_mat
         col_idx = I_vx[:, 1]
         vals = np.ones(len(row_idx))
         v2t = sp.coo_matrix((vals, (row_idx, col_idx)),
-                            shape=(3 * Src.nf, Src.nv)).tocsr()
+                            shape=(3 * mesh.num_faces, mesh.num_vertices)).tocsr()
     else:
-        v2t = sp.csr_matrix((3 * Src.nf, Src.nv))
+        v2t = sp.csr_matrix((3 * mesh.num_faces, mesh.num_vertices))
 
     return Edge_jump, v2t, base_tri

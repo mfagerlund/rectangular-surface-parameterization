@@ -78,8 +78,8 @@ class MockWeight:
 class MockSrc:
     """Mock mesh source object with nv, nf, and area."""
     def __init__(self, nv, nf, area):
-        self.nv = nv
-        self.nf = nf
+        self.num_vertices = nv
+        self.num_faces = nf
         self.area = area
 
 
@@ -159,7 +159,7 @@ def build_standard_reduction(nf, nv):
     # This creates a (3*nf, nv) block that we stack for u and v
     corner_block = csr_matrix((3 * nf, nv))
     # For simplicity, use a permutation-like pattern
-    # In actual usage, this would be built from mesh.T
+    # In actual usage, this would be built from mesh.triangles
     row_idx = np.arange(3 * nf)
     col_idx = np.tile(np.arange(min(nv, 3 * nf) // 3 + 1), 3 * nf // (min(nv, 3 * nf) // 3 + 1) + 1)[:3 * nf]
     col_idx = col_idx % nv
@@ -177,9 +177,9 @@ def build_reduction_from_mesh(mesh):
 
     Shape: (6*nf, 2*nv).
     """
-    nf = mesh.nf
-    nv = mesh.nv
-    T = mesh.T
+    nf = mesh.num_faces
+    nv = mesh.num_vertices
+    T = mesh.triangles
 
     # Build corner-to-vertex mapping
     # Corner indexing: corner j of face f is at j*nf + f (column-major)
@@ -233,7 +233,7 @@ class TestOutputStructure:
     def test_distortion_returns_tuple(self, single_triangle):
         """Distortion energy returns (fct, H, df) tuple."""
         mesh, dec = single_triangle
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -254,7 +254,7 @@ class TestOutputStructure:
     def test_distortion_output_types(self, single_triangle):
         """Distortion energy outputs have correct types."""
         mesh, dec = single_triangle
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -281,7 +281,7 @@ class TestOutputStructure:
     def test_chebyshev_output_types(self, single_triangle):
         """Chebyshev energy outputs have correct types."""
         mesh, dec = single_triangle
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight()
@@ -303,7 +303,7 @@ class TestOutputStructure:
     def test_alignment_output_types(self, single_triangle):
         """Alignment energy outputs have correct types."""
         mesh, dec = single_triangle
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(ang_dir=np.zeros(nf), aspect_ratio=1.0, w_ratio=1.0, w_ang=1.0)
@@ -333,7 +333,7 @@ class TestOutputShapes:
     def test_distortion_hessian_shape(self, simple_mesh):
         """Distortion Hessian has shape (2*nv + nf, 2*nv + nf)."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -355,7 +355,7 @@ class TestOutputShapes:
     def test_distortion_gradient_shape(self, simple_mesh):
         """Distortion gradient has shape (2*nv + nf,)."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -377,7 +377,7 @@ class TestOutputShapes:
     def test_chebyshev_shapes(self, simple_mesh):
         """Chebyshev energy has correct output shapes."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight()
@@ -399,7 +399,7 @@ class TestOutputShapes:
     def test_alignment_shapes(self, simple_mesh):
         """Alignment energy has correct output shapes."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(ang_dir=np.zeros(nf), aspect_ratio=1.0, w_ratio=1.0, w_ang=1.0)
@@ -421,7 +421,7 @@ class TestOutputShapes:
     def test_tetrahedron_shapes(self, tetrahedron):
         """Output shapes correct for tetrahedron mesh."""
         mesh, dec = tetrahedron
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -451,7 +451,7 @@ class TestHessianProperties:
     def test_distortion_hessian_symmetric(self, simple_mesh):
         """Distortion Hessian should be symmetric."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -475,7 +475,7 @@ class TestHessianProperties:
     def test_chebyshev_hessian_symmetric(self, simple_mesh):
         """Chebyshev Hessian should be symmetric."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight()
@@ -499,7 +499,7 @@ class TestHessianProperties:
     def test_alignment_hessian_symmetric(self, simple_mesh):
         """Alignment Hessian should be symmetric."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(ang_dir=np.zeros(nf), aspect_ratio=1.0, w_ratio=1.0, w_ang=1.0)
@@ -523,7 +523,7 @@ class TestHessianProperties:
     def test_distortion_hessian_positive_semidefinite(self, simple_mesh):
         """Distortion Hessian should be positive semi-definite (for convex energy)."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -557,7 +557,7 @@ class TestEnergyNonnegativity:
     def test_distortion_energy_nonnegative(self, simple_mesh):
         """Distortion energy should be non-negative."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -579,7 +579,7 @@ class TestEnergyNonnegativity:
     def test_distortion_energy_zero_at_zero(self, simple_mesh):
         """Distortion energy should be zero when ut=vt=0."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -607,7 +607,7 @@ class TestGradientFiniteDifference:
     def test_distortion_gradient_fd(self, simple_mesh):
         """Distortion gradient matches finite difference approximation."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -673,7 +673,7 @@ class TestGradientFiniteDifference:
         or we should compare fd with analytic/2.
         """
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         ang_dir = np.random.randn(nf) * 0.1
@@ -728,7 +728,7 @@ class TestWeightSensitivity:
     def test_distortion_w_conf_ar_effect(self, simple_mesh):
         """w_conf_ar affects distortion energy."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         param = MockParam()
@@ -758,7 +758,7 @@ class TestWeightSensitivity:
     def test_distortion_w_gradv_effect(self, simple_mesh):
         """w_gradv adds gradient regularization term."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         param = MockParam()
@@ -795,7 +795,7 @@ class TestChebyshevEnergy:
     def test_chebyshev_zero_at_balanced_scales(self, simple_mesh):
         """Chebyshev energy should be zero when ut = -vt (balanced diagonal)."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight()
@@ -819,7 +819,7 @@ class TestChebyshevEnergy:
     def test_chebyshev_energy_finite(self, simple_mesh):
         """Chebyshev energy should be finite for reasonable inputs."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight()
@@ -849,7 +849,7 @@ class TestAlignmentEnergy:
     def test_alignment_zero_at_target(self, simple_mesh):
         """Alignment energy should be zero when at target angle and aspect ratio."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         target_ang = np.random.randn(nf) * 0.2
         target_aspect = 2.0  # exp(log(2)/2) in each direction
@@ -877,7 +877,7 @@ class TestAlignmentEnergy:
     def test_alignment_increases_away_from_target(self, simple_mesh):
         """Alignment energy should increase when away from target."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         target_ang = np.zeros(nf)
         Src = MockSrc(nv, nf, mesh.area)
@@ -913,7 +913,7 @@ class TestInvalidEnergyType:
     def test_invalid_energy_raises(self, simple_mesh):
         """Invalid energy type should raise ValueError."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight()
@@ -940,7 +940,7 @@ class TestEdgeCases:
     def test_single_face_mesh(self, single_triangle):
         """Works with single face mesh."""
         mesh, dec = single_triangle
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -962,7 +962,7 @@ class TestEdgeCases:
     def test_large_scale_values(self, simple_mesh):
         """Works with large scale factor values."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -983,7 +983,7 @@ class TestEdgeCases:
     def test_negative_scale_values(self, simple_mesh):
         """Works with negative scale factor values (log scale can be negative)."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -1003,7 +1003,7 @@ class TestEdgeCases:
     def test_mixed_scale_values(self, simple_mesh):
         """Works with mixed positive/negative scale factor values."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight(w_conf_ar=0.5)
@@ -1032,7 +1032,7 @@ class TestConsistencyAcrossEnergyTypes:
     def test_all_energies_same_output_structure(self, simple_mesh):
         """All energy types produce same output structure."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         param = MockParam()
@@ -1075,7 +1075,7 @@ class TestNumericalStability:
     def test_chebyshev_stable_for_large_vt(self, simple_mesh):
         """Chebyshev energy stable for large vt values."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         weight = MockWeight()
@@ -1096,7 +1096,7 @@ class TestNumericalStability:
     def test_no_nans_in_outputs(self, simple_mesh):
         """No NaN values in any outputs."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         param = MockParam()
@@ -1128,7 +1128,7 @@ class TestGradvTerm:
     def test_w_gradv_affects_hessian(self, simple_mesh):
         """w_gradv should modify the Hessian."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         param = MockParam()
@@ -1157,7 +1157,7 @@ class TestGradvTerm:
     def test_w_gradv_affects_gradient(self, simple_mesh):
         """w_gradv should modify the gradient when vt is non-uniform."""
         mesh, dec = simple_mesh
-        nf, nv = mesh.nf, mesh.nv
+        nf, nv = mesh.num_faces, mesh.num_vertices
 
         Src = MockSrc(nv, nf, mesh.area)
         param = MockParam()

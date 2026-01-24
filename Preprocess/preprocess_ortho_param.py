@@ -1,5 +1,5 @@
 
-# function [param,Src,dec] = preprocess_ortho_param(Src, dec, ifboundary, ifhardedge, tol_dihedral_deg, Ehard2V)
+# function [param,mesh,dec] = preprocess_ortho_param(mesh, dec, ifboundary, ifhardedge, tol_dihedral_deg, Ehard2V)
 #
 #
 
@@ -139,7 +139,7 @@ class OrthoParam:
 
 
 def preprocess_ortho_param(
-    Src: MeshInfo,
+    mesh: MeshInfo,
     dec: DEC,
     ifboundary: bool,
     ifhardedge: bool,
@@ -154,7 +154,7 @@ def preprocess_ortho_param(
 
     Parameters
     ----------
-    Src : MeshInfo
+    mesh : MeshInfo
         Triangle mesh data structure
     dec : DEC
         DEC data structure
@@ -171,7 +171,7 @@ def preprocess_ortho_param(
     -------
     param : OrthoParam
         Data structure containing all parametrization constraints information
-    Src : MeshInfo
+    mesh : MeshInfo
         (Possibly remeshed) triangle mesh data structure
     dec : DEC
         (Possibly recomputed) DEC data structure
@@ -185,9 +185,9 @@ def preprocess_ortho_param(
     # if ifhardedge && ~exist('Ehard2V','var')
 
     if ifhardedge and Ehard2V is None:
-        # [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(Src, tol_dihedral_deg);
+        # [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(mesh, tol_dihedral_deg);
 
-        ide_hard, tri_hard, ide_bound, tri_bound = detect_hard_edge(Src, tol_dihedral_deg)
+        ide_hard, tri_hard, ide_bound, tri_bound = detect_hard_edge(mesh, tol_dihedral_deg)
 
         # ide_fix = [ide_hard; ide_bound];    % Constrained edges
         # tri_fix = [tri_hard(:); tri_bound]; % Corresponding faces
@@ -198,43 +198,43 @@ def preprocess_ortho_param(
         # if numel(tri_fix) ~= length(unique(tri_fix))
 
         if len(tri_fix) != len(np.unique(tri_fix)):
-            # tri = sum(ismember(abs(Src.T2E), ide_fix) ,2) >= 2;
+            # tri = sum(ismember(abs(mesh.T2E), ide_fix) ,2) >= 2;
 
             # T2E uses 1-based signed encoding, so abs(T2E)-1 gives 0-based edge indices
-            T2E_abs = np.abs(Src.T2E) - 1
+            T2E_abs = np.abs(mesh.T2E) - 1
             tri_mask = np.sum(np.isin(T2E_abs, ide_fix), axis=1) >= 2
 
-            # b = (Src.X(Src.T(tri,1),:)+Src.X(Src.T(tri,2),:)+Src.X(Src.T(tri,3),:))/3;
-            # Xs = [Src.X; b];
+            # b = (mesh.vertices(mesh.triangles(tri,1),:)+mesh.vertices(mesh.triangles(tri,2),:)+mesh.vertices(mesh.triangles(tri,3),:))/3;
+            # Xs = [mesh.vertices; b];
 
             tri_indices = np.where(tri_mask)[0]
-            b = (Src.X[Src.T[tri_mask, 0], :] +
-                 Src.X[Src.T[tri_mask, 1], :] +
-                 Src.X[Src.T[tri_mask, 2], :]) / 3
-            Xs = np.vstack([Src.X, b])
+            b = (mesh.vertices[mesh.triangles[tri_mask, 0], :] +
+                 mesh.vertices[mesh.triangles[tri_mask, 1], :] +
+                 mesh.vertices[mesh.triangles[tri_mask, 2], :]) / 3
+            Xs = np.vstack([mesh.vertices, b])
 
-            # np = Src.nv+(1:size(b,1))';
-            # Ttri = [Src.T(tri,[1 2]), np ; Src.T(tri,[2 3]), np ; Src.T(tri,[3 1]), np];
-            # Ts = Src.T;
+            # np = mesh.num_vertices+(1:size(b,1))';
+            # Ttri = [mesh.triangles(tri,[1 2]), np ; mesh.triangles(tri,[2 3]), np ; mesh.triangles(tri,[3 1]), np];
+            # Ts = mesh.triangles;
             # Ts(tri,:) = [];
             # Ts = [Ts; Ttri];
 
-            new_verts = Src.nv + np.arange(len(b))
+            new_verts = mesh.num_vertices + np.arange(len(b))
             Ttri = np.vstack([
-                np.column_stack([Src.T[tri_mask, 0], Src.T[tri_mask, 1], new_verts]),
-                np.column_stack([Src.T[tri_mask, 1], Src.T[tri_mask, 2], new_verts]),
-                np.column_stack([Src.T[tri_mask, 2], Src.T[tri_mask, 0], new_verts])
+                np.column_stack([mesh.triangles[tri_mask, 0], mesh.triangles[tri_mask, 1], new_verts]),
+                np.column_stack([mesh.triangles[tri_mask, 1], mesh.triangles[tri_mask, 2], new_verts]),
+                np.column_stack([mesh.triangles[tri_mask, 2], mesh.triangles[tri_mask, 0], new_verts])
             ])
-            Ts = np.delete(Src.T, tri_indices, axis=0)
+            Ts = np.delete(mesh.triangles, tri_indices, axis=0)
             Ts = np.vstack([Ts, Ttri])
 
-            # Src = MeshInfo(Xs, Ts);
+            # mesh = MeshInfo(Xs, Ts);
 
-            Src = mesh_info(Xs, Ts)
+            mesh = mesh_info(Xs, Ts)
 
-            # [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(Src, tol_dihedral_deg);
+            # [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(mesh, tol_dihedral_deg);
 
-            ide_hard, tri_hard, ide_bound, tri_bound = detect_hard_edge(Src, tol_dihedral_deg)
+            ide_hard, tri_hard, ide_bound, tri_bound = detect_hard_edge(mesh, tol_dihedral_deg)
 
             # ide_fix = [ide_hard; ide_bound];
             # tri_fix = [tri_hard(:); tri_bound];
@@ -247,26 +247,26 @@ def preprocess_ortho_param(
         assert len(tri_fix) == len(np.unique(tri_fix)), 'Multiple constraints on a triangle.'
 
     # elseif exist('Ehard2V','var')
-    #     [~,ide_hard] = intersect(Src.E2V, sort(Ehard2V,2), 'rows');
-    #     tri_hard = Src.E2T(ide_hard,1:2);
+    #     [~,ide_hard] = intersect(mesh.E2V, sort(Ehard2V,2), 'rows');
+    #     tri_hard = mesh.E2T(ide_hard,1:2);
 
     elif Ehard2V is not None:
         Ehard2V_sorted = np.sort(Ehard2V, axis=1)
-        E2V_sorted = np.sort(Src.E2V, axis=1)
+        E2V_sorted = np.sort(mesh.E2V, axis=1)
         ide_hard = _intersect_rows(E2V_sorted, Ehard2V_sorted)
-        tri_hard = Src.E2T[ide_hard, :2]
+        tri_hard = mesh.E2T[ide_hard, :2]
 
     # else
     #     ide_hard = [];
-    #     tri_hard = Src.E2T(ide_hard,1:2);
+    #     tri_hard = mesh.E2T(ide_hard,1:2);
 
     else:
         ide_hard = np.array([], dtype=int)
         tri_hard = np.zeros((0, 2), dtype=int)
 
-    # ide_bound = boundary_indices(Src);
+    # ide_bound = boundary_indices(mesh);
 
-    ide_bound, _ = boundary_indices(Src)
+    ide_bound, _ = boundary_indices(mesh)
 
     # if ifhardedge || ~isempty(ide_bound)
 
@@ -275,17 +275,17 @@ def preprocess_ortho_param(
 
         ide_fix = np.concatenate([ide_hard, ide_bound])
 
-        # idx_fix = unique(Src.E2V(ide_fix,:));
+        # idx_fix = unique(mesh.E2V(ide_fix,:));
 
         if len(ide_fix) > 0:
-            idx_fix = np.unique(Src.E2V[ide_fix, :])
+            idx_fix = np.unique(mesh.E2V[ide_fix, :])
         else:
             idx_fix = np.array([], dtype=int)
 
-        # ide = find(all(ismember(Src.E2V, idx_fix), 2));
+        # ide = find(all(ismember(mesh.E2V, idx_fix), 2));
 
         if len(idx_fix) > 0:
-            in_fix = np.isin(Src.E2V, idx_fix)
+            in_fix = np.isin(mesh.E2V, idx_fix)
             ide = np.where(np.all(in_fix, axis=1))[0]
         else:
             ide = np.array([], dtype=int)
@@ -297,17 +297,17 @@ def preprocess_ortho_param(
         # if ~isempty(ide)
 
         if len(ide) > 0:
-            # nv = Src.nv;            % Current vertex count
-            # Ts = Src.T;             % New face list
-            # Xs = Src.X;             % New vertex list
-            # E2T = Src.E2T(:,1:2);   % New edge to face table
-            # E2V = Src.E2V;          % New edge to vertices
+            # nv = mesh.num_vertices;            % Current vertex count
+            # Ts = mesh.triangles;             % New face list
+            # Xs = mesh.vertices;             % New vertex list
+            # E2T = mesh.E2T(:,1:2);   % New edge to face table
+            # E2V = mesh.E2V;          % New edge to vertices
 
-            nv = Src.nv
-            Ts = Src.T.copy()
-            Xs = Src.X.copy()
-            E2T = Src.E2T[:, :2].copy()
-            E2V = Src.E2V.copy()
+            nv = mesh.num_vertices
+            Ts = mesh.triangles.copy()
+            Xs = mesh.vertices.copy()
+            E2T = mesh.E2T[:, :2].copy()
+            E2V = mesh.E2V.copy()
 
             # while ~isempty(ide) % while there are edges to split
 
@@ -384,26 +384,26 @@ def preprocess_ortho_param(
                 else:
                     ide = np.array([], dtype=int)
 
-            # idx_hard = sort(Src.E2V(ide_hard,:),2);
+            # idx_hard = sort(mesh.E2V(ide_hard,:),2);
 
             if len(ide_hard) > 0:
-                idx_hard = np.sort(Src.E2V[ide_hard, :], axis=1)
+                idx_hard = np.sort(mesh.E2V[ide_hard, :], axis=1)
             else:
                 idx_hard = np.zeros((0, 2), dtype=int)
 
-            # Src = MeshInfo(Xs, Ts);
-            # dec = dec_tri(Src);
+            # mesh = MeshInfo(Xs, Ts);
+            # dec = dec_tri(mesh);
 
-            Src = mesh_info(Xs, Ts)
-            dec = dec_tri(Src)
+            mesh = mesh_info(Xs, Ts)
+            dec = dec_tri(mesh)
 
-            # [~,ide_hard] = intersect(sort(Src.E2V,2), idx_hard, 'rows');
-            # tri_hard = Src.E2T(ide_hard,1:2);
+            # [~,ide_hard] = intersect(sort(mesh.E2V,2), idx_hard, 'rows');
+            # tri_hard = mesh.E2T(ide_hard,1:2);
 
             if len(idx_hard) > 0:
-                E2V_sorted = np.sort(Src.E2V, axis=1)
+                E2V_sorted = np.sort(mesh.E2V, axis=1)
                 ide_hard = _intersect_rows(E2V_sorted, idx_hard)
-                tri_hard = Src.E2T[ide_hard, :2]
+                tri_hard = mesh.E2T[ide_hard, :2]
             else:
                 ide_hard = np.array([], dtype=int)
                 tri_hard = np.zeros((0, 2), dtype=int)
@@ -414,23 +414,23 @@ def preprocess_ortho_param(
     param.ide_hard = ide_hard
     param.tri_hard = tri_hard
 
-    # [ide_bound,tri_bound] = boundary_indices(Src);
-    # idx_bound = unique(Src.E2V(ide_bound,:));
-    # idx_int = setdiff((1:Src.nv)', idx_bound);
+    # [ide_bound,tri_bound] = boundary_indices(mesh);
+    # idx_bound = unique(mesh.E2V(ide_bound,:));
+    # idx_int = setdiff((1:mesh.num_vertices)', idx_bound);
     #
-    # ide_int = setdiff((1:Src.ne)', ide_bound);
-    # tri_int = setdiff((1:Src.nf)', tri_bound);
+    # ide_int = setdiff((1:mesh.num_edges)', ide_bound);
+    # tri_int = setdiff((1:mesh.num_faces)', tri_bound);
 
-    ide_bound, tri_bound = boundary_indices(Src)
+    ide_bound, tri_bound = boundary_indices(mesh)
 
     if len(ide_bound) > 0:
-        idx_bound = np.unique(Src.E2V[ide_bound, :])
+        idx_bound = np.unique(mesh.E2V[ide_bound, :])
     else:
         idx_bound = np.array([], dtype=int)
 
-    idx_int = np.setdiff1d(np.arange(Src.nv), idx_bound)
-    ide_int = np.setdiff1d(np.arange(Src.ne), ide_bound)
-    tri_int = np.setdiff1d(np.arange(Src.nf), tri_bound)
+    idx_int = np.setdiff1d(np.arange(mesh.num_vertices), idx_bound)
+    ide_int = np.setdiff1d(np.arange(mesh.num_edges), ide_bound)
+    tri_int = np.setdiff1d(np.arange(mesh.num_faces), tri_bound)
 
     # param.idx_bound = idx_bound;
     # param.ide_bound = ide_bound;
@@ -450,20 +450,20 @@ def preprocess_ortho_param(
 
     ide_fix = np.concatenate([ide_hard, ide_bound])
 
-    # idx_fix = unique(Src.E2V(ide_fix,:));
-    # idx_fix_inv = zeros(Src.nv,1);
+    # idx_fix = unique(mesh.E2V(ide_fix,:));
+    # idx_fix_inv = zeros(mesh.num_vertices,1);
     # idx_fix_inv(idx_fix) = 1:length(idx_fix);
-    # G = graph(idx_fix_inv(Src.E2V(ide_fix,1)), idx_fix_inv(Src.E2V(ide_fix,2)));
+    # G = graph(idx_fix_inv(mesh.E2V(ide_fix,1)), idx_fix_inv(mesh.E2V(ide_fix,2)));
 
     if len(ide_fix) > 0:
-        idx_fix = np.unique(Src.E2V[ide_fix, :])
-        idx_fix_inv = np.zeros(Src.nv, dtype=int)
+        idx_fix = np.unique(mesh.E2V[ide_fix, :])
+        idx_fix_inv = np.zeros(mesh.num_vertices, dtype=int)
         idx_fix_inv[idx_fix] = np.arange(len(idx_fix))
 
         # Build graph adjacency matrix for connected components
         n_fix_verts = len(idx_fix)
-        row = idx_fix_inv[Src.E2V[ide_fix, 0]]
-        col = idx_fix_inv[Src.E2V[ide_fix, 1]]
+        row = idx_fix_inv[mesh.E2V[ide_fix, 0]]
+        col = idx_fix_inv[mesh.E2V[ide_fix, 1]]
         data = np.ones(len(ide_fix))
         G = sp.csr_matrix((data, (row, col)), shape=(n_fix_verts, n_fix_verts))
         G = G + G.T  # Make symmetric
@@ -489,10 +489,10 @@ def preprocess_ortho_param(
     # ide_sign_fix_cell = cell(length(binsizes),1);
     # for i = 1:length(binsizes)
     #     idx_fix_cell{i} = idx_fix(bins == i);
-    #     ide_fix_cell{i} = find(all(ismember(Src.E2V, idx_fix_cell{i}), 2));
+    #     ide_fix_cell{i} = find(all(ismember(mesh.E2V, idx_fix_cell{i}), 2));
     #     ide_fix_cell{i} = ide_fix_cell{i}(ismember(ide_fix_cell{i}, ide_fix));
-    #     tri_fix_cell{i} = vec(Src.E2T(ide_fix_cell{i},1:2));
-    #     ide_sign_fix_cell{i} = vec(Src.E2T(ide_fix_cell{i},3:4));
+    #     tri_fix_cell{i} = vec(mesh.E2T(ide_fix_cell{i},1:2));
+    #     ide_sign_fix_cell{i} = vec(mesh.E2T(ide_fix_cell{i},3:4));
     # end
 
     idx_fix_cell = []
@@ -505,32 +505,32 @@ def preprocess_ortho_param(
         idx_fix_i = idx_fix[bins == i]
         idx_fix_cell.append(idx_fix_i)
 
-        # ide_fix_cell{i} = find(all(ismember(Src.E2V, idx_fix_cell{i}), 2));
-        in_component = np.isin(Src.E2V, idx_fix_i)
+        # ide_fix_cell{i} = find(all(ismember(mesh.E2V, idx_fix_cell{i}), 2));
+        in_component = np.isin(mesh.E2V, idx_fix_i)
         ide_fix_i = np.where(np.all(in_component, axis=1))[0]
 
         # ide_fix_cell{i} = ide_fix_cell{i}(ismember(ide_fix_cell{i}, ide_fix));
         ide_fix_i = ide_fix_i[np.isin(ide_fix_i, ide_fix)]
         ide_fix_cell.append(ide_fix_i)
 
-        # tri_fix_cell{i} = vec(Src.E2T(ide_fix_cell{i},1:2));
+        # tri_fix_cell{i} = vec(mesh.E2T(ide_fix_cell{i},1:2));
         # MATLAB vec() = column-major flatten
         if len(ide_fix_i) > 0:
-            tri_fix_i = Src.E2T[ide_fix_i, :2].flatten('F')
+            tri_fix_i = mesh.E2T[ide_fix_i, :2].flatten('F')
         else:
             tri_fix_i = np.array([], dtype=int)
         tri_fix_cell.append(tri_fix_i)
 
-        # ide_sign_fix_cell{i} = vec(Src.E2T(ide_fix_cell{i},3:4));
+        # ide_sign_fix_cell{i} = vec(mesh.E2T(ide_fix_cell{i},3:4));
         if len(ide_fix_i) > 0:
-            ide_sign_fix_i = Src.E2T[ide_fix_i, 2:4].flatten('F')
+            ide_sign_fix_i = mesh.E2T[ide_fix_i, 2:4].flatten('F')
         else:
             ide_sign_fix_i = np.array([])
         ide_sign_fix_cell.append(ide_sign_fix_i)
 
-    # E2T = zeros(Src.ne,2);
-    # E2T(:,1) = Src.E2T(:,1).*(Src.E2T(:,3) > 0) + Src.E2T(:,2).*(Src.E2T(:,3) < 0);
-    # E2T(:,2) = Src.E2T(:,1).*(Src.E2T(:,3) < 0) + Src.E2T(:,2).*(Src.E2T(:,3) > 0);
+    # E2T = zeros(mesh.num_edges,2);
+    # E2T(:,1) = mesh.E2T(:,1).*(mesh.E2T(:,3) > 0) + mesh.E2T(:,2).*(mesh.E2T(:,3) < 0);
+    # E2T(:,2) = mesh.E2T(:,1).*(mesh.E2T(:,3) < 0) + mesh.E2T(:,2).*(mesh.E2T(:,3) > 0);
 
     # NOTE: The MATLAB reordering based on E2T[:, 2] signs doesn't correctly identify
     # f_pos (face with canonical edge direction v0->v1) vs f_neg (face with opposite direction).
@@ -538,10 +538,10 @@ def preprocess_ortho_param(
     # E2T[:, 0] = f_neg (face where edge goes v1->v0, opposite to canonical)
     # E2T[:, 1] = f_pos (face where edge goes v0->v1, canonical direction)
     # This ensures para_trans = angle(f_neg) - angle(f_pos) satisfies d1d @ para_trans = K.
-    E2T = np.zeros((Src.ne, 2), dtype=int)
-    for e in range(Src.ne):
-        v0, v1 = Src.E2V[e]  # canonical direction: v0 < v1
-        f0, f1 = Src.E2T[e, 0], Src.E2T[e, 1]
+    E2T = np.zeros((mesh.num_edges, 2), dtype=int)
+    for e in range(mesh.num_edges):
+        v0, v1 = mesh.E2V[e]  # canonical direction: v0 < v1
+        f0, f1 = mesh.E2T[e, 0], mesh.E2T[e, 1]
 
         if f1 < 0:  # boundary edge
             E2T[e, 0] = f0
@@ -549,7 +549,7 @@ def preprocess_ortho_param(
             continue
 
         # Check which face has edge going v0->v1 (canonical = f_pos)
-        face0 = Src.T[f0]
+        face0 = mesh.triangles[f0]
         f0_is_canonical = False
         for i in range(3):
             a, b = face0[i], face0[(i+1) % 3]
@@ -564,24 +564,24 @@ def preprocess_ortho_param(
             E2T[e, 0] = f0  # f_neg
             E2T[e, 1] = f1  # f_pos
 
-    # K = gaussian_curvature(Src.X, Src.T);
-    # assert(norm(sum(K) - 2*pi*(Src.nf-Src.ne+Src.nv)) < 1e-5, 'Gaussian curvature does not match topology.');
+    # K = gaussian_curvature(mesh.vertices, mesh.triangles);
+    # assert(norm(sum(K) - 2*pi*(mesh.num_faces-mesh.num_edges+mesh.num_vertices)) < 1e-5, 'Gaussian curvature does not match topology.');
 
-    K, _, _ = gaussian_curvature(Src.X, Src.T)
-    euler_char = Src.nf - Src.ne + Src.nv
+    K, _, _ = gaussian_curvature(mesh.vertices, mesh.triangles)
+    euler_char = mesh.num_faces - mesh.num_edges + mesh.num_vertices
     curvature_error = np.abs(np.sum(K) - 2 * np.pi * euler_char)
     if curvature_error >= 1e-5:
         warnings.warn(f'Gaussian curvature does not match topology (error={curvature_error:.2e}, χ={euler_char}). Mesh may have issues.')
 
-    # edge = Src.X(Src.E2V(:,2),:) - Src.X(Src.E2V(:,1),:);
+    # edge = mesh.vertices(mesh.E2V(:,2),:) - mesh.vertices(mesh.E2V(:,1),:);
     # edge = edge./sqrt(sum(edge.^2,2));
-    # e1r = Src.X(Src.T(:,2),:) - Src.X(Src.T(:,1),:);
+    # e1r = mesh.vertices(mesh.triangles(:,2),:) - mesh.vertices(mesh.triangles(:,1),:);
     # e1r = e1r./repmat(sqrt(sum(e1r.^2, 2)), [1 3]);
 
-    edge = Src.X[Src.E2V[:, 1], :] - Src.X[Src.E2V[:, 0], :]
+    edge = mesh.vertices[mesh.E2V[:, 1], :] - mesh.vertices[mesh.E2V[:, 0], :]
     edge = edge / np.linalg.norm(edge, axis=1, keepdims=True)
 
-    e1r = Src.X[Src.T[:, 1], :] - Src.X[Src.T[:, 0], :]
+    e1r = mesh.vertices[mesh.triangles[:, 1], :] - mesh.vertices[mesh.triangles[:, 0], :]
     e1r = e1r / np.linalg.norm(e1r, axis=1, keepdims=True)
 
     # for i = 1:length(binsizes)
@@ -608,25 +608,25 @@ def preprocess_ortho_param(
             ides_valid = ides[valid]
             e1r[tri_valid, :] = edge[ide_valid, :] * ides_valid[:, np.newaxis]
 
-    # e2r = cross(Src.normal, e1r, 2);
+    # e2r = cross(mesh.normal, e1r, 2);
 
-    e2r = np.cross(Src.normal, e1r)
+    e2r = np.cross(mesh.normal, e1r)
 
-    # edge_angles = zeros(Src.ne,2);
-    # edge_angles(ide_int,1) = comp_angle(edge(ide_int,:), e1r(E2T(ide_int,1),:), Src.normal(E2T(ide_int,1),:));
-    # edge_angles(ide_int,2) = comp_angle(edge(ide_int,:), e1r(E2T(ide_int,2),:), Src.normal(E2T(ide_int,2),:));
+    # edge_angles = zeros(mesh.num_edges,2);
+    # edge_angles(ide_int,1) = comp_angle(edge(ide_int,:), e1r(E2T(ide_int,1),:), mesh.normal(E2T(ide_int,1),:));
+    # edge_angles(ide_int,2) = comp_angle(edge(ide_int,:), e1r(E2T(ide_int,2),:), mesh.normal(E2T(ide_int,2),:));
 
-    edge_angles = np.zeros((Src.ne, 2))
+    edge_angles = np.zeros((mesh.num_edges, 2))
     if len(ide_int) > 0:
         edge_angles[ide_int, 0] = comp_angle(
             edge[ide_int, :],
             e1r[E2T[ide_int, 0], :],
-            Src.normal[E2T[ide_int, 0], :]
+            mesh.normal[E2T[ide_int, 0], :]
         )
         edge_angles[ide_int, 1] = comp_angle(
             edge[ide_int, :],
             e1r[E2T[ide_int, 1], :],
-            Src.normal[E2T[ide_int, 1], :]
+            mesh.normal[E2T[ide_int, 1], :]
         )
 
     # para_trans = wrapToPi(edge_angles(:,1) - edge_angles(:,2));
@@ -643,14 +643,14 @@ def preprocess_ortho_param(
         warnings.warn(f'Gaussian curvature incompatible with angle defect (residual={residual_norm:.2e}). May affect results.')
         # Don't fail, just warn - some meshes have numerical issues
 
-    # param.ang_basis = [comp_angle(Src.X(Src.T(:,1),:) - Src.X(Src.T(:,2),:), e1r, Src.normal), ...
-    #                    comp_angle(Src.X(Src.T(:,2),:) - Src.X(Src.T(:,3),:), e1r, Src.normal), ...
-    #                    comp_angle(Src.X(Src.T(:,3),:) - Src.X(Src.T(:,1),:), e1r, Src.normal)];
+    # param.ang_basis = [comp_angle(mesh.vertices(mesh.triangles(:,1),:) - mesh.vertices(mesh.triangles(:,2),:), e1r, mesh.normal), ...
+    #                    comp_angle(mesh.vertices(mesh.triangles(:,2),:) - mesh.vertices(mesh.triangles(:,3),:), e1r, mesh.normal), ...
+    #                    comp_angle(mesh.vertices(mesh.triangles(:,3),:) - mesh.vertices(mesh.triangles(:,1),:), e1r, mesh.normal)];
 
     ang_basis = np.column_stack([
-        comp_angle(Src.X[Src.T[:, 0], :] - Src.X[Src.T[:, 1], :], e1r, Src.normal),
-        comp_angle(Src.X[Src.T[:, 1], :] - Src.X[Src.T[:, 2], :], e1r, Src.normal),
-        comp_angle(Src.X[Src.T[:, 2], :] - Src.X[Src.T[:, 0], :], e1r, Src.normal)
+        comp_angle(mesh.vertices[mesh.triangles[:, 0], :] - mesh.vertices[mesh.triangles[:, 1], :], e1r, mesh.normal),
+        comp_angle(mesh.vertices[mesh.triangles[:, 1], :] - mesh.vertices[mesh.triangles[:, 2], :], e1r, mesh.normal),
+        comp_angle(mesh.vertices[mesh.triangles[:, 2], :] - mesh.vertices[mesh.triangles[:, 0], :], e1r, mesh.normal)
     ])
 
     # param.E2T = E2T;
@@ -669,16 +669,16 @@ def preprocess_ortho_param(
     param.ang_basis = ang_basis
 
     #
-    # E2V = Src.E2V;
-    # T = Src.T;
-    # nv = Src.nv;
+    # E2V = mesh.E2V;
+    # T = mesh.triangles;
+    # nv = mesh.num_vertices;
 
-    E2V_mod = Src.E2V.copy()
-    T_mod = Src.T.copy()
-    nv_mod = Src.nv
+    E2V_mod = mesh.E2V.copy()
+    T_mod = mesh.triangles.copy()
+    nv_mod = mesh.num_vertices
 
     # for i = idx_fix'
-    #     [tri_ord,edge_ord,sign_edge] = sort_triangles(i, Src.T, Src.E2T, Src.T2T, Src.E2V, Src.T2E);
+    #     [tri_ord,edge_ord,sign_edge] = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E);
     #     id = ismember(edge_ord, ide_hard);
     #     n = sum(id);
     #     if (n == 1) && any(i == idx_int)
@@ -713,7 +713,7 @@ def preprocess_ortho_param(
     # end
 
     for i in idx_fix:
-        tri_ord, edge_ord, sign_edge = sort_triangles(i, Src.T, Src.E2T, Src.T2T, Src.E2V, Src.T2E)
+        tri_ord, edge_ord, sign_edge = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E)
 
         id_in_hard = np.isin(edge_ord, ide_hard)
         n = np.sum(id_in_hard)
@@ -750,44 +750,44 @@ def preprocess_ortho_param(
         if n > 1:
             nv_mod = nv_mod + n - 1
 
-    # ide_free = setdiff((1:Src.ne)', ide_fix);
-    # d1d = sparse(E2V(ide_free,:), [ide_free, ide_free], [ones(length(ide_free),1),-ones(length(ide_free),1)], nv, Src.ne);
+    # ide_free = setdiff((1:mesh.num_edges)', ide_fix);
+    # d1d = sparse(E2V(ide_free,:), [ide_free, ide_free], [ones(length(ide_free),1),-ones(length(ide_free),1)], nv, mesh.num_edges);
 
-    ide_free = np.setdiff1d(np.arange(Src.ne), ide_fix)
+    ide_free = np.setdiff1d(np.arange(mesh.num_edges), ide_fix)
 
     # Build d1d sparse matrix
     row = np.concatenate([E2V_mod[ide_free, 0], E2V_mod[ide_free, 1]])
     col = np.concatenate([ide_free, ide_free])
     data = np.concatenate([np.ones(len(ide_free)), -np.ones(len(ide_free))])
-    d1d_new = sp.csr_matrix((data, (row, col)), shape=(nv_mod, Src.ne))
+    d1d_new = sp.csr_matrix((data, (row, col)), shape=(nv_mod, mesh.num_edges))
 
     # assert(all(sum(abs(d1d),2) ~= 0));
 
     row_sums = np.array(np.abs(d1d_new).sum(axis=1)).flatten()
     assert np.all(row_sums != 0), 'd1d has zero rows'
 
-    # Vp2V = unique([T(:), Src.T(:)], 'rows');
+    # Vp2V = unique([T(:), mesh.triangles(:)], 'rows');
     # [~,id] = sort(Vp2V(:,1));
     # param.Vp2V = Vp2V(id,2);
 
-    # T_mod.flatten('F') and Src.T.flatten('F') for column-major
-    pairs = np.column_stack([T_mod.flatten('F'), Src.T.flatten('F')])
+    # T_mod.flatten('F') and mesh.triangles.flatten('F') for column-major
+    pairs = np.column_stack([T_mod.flatten('F'), mesh.triangles.flatten('F')])
     Vp2V_unique = np.unique(pairs, axis=0)
     sort_idx = np.argsort(Vp2V_unique[:, 0])
     Vp2V = Vp2V_unique[sort_idx, 1]
 
     # param.d1d = d1d;
-    # param.idx_fix_plus = [idx_fix; (Src.nv+1:nv)'];
-    # param.idx_reg = setdiff((1:Src.nv)', idx_fix);
+    # param.idx_fix_plus = [idx_fix; (mesh.num_vertices+1:nv)'];
+    # param.idx_reg = setdiff((1:mesh.num_vertices)', idx_fix);
 
-    idx_fix_plus = np.concatenate([idx_fix, np.arange(Src.nv, nv_mod)])
-    idx_reg = np.setdiff1d(np.arange(Src.nv), idx_fix)
+    idx_fix_plus = np.concatenate([idx_fix, np.arange(mesh.num_vertices, nv_mod)])
+    idx_reg = np.setdiff1d(np.arange(mesh.num_vertices), idx_fix)
 
-    # theta = angles_of_triangles(Src.X, Src.T);
+    # theta = angles_of_triangles(mesh.vertices, mesh.triangles);
     # K = 2*pi - accumarray(T(:), theta(:));
     # K(param.idx_fix_plus) = K(param.idx_fix_plus) - pi;
 
-    theta = angles_of_triangles(Src.X, Src.T)
+    theta = angles_of_triangles(mesh.vertices, mesh.triangles)
     K_new = np.full(nv_mod, 2 * np.pi)
     np.add.at(K_new, T_mod.flatten('F'), -theta.flatten('F'))
     K_new[idx_fix_plus] = K_new[idx_fix_plus] - np.pi
@@ -803,17 +803,17 @@ def preprocess_ortho_param(
     param.K_invisible = K_new - d1d_new @ para_trans
 
     # nc = max(length(ide_fix_cell) - 1, 0);
-    # Ilink = sparse(nc,Src.ne);
+    # Ilink = sparse(nc,mesh.num_edges);
 
     nc = max(len(ide_fix_cell) - 1, 0)
-    Ilink = sp.lil_matrix((nc, Src.ne))
+    Ilink = sp.lil_matrix((nc, mesh.num_edges))
 
     # for i = 1:nc
 
     for i in range(nc):
-        # ld = max(dec.star1p*sqrt(Src.SqEdgeLength), 1e-5);
+        # ld = max(dec.star1p*sqrt(mesh.SqEdgeLength), 1e-5);
 
-        ld = np.maximum(dec.star1p.diagonal() * np.sqrt(Src.SqEdgeLength), 1e-5)
+        ld = np.maximum(dec.star1p.diagonal() * np.sqrt(mesh.SqEdgeLength), 1e-5)
 
         # for j = 1:nc+1
         #     if (j ~= 1) && (j ~= i+1)
@@ -847,7 +847,7 @@ def preprocess_ortho_param(
         weights_d = weights_d[valid]
         ide_int_valid = ide_int[valid]
 
-        Gd = sp.csr_matrix((weights_d, (row_d, col_d)), shape=(Src.nf, Src.nf))
+        Gd = sp.csr_matrix((weights_d, (row_d, col_d)), shape=(mesh.num_faces, mesh.num_faces))
         Gd = Gd + Gd.T  # Make symmetric
 
         # P = shortestpath(Gd, tri_fix_cell{1}(1), tri_fix_cell{i+1}(1))';
@@ -905,7 +905,7 @@ def preprocess_ortho_param(
 
         s = (E2T[ide_path, 0] == ed[:, 0]).astype(int) - (E2T[ide_path, 1] == ed[:, 0]).astype(int)
 
-        # Ilink(i,:) = sparse(ones(length(ide),1), ide, s, 1, Src.ne);
+        # Ilink(i,:) = sparse(ones(length(ide),1), ide, s, 1, mesh.num_edges);
 
         for idx, edge_idx in enumerate(ide_path):
             Ilink[i, edge_idx] = s[idx]
@@ -926,16 +926,16 @@ def preprocess_ortho_param(
     param.Ilink = Ilink
     param.Ilink_hard = Ilink_hard
 
-    # [cycle,cocycle] = find_graph_generator(full(diag(dec.star1p)), Src.T, Src.E2T, Src.E2V, 1);
+    # [cycle,cocycle] = find_graph_generator(full(diag(dec.star1p)), mesh.triangles, mesh.E2T, mesh.E2V, 1);
 
     star1p_diag = np.array(dec.star1p.diagonal())
-    cycle, cocycle = find_graph_generator(star1p_diag, Src.T, Src.E2T, Src.E2V, init=0)
+    cycle, cocycle = find_graph_generator(star1p_diag, mesh.triangles, mesh.E2T, mesh.E2V, init=0)
 
     # nc = length(cocycle);
-    # Icycle = sparse(nc,Src.ne);
+    # Icycle = sparse(nc,mesh.num_edges);
 
     nc_cycles = len(cocycle)
-    Icycle = sp.lil_matrix((nc_cycles, Src.ne))
+    Icycle = sp.lil_matrix((nc_cycles, mesh.num_edges))
 
     # for i = 1:nc
     #     ed = [cocycle{i}, circshift(cocycle{i}, [1,0])];
@@ -944,7 +944,7 @@ def preprocess_ortho_param(
     #
     #     s = (E2T(ide,1) == ed(:,1)) - (E2T(ide,2) == ed(:,1));
     #
-    #     Icycle(i,:) = sparse(ones(length(ide),1), ide, s, 1, Src.ne);
+    #     Icycle(i,:) = sparse(ones(length(ide),1), ide, s, 1, mesh.num_edges);
     # end
 
     for i in range(nc_cycles):
@@ -1014,38 +1014,38 @@ def preprocess_ortho_param(
         ide_fix_final = np.array([], dtype=int)
         tri_fix_final = np.array([], dtype=int)
 
-    # idx_fix = unique(Src.E2V(ide_fix,:));
+    # idx_fix = unique(mesh.E2V(ide_fix,:));
     # param.ide_fix = ide_fix;
     # param.idx_fix = idx_fix;
-    # param.ide_free = setdiff((1:Src.ne)', ide_fix);
+    # param.ide_free = setdiff((1:mesh.num_edges)', ide_fix);
     # param.tri_fix = tri_fix;
-    # param.tri_free = setdiff((1:Src.nf)', param.tri_fix);
+    # param.tri_free = setdiff((1:mesh.num_faces)', param.tri_fix);
 
     if len(ide_fix_final) > 0:
-        idx_fix_final = np.unique(Src.E2V[ide_fix_final, :])
+        idx_fix_final = np.unique(mesh.E2V[ide_fix_final, :])
     else:
         idx_fix_final = np.array([], dtype=int)
 
     param.ide_fix = ide_fix_final
     param.idx_fix = idx_fix_final
-    param.ide_free = np.setdiff1d(np.arange(Src.ne), ide_fix_final)
+    param.ide_free = np.setdiff1d(np.arange(mesh.num_edges), ide_fix_final)
     param.tri_fix = tri_fix_final
-    param.tri_free = np.setdiff1d(np.arange(Src.nf), tri_fix_final)
+    param.tri_free = np.setdiff1d(np.arange(mesh.num_faces), tri_fix_final)
 
-    return param, Src, dec
+    return param, mesh, dec
 
 
-# function [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(Src, tol_dihedral_deg)
+# function [ide_hard,tri_hard,ide_bound,tri_bound] = detect_hard_edge(mesh, tol_dihedral_deg)
 # comp_angle = @(u,v,n) atan2(dot(cross(u,v,2),n,2), dot(u,v,2));
 # tol_dihedral = tol_dihedral_deg*pi/180;
 
-def detect_hard_edge(Src: MeshInfo, tol_dihedral_deg: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+def detect_hard_edge(mesh: MeshInfo, tol_dihedral_deg: float) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Detect hard edges based on dihedral angle threshold.
 
     Parameters
     ----------
-    Src : MeshInfo
+    mesh : MeshInfo
         Mesh data structure
     tol_dihedral_deg : float
         Dihedral angle threshold in degrees
@@ -1063,30 +1063,30 @@ def detect_hard_edge(Src: MeshInfo, tol_dihedral_deg: float) -> Tuple[np.ndarray
     """
     tol_dihedral = tol_dihedral_deg * np.pi / 180
 
-    # [ide_bound,tri_bound] = boundary_indices(Src);
+    # [ide_bound,tri_bound] = boundary_indices(mesh);
 
-    ide_bound, tri_bound = boundary_indices(Src)
+    ide_bound, tri_bound = boundary_indices(mesh)
 
-    # ide_int = setdiff((1:Src.ne)', ide_bound);
+    # ide_int = setdiff((1:mesh.num_edges)', ide_bound);
 
-    ide_int = np.setdiff1d(np.arange(Src.ne), ide_bound)
+    ide_int = np.setdiff1d(np.arange(mesh.num_edges), ide_bound)
 
-    # edge = Src.X(Src.E2V(:,2),:) - Src.X(Src.E2V(:,1),:);
+    # edge = mesh.vertices(mesh.E2V(:,2),:) - mesh.vertices(mesh.E2V(:,1),:);
     # edge = edge./sqrt(sum(edge.^2,2));
 
-    edge = Src.X[Src.E2V[:, 1], :] - Src.X[Src.E2V[:, 0], :]
+    edge = mesh.vertices[mesh.E2V[:, 1], :] - mesh.vertices[mesh.E2V[:, 0], :]
     edge = edge / np.linalg.norm(edge, axis=1, keepdims=True)
 
-    # dihedral_angle = Src.E2T(ide_int,4).*comp_angle(Src.normal(Src.E2T(ide_int,1),:), Src.normal(Src.E2T(ide_int,2),:), edge(ide_int,:));
+    # dihedral_angle = mesh.E2T(ide_int,4).*comp_angle(mesh.normal(mesh.E2T(ide_int,1),:), mesh.normal(mesh.E2T(ide_int,2),:), edge(ide_int,:));
 
     # E2T[:, 3] is the edge sign (column 4 in MATLAB 1-indexed)
-    t0 = Src.E2T[ide_int, 0]
-    t1 = Src.E2T[ide_int, 1]
-    sign_col = Src.E2T[ide_int, 3]
+    t0 = mesh.E2T[ide_int, 0]
+    t1 = mesh.E2T[ide_int, 1]
+    sign_col = mesh.E2T[ide_int, 3]
 
     dihedral_angle = sign_col * comp_angle(
-        Src.normal[t0, :],
-        Src.normal[t1, :],
+        mesh.normal[t0, :],
+        mesh.normal[t1, :],
         edge[ide_int, :]
     )
 
@@ -1094,28 +1094,28 @@ def detect_hard_edge(Src: MeshInfo, tol_dihedral_deg: float) -> Tuple[np.ndarray
 
     ide_hard = ide_int[np.abs(dihedral_angle) > tol_dihedral]
 
-    # tri_hard = Src.E2T(ide_hard,1:2);
+    # tri_hard = mesh.E2T(ide_hard,1:2);
 
     if len(ide_hard) > 0:
-        tri_hard = Src.E2T[ide_hard, :2]
+        tri_hard = mesh.E2T[ide_hard, :2]
     else:
         tri_hard = np.zeros((0, 2), dtype=int)
 
     return ide_hard, tri_hard, ide_bound, tri_bound
 
 
-# function [ide_bound,tri_bound] = boundary_indices(Src)
-# ide_bound = find(any(Src.E2T == 0, 2));
+# function [ide_bound,tri_bound] = boundary_indices(mesh)
+# ide_bound = find(any(mesh.E2T == 0, 2));
 #
-# tri_bound = sum(Src.E2T(ide_bound,1:2),2);
+# tri_bound = sum(mesh.E2T(ide_bound,1:2),2);
 
-def boundary_indices(Src: MeshInfo) -> Tuple[np.ndarray, np.ndarray]:
+def boundary_indices(mesh: MeshInfo) -> Tuple[np.ndarray, np.ndarray]:
     """
     Find boundary edge and triangle indices.
 
     Parameters
     ----------
-    Src : MeshInfo
+    mesh : MeshInfo
         Mesh data structure
 
     Returns
@@ -1127,13 +1127,13 @@ def boundary_indices(Src: MeshInfo) -> Tuple[np.ndarray, np.ndarray]:
     """
     # MATLAB uses 0 for "no triangle", Python uses -1
     # A boundary edge belongs to only one triangle
-    ide_bound = np.where(np.any(Src.E2T[:, :2] < 0, axis=1))[0]
+    ide_bound = np.where(np.any(mesh.E2T[:, :2] < 0, axis=1))[0]
 
     # A boundary triangle is incident to a boundary edge
     # For boundary edges, one of E2T[:, 0] or E2T[:, 1] is -1
     # The non-negative one is the triangle
     if len(ide_bound) > 0:
-        tri_bound = np.maximum(Src.E2T[ide_bound, 0], Src.E2T[ide_bound, 1])
+        tri_bound = np.maximum(mesh.E2T[ide_bound, 0], mesh.E2T[ide_bound, 1])
     else:
         tri_bound = np.array([], dtype=int)
 

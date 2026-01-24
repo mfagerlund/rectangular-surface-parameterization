@@ -193,24 +193,24 @@ class TestOutputShapes:
     def test_edge_jump_shape_no_cuts(self, tetrahedron):
         """Edge_jump should have shape (3*nf, ne)."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron)
-        expected_shape = (3 * tetrahedron.nf, tetrahedron.ne)
+        expected_shape = (3 * tetrahedron.num_faces, tetrahedron.num_edges)
         assert Edge_jump.shape == expected_shape, \
             f"Edge_jump shape should be {expected_shape}, got {Edge_jump.shape}"
 
     def test_v2t_shape_no_cuts(self, tetrahedron):
         """v2t should have shape (3*nf, nv) when no cuts."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
         # When no cuts, nv_total = nv
-        assert v2t.shape[0] == 3 * tetrahedron.nf, \
-            f"v2t rows should be {3 * tetrahedron.nf}, got {v2t.shape[0]}"
-        assert v2t.shape[1] >= tetrahedron.nv, \
-            f"v2t columns should be >= {tetrahedron.nv}, got {v2t.shape[1]}"
+        assert v2t.shape[0] == 3 * tetrahedron.num_faces, \
+            f"v2t rows should be {3 * tetrahedron.num_faces}, got {v2t.shape[0]}"
+        assert v2t.shape[1] >= tetrahedron.num_vertices, \
+            f"v2t columns should be >= {tetrahedron.num_vertices}, got {v2t.shape[1]}"
 
     def test_base_tri_shape(self, tetrahedron):
         """base_tri should have shape (3*nf,)."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron)
-        expected_shape = (3 * tetrahedron.nf,)
+        expected_shape = (3 * tetrahedron.num_faces,)
         assert base_tri.shape == expected_shape, \
             f"base_tri shape should be {expected_shape}, got {base_tri.shape}"
 
@@ -218,9 +218,9 @@ class TestOutputShapes:
         """Test shapes for octahedron (larger mesh)."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(octahedron)
 
-        assert Edge_jump.shape == (3 * octahedron.nf, octahedron.ne), \
+        assert Edge_jump.shape == (3 * octahedron.num_faces, octahedron.num_edges), \
             f"Edge_jump shape wrong: {Edge_jump.shape}"
-        assert base_tri.shape == (3 * octahedron.nf,), \
+        assert base_tri.shape == (3 * octahedron.num_faces,), \
             f"base_tri shape wrong: {base_tri.shape}"
 
 
@@ -270,7 +270,7 @@ class TestIdeCutInputFormat:
 
     def test_boolean_ide_cut(self, tetrahedron):
         """Function should accept boolean array for ide_cut."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
         ide_cut[0] = True  # Mark first edge as cut
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
@@ -292,7 +292,7 @@ class TestIdeCutInputFormat:
         ide_cut_idx = np.array([0, 2], dtype=int)
 
         # Equivalent boolean format
-        ide_cut_bool = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut_bool = np.zeros(tetrahedron.num_edges, dtype=bool)
         ide_cut_bool[0] = True
         ide_cut_bool[2] = True
 
@@ -314,7 +314,7 @@ class TestConsistencyWithNonCut:
         """With no cuts, Edge_jump should match reduce_corner_var_2d."""
         # reduce_corner_var_2d_cut with no cuts
         Edge_jump_cut, v2t_cut, base_tri_cut = reduce_corner_var_2d_cut(
-            tetrahedron, np.zeros(tetrahedron.ne, dtype=bool)
+            tetrahedron, np.zeros(tetrahedron.num_edges, dtype=bool)
         )
 
         # reduce_corner_var_2d (no cuts)
@@ -332,7 +332,7 @@ class TestConsistencyWithNonCut:
     def test_no_cuts_v2t_shape_matches(self, tetrahedron):
         """With no cuts, v2t should have same number of columns."""
         Edge_jump_cut, v2t_cut, base_tri_cut = reduce_corner_var_2d_cut(
-            tetrahedron, np.zeros(tetrahedron.ne, dtype=bool)
+            tetrahedron, np.zeros(tetrahedron.num_edges, dtype=bool)
         )
 
         clear_cache()
@@ -345,7 +345,7 @@ class TestConsistencyWithNonCut:
     def test_no_cuts_base_tri_matches(self, tetrahedron):
         """With no cuts, base_tri should match reduce_corner_var_2d."""
         Edge_jump_cut, v2t_cut, base_tri_cut = reduce_corner_var_2d_cut(
-            tetrahedron, np.zeros(tetrahedron.ne, dtype=bool)
+            tetrahedron, np.zeros(tetrahedron.num_edges, dtype=bool)
         )
 
         clear_cache()
@@ -354,13 +354,13 @@ class TestConsistencyWithNonCut:
         # Note: reduce_corner_var_2d has base_tri shape (nv,),
         # reduce_corner_var_2d_cut has shape (3*nf,)
         # The values at corner positions should correspond
-        assert base_tri_cut.shape == (3 * tetrahedron.nf,), \
-            f"base_tri_cut shape should be {(3 * tetrahedron.nf,)}, got {base_tri_cut.shape}"
+        assert base_tri_cut.shape == (3 * tetrahedron.num_faces,), \
+            f"base_tri_cut shape should be {(3 * tetrahedron.num_faces,)}, got {base_tri_cut.shape}"
 
     def test_octahedron_no_cuts_consistency(self, octahedron):
         """Test consistency on octahedron with no cuts."""
         Edge_jump_cut, v2t_cut, base_tri_cut = reduce_corner_var_2d_cut(
-            octahedron, np.zeros(octahedron.ne, dtype=bool)
+            octahedron, np.zeros(octahedron.num_edges, dtype=bool)
         )
 
         clear_cache()
@@ -383,20 +383,20 @@ class TestCutConfigurations:
 
     def test_single_cut_edge(self, tetrahedron):
         """Single cut edge should increase vertex count."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
         ide_cut[0] = True  # Cut one edge
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
 
         # v2t columns = number of vertices after splitting
         # With one cut on interior edge, typically adds 1 vertex copy
-        assert v2t.shape[1] >= tetrahedron.nv, \
-            f"v2t should have >= {tetrahedron.nv} columns, got {v2t.shape[1]}"
+        assert v2t.shape[1] >= tetrahedron.num_vertices, \
+            f"v2t should have >= {tetrahedron.num_vertices} columns, got {v2t.shape[1]}"
 
     @VERTEX_SPLIT_BUG
     def test_multiple_cut_edges(self, tetrahedron):
         """Multiple cut edges should potentially increase vertex count more."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
         ide_cut[0] = True
         ide_cut[1] = True
         ide_cut[2] = True
@@ -404,17 +404,17 @@ class TestCutConfigurations:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
 
         # Function should complete without error
-        assert v2t.shape[1] >= tetrahedron.nv
+        assert v2t.shape[1] >= tetrahedron.num_vertices
 
     @VERTEX_SPLIT_BUG
     def test_all_edges_cut(self, three_triangles_fan):
         """Cutting all edges should split vertices maximally."""
-        ide_cut = np.ones(three_triangles_fan.ne, dtype=bool)
+        ide_cut = np.ones(three_triangles_fan.num_edges, dtype=bool)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(three_triangles_fan, ide_cut)
 
         # Function should complete without error
-        assert Edge_jump.shape[0] == 3 * three_triangles_fan.nf
+        assert Edge_jump.shape[0] == 3 * three_triangles_fan.num_faces
 
 
 # =============================================================================
@@ -427,23 +427,23 @@ class TestBoundaryVertices:
     @BOUNDARY_MESH_BUG
     def test_single_triangle_no_cuts(self, single_triangle):
         """Single triangle (all boundary) with no cuts."""
-        ide_cut = np.zeros(single_triangle.ne, dtype=bool)
+        ide_cut = np.zeros(single_triangle.num_edges, dtype=bool)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(single_triangle, ide_cut)
 
         # Should complete without error
-        assert Edge_jump.shape == (3 * single_triangle.nf, single_triangle.ne)
-        assert base_tri.shape == (3 * single_triangle.nf,)
+        assert Edge_jump.shape == (3 * single_triangle.num_faces, single_triangle.num_edges)
+        assert base_tri.shape == (3 * single_triangle.num_faces,)
 
     @BOUNDARY_MESH_BUG
     def test_two_triangles_strip_no_cuts(self, two_triangles_strip):
         """Two triangles strip with no cuts."""
-        ide_cut = np.zeros(two_triangles_strip.ne, dtype=bool)
+        ide_cut = np.zeros(two_triangles_strip.num_edges, dtype=bool)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(two_triangles_strip, ide_cut)
 
-        assert Edge_jump.shape[0] == 3 * two_triangles_strip.nf
-        assert Edge_jump.shape[1] == two_triangles_strip.ne
+        assert Edge_jump.shape[0] == 3 * two_triangles_strip.num_faces
+        assert Edge_jump.shape[1] == two_triangles_strip.num_edges
 
     @BOUNDARY_MESH_BUG
     def test_two_triangles_cut_shared_edge(self, two_triangles_strip):
@@ -453,13 +453,13 @@ class TestBoundaryVertices:
         interior_edges = np.where(two_triangles_strip.E2T[:, 1] != -1)[0]
 
         if len(interior_edges) > 0:
-            ide_cut = np.zeros(two_triangles_strip.ne, dtype=bool)
+            ide_cut = np.zeros(two_triangles_strip.num_edges, dtype=bool)
             ide_cut[interior_edges[0]] = True
 
             Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(two_triangles_strip, ide_cut)
 
             # Cutting interior edge should increase vertex count
-            assert v2t.shape[1] >= two_triangles_strip.nv
+            assert v2t.shape[1] >= two_triangles_strip.num_vertices
 
 
 # =============================================================================
@@ -475,20 +475,20 @@ class TestBaseTri:
 
         # All values should be valid face indices
         assert np.all(base_tri >= 0), "base_tri should be non-negative"
-        assert np.all(base_tri < tetrahedron.nf), \
-            f"base_tri values should be < {tetrahedron.nf}"
+        assert np.all(base_tri < tetrahedron.num_faces), \
+            f"base_tri values should be < {tetrahedron.num_faces}"
 
     @VERTEX_SPLIT_BUG
     def test_base_tri_valid_with_cuts(self, tetrahedron):
         """base_tri should contain valid indices even with cuts."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
         ide_cut[0] = True
         ide_cut[1] = True
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
 
         assert np.all(base_tri >= 0)
-        assert np.all(base_tri < tetrahedron.nf)
+        assert np.all(base_tri < tetrahedron.num_faces)
 
 
 # =============================================================================
@@ -500,22 +500,22 @@ class TestV2tProperties:
 
     def test_v2t_row_sum_one(self, tetrahedron):
         """Each corner should map to exactly one vertex (row sum = 1)."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
 
         row_sums = np.array(v2t.sum(axis=1)).flatten()
-        np.testing.assert_array_equal(row_sums, np.ones(3 * tetrahedron.nf),
+        np.testing.assert_array_equal(row_sums, np.ones(3 * tetrahedron.num_faces),
             err_msg="Each corner should map to exactly one vertex")
 
     def test_v2t_row_sum_one_with_cuts(self, tetrahedron):
         """Each corner should still map to one vertex even with cuts."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
         ide_cut[0] = True
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
 
         row_sums = np.array(v2t.sum(axis=1)).flatten()
-        np.testing.assert_array_equal(row_sums, np.ones(3 * tetrahedron.nf),
+        np.testing.assert_array_equal(row_sums, np.ones(3 * tetrahedron.num_faces),
             err_msg="Each corner should map to exactly one vertex")
 
     def test_v2t_binary_values(self, tetrahedron):
@@ -553,7 +553,7 @@ class TestEdgeJumpProperties:
         nnz_per_row = np.diff(Edge_jump.tocsr().indptr)
 
         # Not too many edges per corner (bounded by valence)
-        assert np.max(nnz_per_row) < tetrahedron.nf, \
+        assert np.max(nnz_per_row) < tetrahedron.num_faces, \
             "Each corner should not reference too many edges"
 
 
@@ -592,12 +592,12 @@ class TestErrorHandling:
     def test_ide_cut_wrong_length_boolean(self, tetrahedron):
         """Boolean ide_cut with wrong length should still work (uses first ne entries)."""
         # Test with longer array - should just use first ne entries
-        ide_cut = np.zeros(tetrahedron.ne + 5, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges + 5, dtype=bool)
 
         # This might raise an error or work depending on implementation
         # The current implementation expects exactly ne entries
         try:
-            Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut[:tetrahedron.ne])
+            Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut[:tetrahedron.num_edges])
             assert True  # No error is acceptable
         except (ValueError, IndexError):
             assert True  # Error is also acceptable
@@ -614,11 +614,11 @@ class TestVertexSplitting:
     def test_v2t_columns_increase_with_cuts(self, octahedron):
         """More cuts should generally lead to more vertex copies."""
         # No cuts
-        ide_cut_0 = np.zeros(octahedron.ne, dtype=bool)
+        ide_cut_0 = np.zeros(octahedron.num_edges, dtype=bool)
         _, v2t_0, _ = reduce_corner_var_2d_cut(octahedron, ide_cut_0)
 
         # Some cuts
-        ide_cut_some = np.zeros(octahedron.ne, dtype=bool)
+        ide_cut_some = np.zeros(octahedron.num_edges, dtype=bool)
         ide_cut_some[0] = True
         ide_cut_some[1] = True
         _, v2t_some, _ = reduce_corner_var_2d_cut(octahedron, ide_cut_some)
@@ -629,7 +629,7 @@ class TestVertexSplitting:
 
     def test_corner_to_vertex_mapping_consistent(self, tetrahedron):
         """Corners of the same original vertex should map to same/different vertices based on cuts."""
-        ide_cut = np.zeros(tetrahedron.ne, dtype=bool)
+        ide_cut = np.zeros(tetrahedron.num_edges, dtype=bool)
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron, ide_cut)
 
@@ -637,15 +637,15 @@ class TestVertexSplitting:
         corner_to_vertex = np.array(v2t.argmax(axis=1)).flatten()
 
         # Tc: corner indices, same layout as in the function
-        Tc = np.arange(3 * tetrahedron.nf).reshape((tetrahedron.nf, 3), order='F')
+        Tc = np.arange(3 * tetrahedron.num_faces).reshape((tetrahedron.num_faces, 3), order='F')
 
         # For each original vertex, check which corners map to it
-        for v in range(tetrahedron.nv):
+        for v in range(tetrahedron.num_vertices):
             # Find corners that belong to original vertex v
             corners_of_v = []
-            for f in range(tetrahedron.nf):
+            for f in range(tetrahedron.num_faces):
                 for c in range(3):
-                    if tetrahedron.T[f, c] == v:
+                    if tetrahedron.triangles[f, c] == v:
                         corner_idx = Tc[f, c]
                         corners_of_v.append(corner_idx)
 
@@ -682,8 +682,8 @@ class TestMatrixSparsity:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron)
 
         # Exactly 3*nf nonzeros (one per corner)
-        assert v2t.nnz == 3 * tetrahedron.nf, \
-            f"v2t should have {3 * tetrahedron.nf} nonzeros, got {v2t.nnz}"
+        assert v2t.nnz == 3 * tetrahedron.num_faces, \
+            f"v2t should have {3 * tetrahedron.num_faces} nonzeros, got {v2t.nnz}"
 
     def test_edge_jump_csr_conversion(self, tetrahedron):
         """Edge_jump should be convertible to CSR format."""
@@ -783,11 +783,11 @@ class TestIntegration:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron)
 
         # Create a test vector of size ne
-        test_vec = np.ones(tetrahedron.ne)
+        test_vec = np.ones(tetrahedron.num_edges)
 
         # Edge_jump @ test_vec should produce valid result
         result = Edge_jump @ test_vec
-        assert result.shape == (3 * tetrahedron.nf,)
+        assert result.shape == (3 * tetrahedron.num_faces,)
         assert np.all(np.isfinite(result))
 
     def test_v2t_transpose_operation(self, tetrahedron):
@@ -795,7 +795,7 @@ class TestIntegration:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron)
 
         # v2t.T @ ones(3*nf) should give corner counts per vertex
-        corner_counts = v2t.T @ np.ones(3 * tetrahedron.nf)
+        corner_counts = v2t.T @ np.ones(3 * tetrahedron.num_faces)
         assert corner_counts.shape[0] == v2t.shape[1]
 
         # Each vertex should have at least 1 corner

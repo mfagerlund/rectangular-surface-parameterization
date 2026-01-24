@@ -11,7 +11,7 @@ from typing import Tuple
 def objective_ortho_param(
     energy_type: str,
     weight,
-    Src,
+    mesh,
     dec,
     param,
     angn: np.ndarray,
@@ -28,7 +28,7 @@ def objective_ortho_param(
             - w_conf_ar: conformal/area weight for 'distortion'
             - w_gradv: gradient weight (optional)
             - ang_dir, aspect_ratio, w_ratio, w_ang: for 'alignment'
-        Src: Mesh data structure with nv, nf, area
+        mesh: Mesh data structure with nv, nf, area
         dec: DEC structure with W_tri, star0p_tri, star0d
         param: Parameter structure with tri_fix
         angn: Frame angle per face (nf,)
@@ -41,7 +41,7 @@ def objective_ortho_param(
         H: Hessian matrix (2*nv + nf x 2*nv + nf)
         df: Gradient vector (2*nv + nf,)
     """
-    # function [fct,H,df] = objective_ortho_param(energy_type, weight, Src, dec, param, angn, ut, vt, Reduction)
+    # function [fct,H,df] = objective_ortho_param(energy_type, weight, mesh, dec, param, angn, ut, vt, Reduction)
 
     # Wt = dec.W_tri;
     # AeT = dec.star0p_tri;
@@ -59,17 +59,17 @@ def objective_ortho_param(
     # Ar = blkdiag(AeT, 0*AeT)  # Area energy weight
     integral_tri = np.ones(3) / 3
 
-    nv = Src.nv
-    nf = Src.nf
+    nv = mesh.num_vertices
+    nf = mesh.num_faces
 
-    # H = sparse(2*Src.nv+Src.nf,2*Src.nv+Src.nf);
+    # H = sparse(2*mesh.num_vertices+mesh.num_faces,2*mesh.num_vertices+mesh.num_faces);
     # Initialize H (will be built at the end)
 
     # if strcmp(energy_type, 'distortion')
     if energy_type == 'distortion':
         # H_u = (1 - weight.w_conf_ar)*AeT;
         # H_v =       weight.w_conf_ar*AeT;
-        # H_ang = sparse(Src.nf, Src.nf);
+        # H_ang = sparse(mesh.num_faces, mesh.num_faces);
         H_u = (1 - weight.w_conf_ar) * AeT
         H_v = weight.w_conf_ar * AeT
         H_ang = sp.csr_matrix((nf, nf))
@@ -107,16 +107,16 @@ def objective_ortho_param(
             np.exp(-2 * ut_avg + 2 * vt_avg) / 2
         )
 
-        # da = -2*ones(Src.nf,1)/3;
+        # da = -2*ones(mesh.num_faces,1)/3;
         # db = (2/3)*(exp(4*vt*integral_tri) - 1)./(exp(4*vt*integral_tri) + 1);
         da = -2 * np.ones(nf) / 3
         exp_4vt = np.exp(4 * vt_avg)
         db = (2 / 3) * (exp_4vt - 1) / (exp_4vt + 1)
 
-        # I = repmat((1:Src.nf)', [1,3]);
-        # J = reshape((1:3*Src.nf)', [Src.nf,3]);
-        # Da = sparse(I, J, [da,da,da], Src.nf, 3*Src.nf);
-        # Db = sparse(I, J, [db,db,db], Src.nf, 3*Src.nf);
+        # I = repmat((1:mesh.num_faces)', [1,3]);
+        # J = reshape((1:3*mesh.num_faces)', [mesh.num_faces,3]);
+        # Da = sparse(I, J, [da,da,da], mesh.num_faces, 3*mesh.num_faces);
+        # Db = sparse(I, J, [db,db,db], mesh.num_faces, 3*mesh.num_faces);
 
         # Build sparse Da and Db matrices
         # Each row i has entries at columns corresponding to corners of face i
@@ -133,16 +133,16 @@ def objective_ortho_param(
         Da = sp.coo_matrix((Da_vals, (I_idx, J_idx)), shape=(nf, 3 * nf)).tocsr()
         Db = sp.coo_matrix((Db_vals, (I_idx, J_idx)), shape=(nf, 3 * nf)).tocsr()
 
-        # daa = zeros(Src.nf,1);
-        # dab = zeros(Src.nf,1);
+        # daa = zeros(mesh.num_faces,1);
+        # dab = zeros(mesh.num_faces,1);
         # dbb = (16/9)*exp(4*vt*integral_tri)./(exp(4*vt*integral_tri) + 1).^2;
         daa = np.zeros(nf)
         dab = np.zeros(nf)
         dbb = (16 / 9) * exp_4vt / (exp_4vt + 1) ** 2
 
-        # Haa = sparse([I,Src.nf+I,2*Src.nf+I], [J,J,J], repmat(daa.*err_diag.*Src.area, [1,9]), 3*Src.nf, 3*Src.nf);
-        # Hab = sparse([I,Src.nf+I,2*Src.nf+I], [J,J,J], repmat(dab.*err_diag.*Src.area, [1,9]), 3*Src.nf, 3*Src.nf);
-        # Hbb = sparse([I,Src.nf+I,2*Src.nf+I], [J,J,J], repmat(dbb.*err_diag.*Src.area, [1,9]), 3*Src.nf, 3*Src.nf);
+        # Haa = sparse([I,mesh.num_faces+I,2*mesh.num_faces+I], [J,J,J], repmat(daa.*err_diag.*mesh.area, [1,9]), 3*mesh.num_faces, 3*mesh.num_faces);
+        # Hab = sparse([I,mesh.num_faces+I,2*mesh.num_faces+I], [J,J,J], repmat(dab.*err_diag.*mesh.area, [1,9]), 3*mesh.num_faces, 3*mesh.num_faces);
+        # Hbb = sparse([I,mesh.num_faces+I,2*mesh.num_faces+I], [J,J,J], repmat(dbb.*err_diag.*mesh.area, [1,9]), 3*mesh.num_faces, 3*mesh.num_faces);
 
         # Build Haa, Hab, Hbb matrices (3*nf x 3*nf)
         # Row indices: [I, nf+I, 2*nf+I] for each of 3 corner columns -> (nf x 9) entries
@@ -154,7 +154,7 @@ def objective_ortho_param(
 
         def build_second_order_matrix(d_vals):
             """Build 3*nf x 3*nf second-order matrix."""
-            weighted_d = d_vals * err_diag * Src.area
+            weighted_d = d_vals * err_diag * mesh.area
 
             # For each face f, we have a 3x3 block with constant value weighted_d[f]
             # Block (i,j) of face f: row = i*nf + f, col = j*nf + f
@@ -188,10 +188,10 @@ def objective_ortho_param(
 
         H_uv = H_uv_1 + H_uv_2
 
-        # H_ang = sparse(Src.nf, Src.nf);
+        # H_ang = sparse(mesh.num_faces, mesh.num_faces);
         H_ang = sp.csr_matrix((nf, nf))
 
-        # df = [Reduction'*([Da, Db]'*dec.star0d*err_diag); zeros(Src.nf,1)];
+        # df = [Reduction'*([Da, Db]'*dec.star0d*err_diag); zeros(mesh.num_faces,1)];
         df_uv = Reduction.T @ (Da_Db.T @ dec.star0d @ err_diag)
         df_ang = np.zeros(nf)
         df = np.concatenate([df_uv, df_ang])
@@ -262,7 +262,7 @@ def objective_ortho_param(
     # if isfield(weight,'w_gradv') && (weight.w_gradv > 0)
     #     H_uv = H_uv + weight.w_gradv*blkdiag(0*Wt, Wt);
     #     fct = fct + weight.w_gradv*vt(:)'*Wt*vt(:);
-    #     df = df + [weight.w_gradv*Reduction'*blkdiag(0*Wt, Wt)*[ut(:); vt(:)]; zeros(Src.nf,1)];
+    #     df = df + [weight.w_gradv*Reduction'*blkdiag(0*Wt, Wt)*[ut(:); vt(:)]; zeros(mesh.num_faces,1)];
     # end
     if hasattr(weight, 'w_gradv') and weight.w_gradv > 0:
         zero_Wt = sp.csr_matrix(Wt.shape)

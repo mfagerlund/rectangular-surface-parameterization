@@ -344,22 +344,22 @@ def tetrahedron_setup():
     param.ide_fix = np.array([], dtype=int)
     param.ide_hard = np.array([], dtype=int)
     param.ide_bound = np.array([], dtype=int)
-    param.ide_free = np.arange(Src.ne)
-    param.ide_int = np.arange(Src.ne)  # All edges are interior for closed mesh
-    param.idx_int = np.arange(Src.nv)  # All vertices are interior for closed mesh
+    param.ide_free = np.arange(Src.num_edges)
+    param.ide_int = np.arange(Src.num_edges)  # All edges are interior for closed mesh
+    param.idx_int = np.arange(Src.num_vertices)  # All vertices are interior for closed mesh
     param.tri_fix = np.array([], dtype=int)
 
     # Build E2T (face pairs per edge)
-    E2T = np.zeros((Src.ne, 2), dtype=int)
-    for e in range(Src.ne):
+    E2T = np.zeros((Src.num_edges, 2), dtype=int)
+    for e in range(Src.num_edges):
         E2T[e, 0] = max(Src.E2T[e, 0], 0)
         E2T[e, 1] = max(Src.E2T[e, 1], 0) if Src.E2T[e, 1] >= 0 else E2T[e, 0]
     param.E2T = E2T
 
     # Compute local basis angles
-    edge = Src.X[Src.E2V[:, 1], :] - Src.X[Src.E2V[:, 0], :]
+    edge = Src.vertices[Src.E2V[:, 1], :] - Src.vertices[Src.E2V[:, 0], :]
     edge = edge / np.linalg.norm(edge, axis=1, keepdims=True)
-    e1r = Src.X[Src.T[:, 1], :] - Src.X[Src.T[:, 0], :]
+    e1r = Src.vertices[Src.triangles[:, 1], :] - Src.vertices[Src.triangles[:, 0], :]
     e1r = e1r / np.linalg.norm(e1r, axis=1, keepdims=True)
 
     def comp_angle(u, v, n):
@@ -369,14 +369,14 @@ def tetrahedron_setup():
         return np.arctan2(sin_angle, cos_angle)
 
     ang_basis = np.column_stack([
-        comp_angle(Src.X[Src.T[:, 0], :] - Src.X[Src.T[:, 1], :], e1r, Src.normal),
-        comp_angle(Src.X[Src.T[:, 1], :] - Src.X[Src.T[:, 2], :], e1r, Src.normal),
-        comp_angle(Src.X[Src.T[:, 2], :] - Src.X[Src.T[:, 0], :], e1r, Src.normal)
+        comp_angle(Src.vertices[Src.triangles[:, 0], :] - Src.vertices[Src.triangles[:, 1], :], e1r, Src.normal),
+        comp_angle(Src.vertices[Src.triangles[:, 1], :] - Src.vertices[Src.triangles[:, 2], :], e1r, Src.normal),
+        comp_angle(Src.vertices[Src.triangles[:, 2], :] - Src.vertices[Src.triangles[:, 0], :], e1r, Src.normal)
     ])
     param.ang_basis = ang_basis
 
     # Compute parallel transport (zero for simplified test)
-    param.para_trans = np.zeros(Src.ne)
+    param.para_trans = np.zeros(Src.num_edges)
 
     # Create weight structure
     weight = MockWeight()
@@ -386,10 +386,10 @@ def tetrahedron_setup():
     Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
 
     # Initial variables
-    u = np.zeros(Src.nv)
-    v = np.zeros(Src.nv)
-    ang = np.zeros(Src.nf)
-    omega = np.zeros(Src.ne)
+    u = np.zeros(Src.num_vertices)
+    v = np.zeros(Src.num_vertices)
+    ang = np.zeros(Src.num_faces)
+    omega = np.zeros(Src.num_edges)
 
     k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
@@ -467,12 +467,12 @@ class TestOptimizeRSPIntegration:
                 itmax=2,
             )
 
-        assert result.u.shape == (Src.nv,), f"u shape mismatch: {result.u.shape}"
-        assert result.v.shape == (Src.nv,), f"v shape mismatch: {result.v.shape}"
-        assert result.ut.shape == (Src.nf, 3), f"ut shape mismatch: {result.ut.shape}"
-        assert result.vt.shape == (Src.nf, 3), f"vt shape mismatch: {result.vt.shape}"
-        assert result.om.shape == (Src.ne,), f"om shape mismatch: {result.om.shape}"
-        assert result.angn.shape == (Src.nf,), f"angn shape mismatch: {result.angn.shape}"
+        assert result.u.shape == (Src.num_vertices,), f"u shape mismatch: {result.u.shape}"
+        assert result.v.shape == (Src.num_vertices,), f"v shape mismatch: {result.v.shape}"
+        assert result.ut.shape == (Src.num_faces, 3), f"ut shape mismatch: {result.ut.shape}"
+        assert result.vt.shape == (Src.num_faces, 3), f"vt shape mismatch: {result.vt.shape}"
+        assert result.om.shape == (Src.num_edges,), f"om shape mismatch: {result.om.shape}"
+        assert result.angn.shape == (Src.num_faces,), f"angn shape mismatch: {result.angn.shape}"
 
     def test_flag_is_valid(self, tetrahedron_setup):
         """Flag should be one of: -1, 0, or 1."""

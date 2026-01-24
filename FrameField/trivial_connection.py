@@ -14,10 +14,10 @@ def wrap_to_pi(x: np.ndarray) -> np.ndarray:
     return np.arctan2(np.sin(x), np.cos(x))
 
 
-# function [omega,ang,sing] = trivial_connection(Src, param, dec, ifboundary, ifhardedge, sing, om_cycle, om_link)
+# function [omega,ang,sing] = trivial_connection(mesh, param, dec, ifboundary, ifhardedge, sing, om_cycle, om_link)
 
 def trivial_connection(
-    Src,
+    mesh,
     param,
     dec,
     ifboundary: bool,
@@ -33,7 +33,7 @@ def trivial_connection(
     an edge. Key for cross-field computation.
 
     Args:
-        Src: Mesh data structure with nv, ne, nf, E2T
+        mesh: Mesh data structure with nv, ne, nf, E2T
         param: Parameter structure with idx_bound, Kt, para_trans, Icycle, Ilink,
                d1d, ide_bound, ide_hard, tri_fix, K, Kt_invisible
         dec: DEC structure with d1d, star1d
@@ -52,11 +52,11 @@ def trivial_connection(
 
     # if ~exist('sing','var')
     #     if ~isempty(param.idx_bound)
-    #         sing = zeros(Src.nv,1);
+    #         sing = zeros(mesh.num_vertices,1);
     #         sing(param.idx_bound) = round(4*param.Kt(param.idx_bound)/(2*pi))/4;
     #     else
-    #         sing = zeros(Src.nv,1);
-    #         id = randi(Src.nv, 4*(Src.nf - Src.ne + Src.nv), 1);
+    #         sing = zeros(mesh.num_vertices,1);
+    #         id = randi(mesh.num_vertices, 4*(mesh.num_faces - mesh.num_edges + mesh.num_vertices), 1);
     #         sing(id) = 1/4;
     #     end
     # end
@@ -64,16 +64,16 @@ def trivial_connection(
     # Default value for vertex singularity indices
     if sing is None:
         if len(param.idx_bound) > 0:
-            sing = np.zeros(Src.nv)
+            sing = np.zeros(mesh.num_vertices)
             # Round to nearest quarter-integer
             sing[param.idx_bound] = np.round(4 * param.Kt[param.idx_bound] / (2 * np.pi)) / 4
         else:
-            sing = np.zeros(Src.nv)
+            sing = np.zeros(mesh.num_vertices)
             # Random singularity placement for closed surfaces
             # Euler characteristic: chi = nv - ne + nf = 2 - 2*genus
             # For 4-fold cross field: sum of indices = chi
-            n_sing = 4 * (Src.nf - Src.ne + Src.nv)
-            id = np.random.randint(0, Src.nv, n_sing)
+            n_sing = 4 * (mesh.num_faces - mesh.num_edges + mesh.num_vertices)
+            id = np.random.randint(0, mesh.num_vertices, n_sing)
             sing[id] = 1/4
 
     # if ~exist('om_cycle','var') || isempty(om_cycle)
@@ -97,29 +97,29 @@ def trivial_connection(
         om_link = om_link - 2 * np.pi * np.round(4 * om_link / (2 * np.pi)) / 4
 
     # if isempty(param.idx_bound)
-    #     assert(norm(sum(sing) - (Src.nf - Src.ne + Src.nv)) < 1e-5, 'Singularities do not satisfy Gauss-Bonnet.');
+    #     assert(norm(sum(sing) - (mesh.num_faces - mesh.num_edges + mesh.num_vertices)) < 1e-5, 'Singularities do not satisfy Gauss-Bonnet.');
     # end
 
     # Check Gauss-Bonnet constraint for closed surfaces
     if len(param.idx_bound) == 0:
-        euler_char = Src.nf - Src.ne + Src.nv
+        euler_char = mesh.num_faces - mesh.num_edges + mesh.num_vertices
         assert np.abs(np.sum(sing) - euler_char) < 1e-5, \
             'Singularities do not satisfy Gauss-Bonnet.'
 
     # if ifboundary && ifhardedge
-    #     s2 = [sing; round(2*param.K(Src.nv+1:end)/pi)/4];
-    #     A = [param.d1d; sparse(1:length(param.ide_bound), param.ide_bound, 1, length(param.ide_bound), Src.ne); param.Ilink; param.Icycle];
+    #     s2 = [sing; round(2*param.K(mesh.num_vertices+1:end)/pi)/4];
+    #     A = [param.d1d; sparse(1:length(param.ide_bound), param.ide_bound, 1, length(param.ide_bound), mesh.num_edges); param.Ilink; param.Icycle];
     #     b = [param.K-2*pi*s2; zeros(length(param.ide_bound),1); om_link; om_cycle];
     # elseif ifboundary
-    #     A = [dec.d1d; sparse(1:length(param.ide_bound), param.ide_bound, 1, length(param.ide_bound), Src.ne); param.Ilink; param.Icycle];
+    #     A = [dec.d1d; sparse(1:length(param.ide_bound), param.ide_bound, 1, length(param.ide_bound), mesh.num_edges); param.Ilink; param.Icycle];
     #     b = [param.Kt-2*pi*sing; zeros(length(param.ide_bound),1); om_link; om_cycle];
     # elseif ifhardedge
     #     idx = setdiff((1:size(param.d1d,1))', param.idx_bound);
-    #     s2 = [sing; round(2*param.K(Src.nv+1:end)/pi)/4];
-    #     A = [param.d1d(idx,:); sparse(1:length(param.ide_hard), param.ide_hard, 1, length(param.ide_hard), Src.ne); param.Ilink; param.Icycle];
+    #     s2 = [sing; round(2*param.K(mesh.num_vertices+1:end)/pi)/4];
+    #     A = [param.d1d(idx,:); sparse(1:length(param.ide_hard), param.ide_hard, 1, length(param.ide_hard), mesh.num_edges); param.Ilink; param.Icycle];
     #     b = [param.K(idx)-2*pi*s2(idx); zeros(length(param.ide_hard),1); om_link; om_cycle];
     # else
-    #     A = [dec.d1d(param.idx_int,:); sparse(1:length(param.ide_bound), param.ide_bound, 1, length(param.ide_bound), Src.ne); param.Ilink; param.Icycle];
+    #     A = [dec.d1d(param.idx_int,:); sparse(1:length(param.ide_bound), param.ide_bound, 1, length(param.ide_bound), mesh.num_edges); param.Ilink; param.Icycle];
     #     b = [param.Kt(param.idx_int)-2*pi*sing(param.idx_int); zeros(length(param.ide_bound),1); om_link; om_cycle];
     # end
 
@@ -129,12 +129,12 @@ def trivial_connection(
 
     if ifboundary and ifhardedge:
         # Extended singularities including hard edge corners
-        s2 = np.concatenate([sing, np.round(2 * param.K[Src.nv:] / np.pi) / 4])
+        s2 = np.concatenate([sing, np.round(2 * param.K[mesh.num_vertices:] / np.pi) / 4])
 
         # Boundary edge selector matrix
         bound_selector = sp.csr_matrix(
             (np.ones(n_bound), (np.arange(n_bound), param.ide_bound)),
-            shape=(n_bound, Src.ne)
+            shape=(n_bound, mesh.num_edges)
         )
 
         # Stack constraint matrices
@@ -150,7 +150,7 @@ def trivial_connection(
         # Boundary edge selector matrix
         bound_selector = sp.csr_matrix(
             (np.ones(n_bound), (np.arange(n_bound), param.ide_bound)),
-            shape=(n_bound, Src.ne)
+            shape=(n_bound, mesh.num_edges)
         )
 
         A = sp.vstack([dec.d1d, bound_selector, param.Ilink, param.Icycle])
@@ -167,12 +167,12 @@ def trivial_connection(
         idx = np.setdiff1d(all_idx, param.idx_bound)
 
         # Extended singularities
-        s2 = np.concatenate([sing, np.round(2 * param.K[Src.nv:] / np.pi) / 4])
+        s2 = np.concatenate([sing, np.round(2 * param.K[mesh.num_vertices:] / np.pi) / 4])
 
         # Hard edge selector matrix
         hard_selector = sp.csr_matrix(
             (np.ones(n_hard), (np.arange(n_hard), param.ide_hard)),
-            shape=(n_hard, Src.ne)
+            shape=(n_hard, mesh.num_edges)
         )
 
         A = sp.vstack([param.d1d[idx, :], hard_selector, param.Ilink, param.Icycle])
@@ -187,7 +187,7 @@ def trivial_connection(
         # No boundary, no hard edges - use interior vertices only
         bound_selector = sp.csr_matrix(
             (np.ones(n_bound), (np.arange(n_bound), param.ide_bound)),
-            shape=(n_bound, Src.ne)
+            shape=(n_bound, mesh.num_edges)
         )
 
         A = sp.vstack([dec.d1d[param.idx_int, :], bound_selector, param.Ilink, param.Icycle])
@@ -198,7 +198,7 @@ def trivial_connection(
             om_cycle
         ])
 
-    # omega = quadprog(dec.star1d, zeros(Src.ne,1), [], [], A, b);
+    # omega = quadprog(dec.star1d, zeros(mesh.num_edges,1), [], [], A, b);
 
     # Solve quadratic program: min 0.5 * x' * H * x  s.t. A*x = b
     # MATLAB quadprog(H, f, Aineq, bineq, Aeq, beq) with f=0, no inequalities

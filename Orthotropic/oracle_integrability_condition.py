@@ -10,11 +10,11 @@ from typing import Optional, Tuple, Union
 from Orthotropic.omega_from_scale import omega_from_scale
 
 
-# function [F,Jf,Hf] = oracle_integrability_condition(Src, param, dec, omega, ut, vt, ang, lambda, Reduction, ide_free)
+# function [F,Jf,Hf] = oracle_integrability_condition(mesh, param, dec, omega, ut, vt, ang, lambda, Reduction, ide_free)
 #
 
 def oracle_integrability_condition(
-    Src,
+    mesh,
     param,
     dec,
     omega: np.ndarray,
@@ -31,7 +31,7 @@ def oracle_integrability_condition(
 
     Parameters
     ----------
-    Src : mesh data structure
+    mesh : mesh data structure
         Contains nf, ne, T2E, cot_corner_angle
     param : parameter structure
         Contains ide_free, ide_hard, ide_bound, ang_basis
@@ -84,9 +84,9 @@ def oracle_integrability_condition(
             d0d[idx, :] = 0
     d0d = d0d.tocsr()
 
-    # [O,Or,dO] = omega_from_scale(Src, param, dec, ut, vt, ang, Reduction);
+    # [O,Or,dO] = omega_from_scale(mesh, param, dec, ut, vt, ang, Reduction);
 
-    O, Or, dO = omega_from_scale(Src, param, dec, ut, vt, ang, Reduction, compute_derivative=True)
+    O, Or, dO = omega_from_scale(mesh, param, dec, ut, vt, ang, Reduction, compute_derivative=True)
 
     # F = O(ide_free,:)*[ut(:); vt(:)] - omega(ide_free);
 
@@ -103,7 +103,7 @@ def oracle_integrability_condition(
     if not compute_hessian:
         return F, Jf
 
-    #     cot_ang = Src.cot_corner_angle;
+    #     cot_ang = mesh.cot_corner_angle;
     #     cos_2ff1 = cos(2*ang + 2*param.ang_basis(:,1));
     #     sin_2ff1 = sin(2*ang + 2*param.ang_basis(:,1));
     #     cos_2ff2 = cos(2*ang + 2*param.ang_basis(:,2));
@@ -111,7 +111,7 @@ def oracle_integrability_condition(
     #     cos_2ff3 = cos(2*ang + 2*param.ang_basis(:,3));
     #     sin_2ff3 = sin(2*ang + 2*param.ang_basis(:,3));
 
-    cot_ang = Src.cot_corner_angle
+    cot_ang = mesh.cot_corner_angle
     cos_2ff1 = np.cos(2 * ang + 2 * param.ang_basis[:, 0])
     sin_2ff1 = np.sin(2 * ang + 2 * param.ang_basis[:, 0])
     cos_2ff2 = np.cos(2 * ang + 2 * param.ang_basis[:, 1])
@@ -127,22 +127,22 @@ def oracle_integrability_condition(
     vt2 = vt[:, 1]
     vt3 = vt[:, 2]
 
-    #     lambda_full = zeros(Src.ne,1);
+    #     lambda_full = zeros(mesh.num_edges,1);
     #     lambda_full(ide_free) = lambda(1:length(ide_free));
-    #     le = sign(Src.T2E).*lambda_full(abs(Src.T2E));
+    #     le = sign(mesh.T2E).*lambda_full(abs(mesh.T2E));
 
-    lambda_full = np.zeros(Src.ne)
+    lambda_full = np.zeros(mesh.num_edges)
     lambda_full[ide_free] = lam[:len(ide_free)]
 
     # T2E uses signed encoding: decode with abs(T2E)-1 for index, sign(T2E) for sign
-    T2E_idx = np.abs(Src.T2E) - 1  # Convert to 0-based edge indices
-    T2E_sign = np.sign(Src.T2E)
+    T2E_idx = np.abs(mesh.T2E) - 1  # Convert to 0-based edge indices
+    T2E_sign = np.sign(mesh.T2E)
     le = T2E_sign * lambda_full[T2E_idx]
 
     #     dthS = 2*le(:,1).*cot_ang(:,3).*(-sin_2ff1.*(cot_ang(:,2).*(vt3 - vt1) + cot_ang(:,1).*(vt3 - vt2)) - cos_2ff1.*(vt2 - vt1)) + ...
     #            2*le(:,2).*cot_ang(:,1).*(-sin_2ff2.*(cot_ang(:,3).*(vt1 - vt2) + cot_ang(:,2).*(vt1 - vt3)) - cos_2ff2.*(vt3 - vt2)) + ...
     #            2*le(:,3).*cot_ang(:,2).*(-sin_2ff3.*(cot_ang(:,1).*(vt2 - vt3) + cot_ang(:,3).*(vt2 - vt1)) - cos_2ff3.*(vt1 - vt3));
-    #     D2_th = spdiags(dthS, 0, Src.nf, Src.nf);
+    #     D2_th = spdiags(dthS, 0, mesh.num_faces, mesh.num_faces);
 
     dthS = (2 * le[:, 0] * cot_ang[:, 2] *
             (-sin_2ff1 * (cot_ang[:, 1] * (vt3 - vt1) + cot_ang[:, 0] * (vt3 - vt2)) - cos_2ff1 * (vt2 - vt1)) +
@@ -150,10 +150,10 @@ def oracle_integrability_condition(
             (-sin_2ff2 * (cot_ang[:, 2] * (vt1 - vt2) + cot_ang[:, 1] * (vt1 - vt3)) - cos_2ff2 * (vt3 - vt2)) +
             2 * le[:, 2] * cot_ang[:, 1] *
             (-sin_2ff3 * (cot_ang[:, 0] * (vt2 - vt3) + cot_ang[:, 2] * (vt2 - vt1)) - cos_2ff3 * (vt1 - vt3)))
-    D2_th = sp.diags(dthS, 0, shape=(Src.nf, Src.nf), format='csr')
+    D2_th = sp.diags(dthS, 0, shape=(mesh.num_faces, mesh.num_faces), format='csr')
 
-    #     I = repmat((1:Src.nf)', [1,3]);
-    #     J = reshape((1:3*Src.nf)', [Src.nf,3]);
+    #     I = repmat((1:mesh.num_faces)', [1,3]);
+    #     J = reshape((1:3*mesh.num_faces)', [mesh.num_faces,3]);
     #     dvS1 = le(:,1).*cot_ang(:,3).*(-cos_2ff1.*cot_ang(:,2) + sin_2ff1) + ...
     #            le(:,2).*cot_ang(:,1).*cos_2ff2.*(cot_ang(:,3) + cot_ang(:,2)) + ...
     #            le(:,3).*cot_ang(:,2).*(-cos_2ff3.*cot_ang(:,3) - sin_2ff3);
@@ -163,13 +163,13 @@ def oracle_integrability_condition(
     #     dvS3 = le(:,1).*cot_ang(:,3).*cos_2ff1.*(cot_ang(:,2) + cot_ang(:,1)) + ...
     #            le(:,2).*cot_ang(:,1).*(-cos_2ff2.*cot_ang(:,2) - sin_2ff2) + ...
     #            le(:,3).*cot_ang(:,2).*(-cos_2ff3.*cot_ang(:,1) + sin_2ff3);
-    #     D_vth = sparse(I, J, [dvS1, dvS2, dvS3], Src.nf, 3*Src.nf);
+    #     D_vth = sparse(I, J, [dvS1, dvS2, dvS3], mesh.num_faces, 3*mesh.num_faces);
 
     # Build row/column indices for sparse matrix
     # I: nf x 3 matrix where each row is [i, i, i] (0-indexed face indices)
     # J: nf x 3 matrix where each row is [i, nf+i, 2*nf+i] (0-indexed corner indices)
-    I_rows = np.tile(np.arange(Src.nf).reshape(-1, 1), (1, 3))
-    J_cols = np.arange(3 * Src.nf).reshape((Src.nf, 3), order='F')
+    I_rows = np.tile(np.arange(mesh.num_faces).reshape(-1, 1), (1, 3))
+    J_cols = np.arange(3 * mesh.num_faces).reshape((mesh.num_faces, 3), order='F')
 
     dvS1 = (le[:, 0] * cot_ang[:, 2] * (-cos_2ff1 * cot_ang[:, 1] + sin_2ff1) +
             le[:, 1] * cot_ang[:, 0] * cos_2ff2 * (cot_ang[:, 2] + cot_ang[:, 1]) +
@@ -184,7 +184,7 @@ def oracle_integrability_condition(
     dvS = np.column_stack([dvS1, dvS2, dvS3])
     D_vth = sp.coo_matrix(
         (dvS.ravel('F'), (I_rows.ravel('F'), J_cols.ravel('F'))),
-        shape=(Src.nf, 3 * Src.nf)
+        shape=(mesh.num_faces, 3 * mesh.num_faces)
     ).tocsr()
 
     #     assert(max(abs(D_vth*vt(:) - dO'*lambda_full)) < 1e-6, 'Second derivative of constraints is invalid.');
@@ -193,12 +193,12 @@ def oracle_integrability_condition(
     assert np.max(np.abs(D_vth @ vt_vec - dO.T @ lambda_full)) < 1e-6, \
         'Second derivative of constraints is invalid.'
 
-    #     Hf = [sparse(3*Src.nf,3*Src.nf), sparse(3*Src.nf,3*Src.nf), sparse(3*Src.nf,Src.nf);...
-    #           sparse(3*Src.nf,3*Src.nf), sparse(3*Src.nf,3*Src.nf),                  D_vth';...
-    #             sparse(Src.nf,3*Src.nf),                     D_vth,                  D2_th];
+    #     Hf = [sparse(3*mesh.num_faces,3*mesh.num_faces), sparse(3*mesh.num_faces,3*mesh.num_faces), sparse(3*mesh.num_faces,mesh.num_faces);...
+    #           sparse(3*mesh.num_faces,3*mesh.num_faces), sparse(3*mesh.num_faces,3*mesh.num_faces),                  D_vth';...
+    #             sparse(mesh.num_faces,3*mesh.num_faces),                     D_vth,                  D2_th];
 
-    n3f = 3 * Src.nf
-    nf = Src.nf
+    n3f = 3 * mesh.num_faces
+    nf = mesh.num_faces
 
     # Build Hf as block matrix:
     # [0_{3nf x 3nf}, 0_{3nf x 3nf}, 0_{3nf x nf}]
@@ -214,12 +214,12 @@ def oracle_integrability_condition(
         [zero_nf_3nf, D_vth, D2_th]
     ], format='csr')
 
-    #     Red = blkdiag(Reduction, speye(Src.nf,Src.nf));
+    #     Red = blkdiag(Reduction, speye(mesh.num_faces,mesh.num_faces));
     #     Hf = Red'*Hf*Red;
     #     Hf = (Hf + Hf')/2;
     # end
 
-    Red = sp.block_diag([Reduction, sp.eye(Src.nf)], format='csr')
+    Red = sp.block_diag([Reduction, sp.eye(mesh.num_faces)], format='csr')
     Hf = Red.T @ Hf @ Red
     Hf = (Hf + Hf.T) / 2
 

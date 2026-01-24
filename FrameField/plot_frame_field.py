@@ -9,11 +9,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from typing import Optional, Union
 
 
-# function fig = plot_frame_field(fig, Src, param, ang, col)
+# function fig = plot_frame_field(fig, mesh, param, ang, col)
 
 def plot_frame_field(
     fig: Optional[plt.Figure],
-    Src,
+    mesh,
     param,
     ang: np.ndarray,
     col: Union[np.ndarray, str] = 'gray'
@@ -26,7 +26,7 @@ def plot_frame_field(
 
     Args:
         fig: Existing figure to plot on, or None to create new figure
-        Src: Mesh data structure with T (triangles), X (vertices), nv (vertex count)
+        mesh: Mesh data structure with T (triangles), X (vertices), nv (vertex count)
         param: Parameter structure with e1r, e2r (per-face reference frames in 3D)
         ang: Frame field angles per face (radians)
         col: Face colors - array of shape (nf,) or (nv,) or color string
@@ -45,11 +45,11 @@ def plot_frame_field(
 
     ax = fig.add_subplot(111, projection='3d')
 
-    # trisurf(Src.T, Src.X(:,1), Src.X(:,2), Src.X(:,3), col, 'edgecolor', 'none');
+    # trisurf(mesh.triangles, mesh.vertices(:,1), mesh.vertices(:,2), mesh.vertices(:,3), col, 'edgecolor', 'none');
 
     # Extract vertex coordinates
-    X = Src.X
-    T = Src.T  # Face indices (0-indexed)
+    X = mesh.vertices
+    T = mesh.triangles  # Face indices (0-indexed)
 
     # Determine color handling
     if isinstance(col, str):
@@ -87,7 +87,7 @@ def plot_frame_field(
             ax.set_xlim(X[:, 0].min(), X[:, 0].max())
             ax.set_ylim(X[:, 1].min(), X[:, 1].max())
             ax.set_zlim(X[:, 2].min(), X[:, 2].max())
-        elif col_arr.ndim == 1 and len(col_arr) == Src.nv:
+        elif col_arr.ndim == 1 and len(col_arr) == mesh.num_vertices:
             # Per-vertex colors - use shading interpolation
             ax.plot_trisurf(
                 X[:, 0], X[:, 1], X[:, 2],
@@ -107,13 +107,13 @@ def plot_frame_field(
                 alpha=0.8
             )
 
-    # if size(ang,1) == size(Src.T,1)
+    # if size(ang,1) == size(mesh.triangles,1)
     #     e1 = exp(1i*ang);
     #     e2 = 1i*e1;
     #     E1 = real(e1).*param.e1r + imag(e1).*param.e2r;
     #     E2 = real(e2).*param.e1r + imag(e2).*param.e2r;
     #
-    #     bar = (Src.X(Src.T(:,1),:) + Src.X(Src.T(:,2),:) + Src.X(Src.T(:,3),:))/3;
+    #     bar = (mesh.vertices(mesh.triangles(:,1),:) + mesh.vertices(mesh.triangles(:,2),:) + mesh.vertices(mesh.triangles(:,3),:))/3;
     #
     #     hold on;
     #     quiver3(bar(:,1), bar(:,2), bar(:,3), E1(:,1), E1(:,2), E1(:,3), 0.5, 'r', 'LineWidth',1);
@@ -156,7 +156,7 @@ def plot_frame_field(
     ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio
     ax.view_init(elev=90, azim=0)  # Top-down view
 
-    # if size(col,1) == Src.nv
+    # if size(col,1) == mesh.num_vertices
     #     shading interp;
     # end
 

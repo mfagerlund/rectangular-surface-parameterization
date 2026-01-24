@@ -213,21 +213,21 @@ class TestReturnShapes:
     def test_edge_jump_shape_tetrahedron(self, tetrahedron):
         """Edge_jump shape should be (3*nf, ne)."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
-        expected_shape = (3 * tetrahedron.nf, tetrahedron.ne)
+        expected_shape = (3 * tetrahedron.num_faces, tetrahedron.num_edges)
         assert Edge_jump.shape == expected_shape, \
             f"Edge_jump shape should be {expected_shape}, got {Edge_jump.shape}"
 
     def test_v2t_shape_tetrahedron(self, tetrahedron):
         """v2t shape should be (3*nf, nv)."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
-        expected_shape = (3 * tetrahedron.nf, tetrahedron.nv)
+        expected_shape = (3 * tetrahedron.num_faces, tetrahedron.num_vertices)
         assert v2t.shape == expected_shape, \
             f"v2t shape should be {expected_shape}, got {v2t.shape}"
 
     def test_base_tri_shape_tetrahedron(self, tetrahedron):
         """base_tri shape should be (nv,)."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
-        expected_shape = (tetrahedron.nv,)
+        expected_shape = (tetrahedron.num_vertices,)
         assert base_tri.shape == expected_shape, \
             f"base_tri shape should be {expected_shape}, got {base_tri.shape}"
 
@@ -241,9 +241,9 @@ class TestReturnShapes:
         """
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(single_triangle)
 
-        expected_edge_jump_shape = (3 * single_triangle.nf, single_triangle.ne)
-        expected_v2t_shape = (3 * single_triangle.nf, single_triangle.nv)
-        expected_base_tri_shape = (single_triangle.nv,)
+        expected_edge_jump_shape = (3 * single_triangle.num_faces, single_triangle.num_edges)
+        expected_v2t_shape = (3 * single_triangle.num_faces, single_triangle.num_vertices)
+        expected_base_tri_shape = (single_triangle.num_vertices,)
 
         assert Edge_jump.shape == expected_edge_jump_shape, \
             f"Edge_jump shape: expected {expected_edge_jump_shape}, got {Edge_jump.shape}"
@@ -322,7 +322,7 @@ class TestEdgeJumpValues:
 
         # Convert to COO format to access row indices
         coo = Edge_jump.tocoo()
-        max_row = 3 * tetrahedron.nf - 1
+        max_row = 3 * tetrahedron.num_faces - 1
 
         assert np.all(coo.row >= 0), "Row indices should be non-negative"
         assert np.all(coo.row <= max_row), \
@@ -333,7 +333,7 @@ class TestEdgeJumpValues:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
 
         coo = Edge_jump.tocoo()
-        max_col = tetrahedron.ne - 1
+        max_col = tetrahedron.num_edges - 1
 
         assert np.all(coo.col >= 0), "Column indices should be non-negative"
         assert np.all(coo.col <= max_col), \
@@ -360,7 +360,7 @@ class TestV2tValues:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
 
         coo = v2t.tocoo()
-        max_row = 3 * tetrahedron.nf - 1
+        max_row = 3 * tetrahedron.num_faces - 1
 
         assert np.all(coo.row >= 0), "Row indices should be non-negative"
         assert np.all(coo.row <= max_row), \
@@ -371,7 +371,7 @@ class TestV2tValues:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
 
         coo = v2t.tocoo()
-        max_col = tetrahedron.nv - 1
+        max_col = tetrahedron.num_vertices - 1
 
         assert np.all(coo.col >= 0), "Column indices should be non-negative"
         assert np.all(coo.col <= max_col), \
@@ -383,7 +383,7 @@ class TestV2tValues:
 
         # Each row (corner) should have exactly one entry
         row_nnz = np.diff(v2t.indptr)
-        np.testing.assert_array_equal(row_nnz, np.ones(3 * tetrahedron.nf),
+        np.testing.assert_array_equal(row_nnz, np.ones(3 * tetrahedron.num_faces),
             err_msg="Each corner should map to exactly one vertex")
 
     def test_v2t_column_sums_equal_valence(self, tetrahedron):
@@ -394,7 +394,7 @@ class TestV2tValues:
         col_sums = np.asarray(v2t.sum(axis=0)).flatten()
         expected_valence = 3  # Each vertex of tetrahedron has 3 incident triangles
 
-        np.testing.assert_array_equal(col_sums, np.full(tetrahedron.nv, expected_valence),
+        np.testing.assert_array_equal(col_sums, np.full(tetrahedron.num_vertices, expected_valence),
             err_msg=f"Each vertex should have valence {expected_valence}")
 
 
@@ -410,16 +410,16 @@ class TestBaseTri:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
 
         assert np.all(base_tri >= 0), "base_tri values should be non-negative"
-        assert np.all(base_tri < tetrahedron.nf), \
-            f"base_tri values should be < {tetrahedron.nf}"
+        assert np.all(base_tri < tetrahedron.num_faces), \
+            f"base_tri values should be < {tetrahedron.num_faces}"
 
     def test_base_tri_contains_vertex(self, tetrahedron):
         """base_tri[v] should be a triangle that contains vertex v."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
 
-        for v in range(tetrahedron.nv):
+        for v in range(tetrahedron.num_vertices):
             tri = base_tri[v]
-            verts_in_tri = tetrahedron.T[tri, :]
+            verts_in_tri = tetrahedron.triangles[tri, :]
             assert v in verts_in_tri, \
                 f"base_tri[{v}]={tri} does not contain vertex {v}, triangle vertices: {verts_in_tri}"
 
@@ -427,11 +427,11 @@ class TestBaseTri:
         """Every vertex should have a valid base triangle."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(cube_triangulated)
 
-        for v in range(cube_triangulated.nv):
+        for v in range(cube_triangulated.num_vertices):
             tri = base_tri[v]
-            assert 0 <= tri < cube_triangulated.nf, \
+            assert 0 <= tri < cube_triangulated.num_faces, \
                 f"Vertex {v} has invalid base_tri {tri}"
-            assert v in cube_triangulated.T[tri, :], \
+            assert v in cube_triangulated.triangles[tri, :], \
                 f"Vertex {v} not in its base triangle {tri}"
 
 
@@ -505,7 +505,7 @@ class TestSpecificMeshProperties:
         """Tetrahedron: 4 faces * 3 corners = 12 corners."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
 
-        n_corners = 3 * tetrahedron.nf
+        n_corners = 3 * tetrahedron.num_faces
         assert n_corners == 12, f"Tetrahedron should have 12 corners, got {n_corners}"
         assert v2t.shape[0] == 12
 
@@ -528,7 +528,7 @@ class TestSpecificMeshProperties:
         col_sums = np.asarray(v2t.sum(axis=0)).flatten()
         # Each vertex of octahedron is in 4 triangles
         expected_valence = 4
-        np.testing.assert_array_equal(col_sums, np.full(octahedron.nv, expected_valence),
+        np.testing.assert_array_equal(col_sums, np.full(octahedron.num_vertices, expected_valence),
             err_msg=f"Each octahedron vertex should have valence {expected_valence}")
 
 
@@ -553,7 +553,7 @@ class TestMatrixProperties:
         """v2t should have exactly 3*nf nonzeros (one per corner)."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
 
-        expected_nnz = 3 * tetrahedron.nf
+        expected_nnz = 3 * tetrahedron.num_faces
         assert v2t.nnz == expected_nnz, \
             f"v2t should have {expected_nnz} nonzeros, got {v2t.nnz}"
 
@@ -569,7 +569,7 @@ class TestCornerIndices:
         """Verify Tc corner indexing for tetrahedron."""
         # Tc[f, c] gives corner index for face f, corner c
         # Should be arranged in column-major (Fortran) order like MATLAB
-        nf = tetrahedron.nf
+        nf = tetrahedron.num_faces
         Tc = np.arange(3 * nf).reshape((nf, 3), order='F')
 
         # First column should be [0, 1, 2, 3]
@@ -588,20 +588,20 @@ class TestMeshInfoConsistency:
     """Test that output is consistent with MeshInfo structure."""
 
     def test_edge_count_matches(self, tetrahedron):
-        """Edge_jump column count should match mesh.ne."""
+        """Edge_jump column count should match mesh.num_edges."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
-        assert Edge_jump.shape[1] == tetrahedron.ne
+        assert Edge_jump.shape[1] == tetrahedron.num_edges
 
     def test_vertex_count_matches(self, tetrahedron):
-        """v2t column count should match mesh.nv."""
+        """v2t column count should match mesh.num_vertices."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
-        assert v2t.shape[1] == tetrahedron.nv
+        assert v2t.shape[1] == tetrahedron.num_vertices
 
     def test_face_count_matches(self, tetrahedron):
-        """Row counts should match 3*mesh.nf."""
+        """Row counts should match 3*mesh.num_faces."""
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(tetrahedron)
-        assert Edge_jump.shape[0] == 3 * tetrahedron.nf
-        assert v2t.shape[0] == 3 * tetrahedron.nf
+        assert Edge_jump.shape[0] == 3 * tetrahedron.num_faces
+        assert v2t.shape[0] == 3 * tetrahedron.num_faces
 
 
 # =============================================================================

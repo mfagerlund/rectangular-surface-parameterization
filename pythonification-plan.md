@@ -3,18 +3,19 @@
 ## Goal
 Transform the codebase from a MATLAB port with interleaved comments and MATLAB conventions into idiomatic, maintainable Python that follows community standards.
 
-## Current State
+## Current State (Updated 2025-01-24)
 
-| Artifact | Count | Files |
-|----------|-------|-------|
-| MATLAB comments (`# %`) | 328 | 25 |
-| Signed 1-based edge encoding | 44 | 15 |
-| Dict-based mesh structs (`Src['T']`) | pervasive | ~25 |
-| MATLAB naming (`T2E`, `nf`, `nv`) | pervasive | ~25 |
+| Artifact | Status | Notes |
+|----------|--------|-------|
+| MATLAB comments (`# %`) | ✅ Removed | Commit 5696cf1 |
+| Dict-based mesh structs | ✅ Converted | `MeshInfo`, `DEC`, `OrthoParam`, `Weight` are dataclasses |
+| Signed 1-based edge encoding | ❌ Remains | 44 occurrences in 15 files |
+| MATLAB naming (`T2E`, `nf`, `nv`) | ✅ Mostly done | Core fields renamed, connectivity fields remain |
+| Solver params hardcoded | ✅ Extracted | `OptimizationParams` in `Orthotropic/optimization_params.py` |
 
 **Note:** The 66 uses of `ravel('F')` / `flatten('F')` are intentional and correct - they match the algorithm's mathematical derivation. Do not change.
 
-## Phase 1: Remove MATLAB Comments (Low Risk)
+## Phase 1: Remove MATLAB Comments ✅ COMPLETE
 
 **Effort:** Low | **Risk:** Low | **Impact:** High for readability
 
@@ -44,9 +45,11 @@ Create `docs/matlab-reference.md` with:
 
 ---
 
-## Phase 2: Introduce Dataclasses (Low Risk)
+## Phase 2: Introduce Dataclasses ✅ COMPLETE
 
 **Effort:** Medium | **Risk:** Low | **Impact:** High for maintainability
+
+**Status:** All dataclasses implemented: `MeshInfo`, `DEC`, `OrthoParam`, `Weight`, `OptimizationParams`.
 
 ### What
 Replace dict-based mesh structures with typed dataclasses.
@@ -366,10 +369,10 @@ Focus on **algorithmic** improvements instead:
 
 ## Implementation Order
 
-### Phase 1: Quick Wins (1-2 sessions)
+### Phase 1: Quick Wins (1-2 sessions) ✅ COMPLETE
 1. [x] Strip MATLAB comments from Python files (commit 5696cf1)
 2. [x] Add header comment to each file referencing commit `7d1aab4` for line-by-line translation
-3. [ ] Rename local folder from `Corman-Crane` to `rectangular-surface-parameterization`
+3. [x] Rename local folder from `Corman-Crane` to `rectangular-surface-parameterization`
 
 **Reference commit for MATLAB translation:** `7d1aab4`
 
@@ -382,37 +385,41 @@ rg "# %" --type py
 rg "commit 7d1aab4" --type py
 ```
 
-### Phase 2: Type Safety (2-3 sessions)
-4. [ ] Create `core/` module with dataclasses
-5. [ ] Migrate `MeshInfo` → `TriangleMesh`
-6. [ ] Migrate `DEC` → `DECOperators`
-7. [ ] Migrate `param` → `OptimizationParams`
+### Phase 2: Type Safety (2-3 sessions) ✅ COMPLETE
+4. [x] `MeshInfo` dataclass exists in `Preprocess/MeshInfo.py` (14 fields)
+5. [x] `DEC` dataclass exists in `Preprocess/dec_tri.py` (15 fields)
+6. [x] `OrthoParam` dataclass exists in `Preprocess/preprocess_ortho_param.py`
+7. [x] `Weight` dataclass exists in `run_RSP.py`
+8. [x] Create `OptimizationParams` dataclass for hardcoded solver parameters in `optimize_RSP.py`
+   - Created `Orthotropic/optimization_params.py` with all solver parameters
+   - Updated `optimize_RSP()` to accept optional `opt_params` argument
 
-### Phase 3: Naming (1-2 sessions)
-8. [ ] Batch rename MATLAB-style variables
-9. [ ] Update tests to use new names
-10. [ ] Update documentation
+### Phase 3: Naming (1-2 sessions) ✅ MOSTLY COMPLETE
+9. [x] Renamed `Src` -> `mesh`, `SrcCut` -> `disk_mesh` (1765 occurrences)
+10. [x] Renamed MeshInfo fields: `nv/nf/ne` -> `num_vertices/num_faces/num_edges`
+11. [x] Renamed MeshInfo fields: `X` -> `vertices`, `T` -> `triangles`
+12. [ ] Remaining: Connectivity fields (`E2V`, `T2E`, `E2T`, `T2T`, `Nv`, `SqEdgeLength`)
 
 ### Phase 4: Edge Encoding (2-3 sessions)
-11. [ ] Implement `SignedEdgeArray`
-12. [ ] Migrate connectivity.py
-13. [ ] Migrate consumers one at a time
-14. [ ] Full test suite verification
+13. [ ] Implement `SignedEdgeArray`
+14. [ ] Migrate connectivity.py
+15. [ ] Migrate consumers one at a time
+16. [ ] Full test suite verification
 
 ### Phase 5: Module Reorganization (1 session)
-15. [ ] Reorganize into package structure
-16. [ ] Add `py.typed` marker
-17. [ ] Update imports in all files
-18. [ ] Final test run
+17. [ ] Reorganize into package structure
+18. [ ] Add `py.typed` marker
+19. [ ] Update imports in all files
+20. [ ] Final test run
 
 ### Phase 6: Cross-Platform CI (1-2 sessions)
-19. [ ] Create `.github/workflows/build-libqex.yml`
-20. [ ] Build libQEx for Windows x64
-21. [ ] Build libQEx for Linux x64 (Ubuntu)
-22. [ ] Build libQEx for macOS (Intel + Apple Silicon)
-23. [ ] Auto-upload binaries to GitHub Releases
-24. [ ] Update `bin/` with CI-built binaries
-25. [ ] Add workflow for running tests on all platforms
+21. [ ] Create `.github/workflows/build-libqex.yml`
+22. [ ] Build libQEx for Windows x64
+23. [ ] Build libQEx for Linux x64 (Ubuntu)
+24. [ ] Build libQEx for macOS (Intel + Apple Silicon)
+25. [ ] Auto-upload binaries to GitHub Releases
+26. [ ] Update `bin/` with CI-built binaries
+27. [ ] Add workflow for running tests on all platforms
 
 ---
 

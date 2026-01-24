@@ -253,31 +253,31 @@ class TestBuildMeshInfo:
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.nv == 4, f"Expected nv=4, got {info.nv}"
-        assert info.nf == 4, f"Expected nf=4, got {info.nf}"
-        assert info.ne == 6, f"Expected ne=6, got {info.ne}"
+        assert info.num_vertices == 4, f"Expected nv=4, got {info.num_vertices}"
+        assert info.num_faces == 4, f"Expected nf=4, got {info.num_faces}"
+        assert info.num_edges == 6, f"Expected ne=6, got {info.num_edges}"
 
     def test_cube_counts(self, cube):
         """Cube: nv=8, nf=12, ne=18."""
         X, T = cube
         info = _build_meshinfo(X, T)
 
-        assert info.nv == 8, f"Expected nv=8, got {info.nv}"
-        assert info.nf == 12, f"Expected nf=12, got {info.nf}"
-        assert info.ne == 18, f"Expected ne=18, got {info.ne}"
+        assert info.num_vertices == 8, f"Expected nv=8, got {info.num_vertices}"
+        assert info.num_faces == 12, f"Expected nf=12, got {info.num_faces}"
+        assert info.num_edges == 18, f"Expected ne=18, got {info.num_edges}"
 
     def test_euler_characteristic_closed(self, tetrahedron, cube, octahedron):
         """Closed genus-0 surfaces: chi = V - E + F = 2."""
         for X, T in [tetrahedron, cube, octahedron]:
             info = _build_meshinfo(X, T)
-            chi = info.nv - info.ne + info.nf
+            chi = info.num_vertices - info.num_edges + info.num_faces
             assert chi == 2, f"Expected chi=2, got {chi}"
 
     def test_euler_characteristic_open(self, two_triangles_strip):
         """Open strip: chi = V - E + F = 1."""
         X, T = two_triangles_strip
         info = _build_meshinfo(X, T)
-        chi = info.nv - info.ne + info.nf
+        chi = info.num_vertices - info.num_edges + info.num_faces
         assert chi == 1, f"Expected chi=1, got {chi}"
 
     def test_E2V_shape(self, tetrahedron):
@@ -285,14 +285,14 @@ class TestBuildMeshInfo:
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.E2V.shape == (info.ne, 2)
+        assert info.E2V.shape == (info.num_edges, 2)
 
     def test_E2V_sorted_vertices(self, tetrahedron):
         """E2V should have v0 < v1 for each edge."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        for e in range(info.ne):
+        for e in range(info.num_edges):
             assert info.E2V[e, 0] < info.E2V[e, 1], f"Edge {e} not sorted: {info.E2V[e]}"
 
     def test_E2T_shape(self, tetrahedron):
@@ -300,21 +300,21 @@ class TestBuildMeshInfo:
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.E2T.shape == (info.ne, 2)
+        assert info.E2T.shape == (info.num_edges, 2)
 
     def test_T2E_shape(self, tetrahedron):
         """T2E should have shape (nf, 3)."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.T2E.shape == (info.nf, 3)
+        assert info.T2E.shape == (info.num_faces, 3)
 
     def test_T2T_shape(self, tetrahedron):
         """T2T should have shape (nf, 3)."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.T2T.shape == (info.nf, 3)
+        assert info.T2T.shape == (info.num_faces, 3)
 
     def test_boundary_edges_marked(self, two_triangles_strip):
         """Boundary edges should have E2T[e,1] = -1."""
@@ -433,23 +433,23 @@ class TestCutMesh:
         # then remaining edges form the cut.
 
         # Mark edge 0 as forced cut (edge_jump_tag)
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
 
         # Use vertices of the cut edge as cones to prevent pruning
         v0, v1 = info.E2V[0]
         idcone = np.array([v0, v1])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # The algorithm builds dual spanning tree avoiding edge_jump_tag edges,
         # then prunes non-cone degree-1 vertices. Result depends on topology.
         # Key test: function runs without error and returns valid structure
-        assert SrcCut.nf == info.nf, "Face count should be preserved"
-        assert SrcCut.nv >= info.nv, "Cut mesh should have >= original vertices"
+        assert disk_mesh.num_faces == info.num_faces, "Face count should be preserved"
+        assert disk_mesh.num_vertices >= info.num_vertices, "Cut mesh should have >= original vertices"
 
     def test_cube_with_spanning_cut(self, cube):
         """
@@ -458,20 +458,20 @@ class TestCutMesh:
         X, T = cube
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
 
         v0, v1 = info.E2V[0]
         idcone = np.array([v0, v1])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # Verify basic structure
-        assert SrcCut.nf == info.nf, "Face count should be preserved"
-        assert SrcCut.nv >= info.nv, "Cut mesh should have >= original vertices"
+        assert disk_mesh.num_faces == info.num_faces, "Face count should be preserved"
+        assert disk_mesh.num_vertices >= info.num_vertices, "Cut mesh should have >= original vertices"
 
     def test_no_cuts_needed_open_mesh(self, two_triangles_strip):
         """Already-disk mesh should not need cutting."""
@@ -479,107 +479,107 @@ class TestCutMesh:
         info = _build_meshinfo(X, T)
 
         # No edge jump tags
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         idcone = np.array([], dtype=int)
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
-        chi_cut = SrcCut.nf - SrcCut.ne + SrcCut.nv
+        chi_cut = disk_mesh.num_faces - disk_mesh.num_edges + disk_mesh.num_vertices
         assert chi_cut == 1, f"Open mesh should have chi=1, got {chi_cut}"
 
         # Vertex count should remain the same (no new vertices needed)
-        assert SrcCut.nv == info.nv
+        assert disk_mesh.num_vertices == info.num_vertices
 
     def test_idx_cut_inv_length(self, tetrahedron):
         """idx_cut_inv should have length = nv of cut mesh."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
-        assert len(idx_cut_inv) == SrcCut.nv, \
-            f"idx_cut_inv length {len(idx_cut_inv)} should equal nv={SrcCut.nv}"
+        assert len(idx_cut_inv) == disk_mesh.num_vertices, \
+            f"idx_cut_inv length {len(idx_cut_inv)} should equal nv={disk_mesh.num_vertices}"
 
     def test_idx_cut_inv_valid_range(self, tetrahedron):
         """idx_cut_inv values should be valid original vertex indices."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # All values should be in range [0, original_nv)
         assert np.all(idx_cut_inv >= 0), "idx_cut_inv should be non-negative"
-        assert np.all(idx_cut_inv < info.nv), f"idx_cut_inv should be < {info.nv}"
+        assert np.all(idx_cut_inv < info.num_vertices), f"idx_cut_inv should be < {info.num_vertices}"
 
     def test_ide_cut_inv_length(self, tetrahedron):
         """ide_cut_inv should have length = ne of cut mesh."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
-        assert len(ide_cut_inv) == SrcCut.ne, \
-            f"ide_cut_inv length {len(ide_cut_inv)} should equal ne={SrcCut.ne}"
+        assert len(ide_cut_inv) == disk_mesh.num_edges, \
+            f"ide_cut_inv length {len(ide_cut_inv)} should equal ne={disk_mesh.num_edges}"
 
     def test_ide_cut_inv_signed_one_based(self, tetrahedron):
         """ide_cut_inv should be signed 1-based edge indices."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # Absolute values should be in range [1, original_ne]
         abs_ide = np.abs(ide_cut_inv)
         assert np.all(abs_ide >= 1), "ide_cut_inv (1-based) should have abs >= 1"
-        assert np.all(abs_ide <= info.ne), f"ide_cut_inv (1-based) should have abs <= {info.ne}"
+        assert np.all(abs_ide <= info.num_edges), f"ide_cut_inv (1-based) should have abs <= {info.num_edges}"
 
     def test_edge_cut_shape(self, tetrahedron):
         """edge_cut should be boolean array with length = original ne."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
-        assert edge_cut.shape == (info.ne,), \
-            f"edge_cut shape should be ({info.ne},), got {edge_cut.shape}"
+        assert edge_cut.shape == (info.num_edges,), \
+            f"edge_cut shape should be ({info.num_edges},), got {edge_cut.shape}"
         assert edge_cut.dtype == bool
 
     def test_edge_cut_marks_cut_edges(self, tetrahedron):
@@ -587,13 +587,13 @@ class TestCutMesh:
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         v0, v1 = info.E2V[0]
         idcone = np.array([v0, v1])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
@@ -603,44 +603,44 @@ class TestCutMesh:
 
         # edge_cut should be a boolean array marking cut edges
         assert edge_cut.dtype == bool
-        assert edge_cut.shape == (info.ne,)
+        assert edge_cut.shape == (info.num_edges,)
 
     def test_vertex_duplication_at_cuts(self, tetrahedron):
         """Cutting should duplicate vertices along cut edges."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # Cut mesh should have more or equal vertices
-        assert SrcCut.nv >= info.nv, "Cut mesh should have >= original vertices"
+        assert disk_mesh.num_vertices >= info.num_vertices, "Cut mesh should have >= original vertices"
 
     def test_positions_preserved(self, tetrahedron):
         """Cut mesh positions should match original positions (via idx_cut_inv)."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # Each cut vertex should match its original position
-        for v_cut in range(SrcCut.nv):
+        for v_cut in range(disk_mesh.num_vertices):
             v_orig = idx_cut_inv[v_cut]
             np.testing.assert_allclose(
-                SrcCut.X[v_cut], info.X[v_orig],
+                disk_mesh.vertices[v_cut], info.vertices[v_orig],
                 atol=1e-10,
                 err_msg=f"Cut vertex {v_cut} position mismatch"
             )
@@ -650,16 +650,16 @@ class TestCutMesh:
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         idcone = np.array([info.E2V[0, 0]])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
-        assert SrcCut.nf == info.nf, f"Face count should be preserved: {SrcCut.nf} vs {info.nf}"
+        assert disk_mesh.num_faces == info.num_faces, f"Face count should be preserved: {disk_mesh.num_faces} vs {info.num_faces}"
 
 
 class TestCutMeshOneBased:
@@ -687,13 +687,13 @@ class TestCutMeshOneBased:
         v0, v1 = E2V_1based[0]
         idcone = np.array([v0, v1])  # 1-based, both vertices to prevent pruning
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
             X, T_1based, E2V_1based, E2T_1based, T2E_1based, T2T_1based,
             idcone, edge_jump_tag
         )
 
         # Verify basic structure
-        assert SrcCut.nf == info.nf, "Face count should be preserved"
+        assert disk_mesh.num_faces == info.num_faces, "Face count should be preserved"
 
         # idx_cut_inv should be 1-based in output
         assert np.all(idx_cut_inv >= 1), "1-based output: idx_cut_inv should be >= 1"
@@ -708,7 +708,7 @@ class TestCutMeshEdgeCases:
         info = _build_meshinfo(X, T)
 
         # Mark multiple edges for cutting
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
         edge_jump_tag[1] = True
 
@@ -717,46 +717,46 @@ class TestCutMeshEdgeCases:
         v2, v3 = info.E2V[1]
         idcone = np.array([v0, v1, v2, v3])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # Verify basic structure
-        assert SrcCut.nf == info.nf, "Face count should be preserved"
-        assert SrcCut.nv >= info.nv, "Cut mesh should have >= original vertices"
+        assert disk_mesh.num_faces == info.num_faces, "Face count should be preserved"
+        assert disk_mesh.num_vertices >= info.num_vertices, "Cut mesh should have >= original vertices"
 
     def test_empty_cones_and_edge_tag(self, tetrahedron):
         """Cut mesh with empty cones and edge_jump_tag should work (no cutting needed)."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)  # No forced cuts
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)  # No forced cuts
         idcone = np.array([], dtype=int)  # No cones
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 
         # With no cones to preserve, all cut leaves get pruned
         # Function should still run without error
-        assert SrcCut.nf == info.nf, "Face count should be preserved"
+        assert disk_mesh.num_faces == info.num_faces, "Face count should be preserved"
 
     def test_all_cones_on_cut(self, tetrahedron):
         """All specified cones should remain on the cut."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        edge_jump_tag = np.zeros(info.ne, dtype=bool)
+        edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
 
         # Use both vertices of the cut edge as cones
         v0, v1 = info.E2V[0]
         idcone = np.array([v0, v1])
 
-        SrcCut, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.X, info.T, info.E2V, info.E2T, info.T2E, info.T2T,
+        disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
+            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
             idcone, edge_jump_tag
         )
 

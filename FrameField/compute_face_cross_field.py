@@ -14,10 +14,10 @@ def wrap_to_pi(x: np.ndarray) -> np.ndarray:
     return np.arctan2(np.sin(x), np.cos(x))
 
 
-# function [omega,ang,sing] = compute_face_cross_field(Src, param, dec, smoothing_iter)
+# function [omega,ang,sing] = compute_face_cross_field(mesh, param, dec, smoothing_iter)
 
 def compute_face_cross_field(
-    Src,
+    mesh,
     param,
     dec,
     smoothing_iter: int
@@ -26,7 +26,7 @@ def compute_face_cross_field(
     Compute smooth cross field.
 
     Args:
-        Src: Mesh data structure with ne, nf, nv, X
+        mesh: Mesh data structure with ne, nf, nv, X
         param: Parameter structure with tri_fix, K, idx_fix_plus, Vp2V,
                ide_fix, d1d, para_trans, ide_int, E2T, ide_bound, Kt_invisible
         dec: DEC structure with star1d, star2d, d1d, star0d, d0d
@@ -64,13 +64,13 @@ def compute_face_cross_field(
     #     idx = param.Vp2V(param.idx_fix_plus(id));
     #     idxp = param.Vp2V(param.idx_fix_plus);
     #
-    #     d = (Src.X(idx,1)' - Src.X(idxp,1)).^2 + (Src.X(idx,2)' - Src.X(idxp,2)).^2 + (Src.X(idx,3)' - Src.X(idxp,3)).^2;
+    #     d = (mesh.vertices(idx,1)' - mesh.vertices(idxp,1)).^2 + (mesh.vertices(idx,2)' - mesh.vertices(idxp,2)).^2 + (mesh.vertices(idx,3)' - mesh.vertices(idxp,3)).^2;
     #     K_new = param.K(param.idx_fix_plus);
     #     K_new((K_new >-tol) & (K_new < tol) & any(d < 1e-3*repmat(max(d,[],1), [size(d,1),1]),2)) = 0;
     #     K_new(id) = pi/2;
     #
     #     H = dec.star1d + 1e-3*(dec.d1d'*dec.star2d*dec.d1d); H = (H' + H)/2;
-    #     A = sparse(1:length(param.ide_fix), param.ide_fix, 0, length(param.ide_fix), Src.ne);
+    #     A = sparse(1:length(param.ide_fix), param.ide_fix, 0, length(param.ide_fix), mesh.num_edges);
     #     b = zeros(length(param.ide_fix),1);
     #     omega_cadff = quadprog(H,[], [], [], [A; param.d1d(param.idx_fix_plus,:)], [b; param.K(param.idx_fix_plus) - K_new], [], [], []);
     # end
@@ -93,9 +93,9 @@ def compute_face_cross_field(
         # Compute squared distances between acute vertices and all fixed vertices
         if len(idx) > 0 and len(idxp) > 0:
             # d[i,j] = squared distance from idx[j] to idxp[i]
-            d = ((Src.X[idx, 0].reshape(1, -1) - Src.X[idxp, 0].reshape(-1, 1)) ** 2 +
-                 (Src.X[idx, 1].reshape(1, -1) - Src.X[idxp, 1].reshape(-1, 1)) ** 2 +
-                 (Src.X[idx, 2].reshape(1, -1) - Src.X[idxp, 2].reshape(-1, 1)) ** 2)
+            d = ((mesh.vertices[idx, 0].reshape(1, -1) - mesh.vertices[idxp, 0].reshape(-1, 1)) ** 2 +
+                 (mesh.vertices[idx, 1].reshape(1, -1) - mesh.vertices[idxp, 1].reshape(-1, 1)) ** 2 +
+                 (mesh.vertices[idx, 2].reshape(1, -1) - mesh.vertices[idxp, 2].reshape(-1, 1)) ** 2)
 
             K_new = K_at_fix.copy()
             # Zero out curvature for vertices that are close to acute corners and have small curvature
@@ -116,11 +116,11 @@ def compute_face_cross_field(
         H = dec.star1d + 1e-3 * (dec.d1d.T @ dec.star2d @ dec.d1d)
         H = (H + H.T) / 2
 
-        # A = sparse(1:length(param.ide_fix), param.ide_fix, 0, length(param.ide_fix), Src.ne);
+        # A = sparse(1:length(param.ide_fix), param.ide_fix, 0, length(param.ide_fix), mesh.num_edges);
         n_ide_fix = len(param.ide_fix)
         # Note: MATLAB sparse(i,j,0,...) creates a zero matrix - just used for size
         # The constraint matrix is [A; param.d1d(param.idx_fix_plus,:)]
-        A_zero = sp.csr_matrix((n_ide_fix, Src.ne))
+        A_zero = sp.csr_matrix((n_ide_fix, mesh.num_edges))
 
         # b = zeros(length(param.ide_fix),1);
         b_zero = np.zeros(n_ide_fix)
@@ -140,7 +140,7 @@ def compute_face_cross_field(
     #     rot = param.para_trans(param.ide_int);
     # end
     # S = [exp(1i*power*rot/2); -exp(-1i*power*rot/2)];
-    # d0d_cplx = sparse(I, J, S, Src.ne, Src.nf);
+    # d0d_cplx = sparse(I, J, S, mesh.num_edges, mesh.num_faces);
     # Wcon = d0d_cplx'*dec.star1d*d0d_cplx;
     # Wcon = (Wcon + Wcon')/2;
 
@@ -165,9 +165,9 @@ def compute_face_cross_field(
     # S = [exp(1i*power*rot/2); -exp(-1i*power*rot/2)];
     S = np.concatenate([np.exp(1j * power * rot / 2), -np.exp(-1j * power * rot / 2)])
 
-    # d0d_cplx = sparse(I, J, S, Src.ne, Src.nf);
+    # d0d_cplx = sparse(I, J, S, mesh.num_edges, mesh.num_faces);
     # MATLAB sparse(I, J, S) accumulates duplicates by default
-    d0d_cplx = sp.csr_matrix((S, (I, J)), shape=(Src.ne, Src.nf))
+    d0d_cplx = sp.csr_matrix((S, (I, J)), shape=(mesh.num_edges, mesh.num_faces))
 
     # Wcon = d0d_cplx'*dec.star1d*d0d_cplx;
     # Wcon = (Wcon + Wcon')/2;
@@ -176,15 +176,15 @@ def compute_face_cross_field(
 
     # tri_fix = param.tri_fix;
     # z_fix = ones(length(tri_fix),1); % reference frame is algned with constraint edge by construction
-    # tri_free = setdiff((1:Src.nf)', tri_fix);
+    # tri_free = setdiff((1:mesh.num_faces)', tri_fix);
 
     # Set constraints
     tri_fix = param.tri_fix if hasattr(param, 'tri_fix') and param.tri_fix is not None else np.array([], dtype=int)
     z_fix = np.ones(len(tri_fix), dtype=complex)  # Reference frame aligned with constraint edge
-    all_tri = np.arange(Src.nf)
+    all_tri = np.arange(mesh.num_faces)
     tri_free = np.setdiff1d(all_tri, tri_fix)
 
-    # z = zeros(Src.nf,1);
+    # z = zeros(mesh.num_faces,1);
     # z(tri_fix) = z_fix;
     # if ~isempty(tri_fix) % If boundaries: solve Poisson problem
     #     z(tri_free) =-Wcon(tri_free,tri_free)\(Wcon(tri_free,tri_fix)*z_fix);
@@ -198,7 +198,7 @@ def compute_face_cross_field(
     # z = z./abs(z);
 
     # Compute initial cross field
-    z = np.zeros(Src.nf, dtype=complex)
+    z = np.zeros(mesh.num_faces, dtype=complex)
     if len(tri_fix) > 0:
         z[tri_fix] = z_fix
 
@@ -236,7 +236,7 @@ def compute_face_cross_field(
             dt = 20 * np.real(eigenvalues[0])
         except Exception:
             # Fallback
-            z = np.ones(Src.nf, dtype=complex)
+            z = np.ones(mesh.num_faces, dtype=complex)
             dt = 0.1
 
     # z = z./abs(z);

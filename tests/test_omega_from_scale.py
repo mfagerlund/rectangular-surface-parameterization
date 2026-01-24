@@ -144,16 +144,16 @@ def compute_ang_basis(mesh: MeshInfo):
 
     For simplicity, we use the angle from the first edge to each edge.
     """
-    nf = mesh.nf
+    nf = mesh.num_faces
     ang_basis = np.zeros((nf, 3))
 
     for f in range(nf):
-        v0, v1, v2 = mesh.T[f]
+        v0, v1, v2 = mesh.triangles[f]
 
         # Edge vectors
-        e01 = mesh.X[v1] - mesh.X[v0]
-        e12 = mesh.X[v2] - mesh.X[v1]
-        e20 = mesh.X[v0] - mesh.X[v2]
+        e01 = mesh.vertices[v1] - mesh.vertices[v0]
+        e12 = mesh.vertices[v2] - mesh.vertices[v1]
+        e20 = mesh.vertices[v0] - mesh.vertices[v2]
 
         # Use e01 as the reference direction (local basis e1)
         e01_norm = e01 / np.linalg.norm(e01)
@@ -187,8 +187,8 @@ class TestOutputShapes:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -206,8 +206,8 @@ class TestOutputShapes:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -225,8 +225,8 @@ class TestOutputShapes:
         mesh = create_tetrahedron()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -244,7 +244,7 @@ class TestOutputShapes:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
         vt = np.zeros((nf, 3))
@@ -267,7 +267,7 @@ class TestReducedOutput:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
         vt = np.zeros((nf, 3))
@@ -282,9 +282,9 @@ class TestReducedOutput:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -307,9 +307,9 @@ class TestReducedOutput:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -327,9 +327,9 @@ class TestReducedOutput:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -362,7 +362,7 @@ class TestDerivativeComputation:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
         vt = np.zeros((nf, 3))
@@ -377,8 +377,8 @@ class TestDerivativeComputation:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -397,8 +397,8 @@ class TestDerivativeComputation:
         mesh = create_tetrahedron()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -416,7 +416,7 @@ class TestDerivativeComputation:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
         vt = np.ones((nf, 3)) * 0.5
@@ -431,7 +431,7 @@ class TestDerivativeComputation:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
         # Uniform vt per face: vt1 = vt2 = vt3
@@ -459,8 +459,8 @@ class TestMathematicalProperties:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -480,8 +480,8 @@ class TestMathematicalProperties:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         np.random.seed(42)
@@ -508,7 +508,7 @@ class TestMathematicalProperties:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         param = MockParam(nf)
         ut = np.ones((nf, 3)) * 0.5
@@ -538,7 +538,7 @@ class TestMathematicalProperties:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         param = MockParam(nf)
         ut = np.ones((nf, 3)) * 0.5
@@ -563,7 +563,7 @@ class TestMathematicalProperties:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -593,7 +593,7 @@ class TestAngBasisEffect:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         ut = np.zeros((nf, 3))
         vt = np.zeros((nf, 3))
@@ -618,7 +618,7 @@ class TestAngBasisEffect:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         # Compute realistic ang_basis
         ang_basis = compute_ang_basis(mesh)
@@ -647,8 +647,8 @@ class TestNumericalDerivative:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -694,7 +694,7 @@ class TestEdgeCases:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.random.randn(nf, 3)
         vt = np.random.randn(nf, 3)
@@ -702,7 +702,7 @@ class TestEdgeCases:
 
         O, Or, dO = omega_from_scale(mesh, param, dec, ut, vt, ang)
 
-        assert O.shape == (mesh.ne, 6 * nf)
+        assert O.shape == (mesh.num_edges, 6 * nf)
         assert np.all(np.isfinite(O.data))
 
     def test_large_scale_factors(self):
@@ -710,7 +710,7 @@ class TestEdgeCases:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.ones((nf, 3)) * 10.0
         vt = np.ones((nf, 3)) * 10.0
@@ -728,7 +728,7 @@ class TestEdgeCases:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.ones((nf, 3)) * 1e-10
         vt = np.ones((nf, 3)) * 1e-10
@@ -746,7 +746,7 @@ class TestEdgeCases:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = -np.ones((nf, 3)) * 0.5
         vt = -np.ones((nf, 3)) * 0.5
@@ -764,7 +764,7 @@ class TestEdgeCases:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.ones((nf, 3)) * 0.5
         vt = np.ones((nf, 3)) * 0.5
@@ -792,7 +792,7 @@ class TestCotangentWeightsUsage:
         mesh = create_right_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
         param = MockParam(nf)
         ut = np.ones((nf, 3))
         vt = np.ones((nf, 3))
@@ -813,15 +813,15 @@ class TestCotangentWeightsUsage:
         dec1 = safe_dec_tri(mesh1)
         dec2 = safe_dec_tri(mesh2)
 
-        param1 = MockParam(mesh1.nf)
-        param2 = MockParam(mesh2.nf)
+        param1 = MockParam(mesh1.num_faces)
+        param2 = MockParam(mesh2.num_faces)
 
-        ut1 = np.ones((mesh1.nf, 3))
-        vt1 = np.ones((mesh1.nf, 3))
-        ut2 = np.ones((mesh2.nf, 3))
-        vt2 = np.ones((mesh2.nf, 3))
-        ang1 = np.zeros(mesh1.nf)
-        ang2 = np.zeros(mesh2.nf)
+        ut1 = np.ones((mesh1.num_faces, 3))
+        vt1 = np.ones((mesh1.num_faces, 3))
+        ut2 = np.ones((mesh2.num_faces, 3))
+        vt2 = np.ones((mesh2.num_faces, 3))
+        ang1 = np.zeros(mesh1.num_faces)
+        ang2 = np.zeros(mesh2.num_faces)
 
         O1, _, _ = omega_from_scale(mesh1, param1, dec1, ut1, vt1, ang1)
         O2, _, _ = omega_from_scale(mesh2, param2, dec2, ut2, vt2, ang2)
@@ -851,9 +851,9 @@ class TestCombinedInputs:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         param = MockParam(nf)
         ut = np.random.randn(nf, 3)
@@ -879,7 +879,7 @@ class TestCombinedInputs:
         mesh = create_tetrahedron()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         ang_basis = compute_ang_basis(mesh)
         param = MockParam(nf, ang_basis=ang_basis)
@@ -906,7 +906,7 @@ class TestDecTriIntegration:
         mesh = create_two_triangles()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -927,7 +927,7 @@ class TestDecTriIntegration:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
+        nf = mesh.num_faces
 
         param = MockParam(nf)
         ut = np.zeros((nf, 3))
@@ -937,7 +937,7 @@ class TestDecTriIntegration:
         O, _, _ = omega_from_scale(mesh, param, dec, ut, vt, ang)
 
         # Verify d0p_tri is used correctly
-        assert dec.d0p_tri.shape == (mesh.ne, 3 * nf)
+        assert dec.d0p_tri.shape == (mesh.num_edges, 3 * nf)
 
         # First block of O should be -star1p @ d0p_tri
         first_block = O[:, :3*nf].toarray()

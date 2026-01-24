@@ -138,13 +138,13 @@ def compute_local_frame(mesh: MeshInfo):
     e1r is along the first edge (v1 - v0), normalized.
     e2r is perpendicular to e1r in the face plane.
     """
-    nf = mesh.nf
+    nf = mesh.num_faces
     e1r = np.zeros((nf, 3))
     e2r = np.zeros((nf, 3))
 
     for f in range(nf):
-        v0, v1, v2 = mesh.T[f]
-        edge1 = mesh.X[v1] - mesh.X[v0]
+        v0, v1, v2 = mesh.triangles[f]
+        edge1 = mesh.vertices[v1] - mesh.vertices[v0]
         edge1 = edge1 / np.linalg.norm(edge1)
 
         # e2r perpendicular to e1r in plane
@@ -254,9 +254,9 @@ class TestParametrizationFromScalesBasic:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         # Create param object
         e1r, e2r = compute_local_frame(mesh)
@@ -284,9 +284,9 @@ class TestParametrizationFromScalesBasic:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -308,9 +308,9 @@ class TestParametrizationFromScalesBasic:
         mesh = create_tetrahedron()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -346,8 +346,8 @@ class TestIdentityScales:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -367,7 +367,7 @@ class TestIdentityScales:
             v0, v1 = mesh.E2V[e]
 
             # Original edge length (in XY plane)
-            orig_len = np.linalg.norm(mesh.X[v1, :2] - mesh.X[v0, :2])
+            orig_len = np.linalg.norm(mesh.vertices[v1, :2] - mesh.vertices[v0, :2])
 
             # UV edge length
             uv_len = np.linalg.norm(Xp[v1] - Xp[v0])
@@ -389,8 +389,8 @@ class TestIdentityScales:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -420,8 +420,8 @@ class TestDeformedEdgeVectors:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -444,8 +444,8 @@ class TestDeformedEdgeVectors:
         mesh = create_tetrahedron()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -474,8 +474,8 @@ class TestScaleFactorsEffect:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -513,8 +513,8 @@ class TestScaleFactorsEffect:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -564,8 +564,8 @@ class TestCrossFieldAngleEffect:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -603,8 +603,8 @@ class TestSeamlessConstraints:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -619,17 +619,17 @@ class TestSeamlessConstraints:
             mesh, mesh, dec, param, ang, omega, ut, vt, Align=None, Rot=None
         )
 
-        assert Xp.shape == (mesh.nv, 2)
-        assert mu.shape == (mesh.ne, 2)
+        assert Xp.shape == (mesh.num_vertices, 2)
+        assert mu.shape == (mesh.num_edges, 2)
 
     def test_empty_constraints_works(self):
         """Function works with empty constraint matrices."""
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -655,9 +655,9 @@ class TestSeamlessConstraints:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
-        nv = mesh.nv
+        nf = mesh.num_faces
+        ne = mesh.num_edges
+        nv = mesh.num_vertices
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -694,8 +694,8 @@ class TestBoundaryEdgeHandling:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
 
@@ -715,7 +715,7 @@ class TestBoundaryEdgeHandling:
             mesh, mesh, dec, param, ang, omega, ut, vt
         )
 
-        assert Xp.shape == (mesh.nv, 2)
+        assert Xp.shape == (mesh.num_vertices, 2)
         assert np.all(np.isfinite(Xp)), "UV should be finite with boundary edges"
 
     def test_omega_zeroed_on_boundary(self):
@@ -723,8 +723,8 @@ class TestBoundaryEdgeHandling:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
 
@@ -743,7 +743,7 @@ class TestBoundaryEdgeHandling:
             mesh, mesh, dec, param, ang, omega, ut, vt
         )
 
-        assert Xp.shape == (mesh.nv, 2)
+        assert Xp.shape == (mesh.num_vertices, 2)
 
 
 # =============================================================================
@@ -758,8 +758,8 @@ class TestEdgeCases:
         mesh = create_single_triangle()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -792,8 +792,8 @@ class TestEdgeCases:
             mesh = mesh_info(X, T)
             dec = safe_dec_tri(mesh)
 
-            nf = mesh.nf
-            ne = mesh.ne
+            nf = mesh.num_faces
+            ne = mesh.num_edges
 
             e1r, e2r = compute_local_frame(mesh)
             param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -826,8 +826,8 @@ class TestGradientComputation:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -869,8 +869,8 @@ class TestDifferentTopologies:
         mesh = create_tetrahedron()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -884,7 +884,7 @@ class TestDifferentTopologies:
             mesh, mesh, dec, param, ang, omega, ut, vt
         )
 
-        assert Xp.shape == (mesh.nv, 2)
+        assert Xp.shape == (mesh.num_vertices, 2)
         assert np.all(np.isfinite(Xp)), "Closed mesh should give finite UV"
 
     def test_open_mesh_with_boundary(self):
@@ -892,8 +892,8 @@ class TestDifferentTopologies:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
 
@@ -912,24 +912,24 @@ class TestDifferentTopologies:
             mesh, mesh, dec, param, ang, omega, ut, vt
         )
 
-        assert Xp.shape == (mesh.nv, 2)
+        assert Xp.shape == (mesh.num_vertices, 2)
         assert np.all(np.isfinite(Xp)), "Open mesh should give finite UV"
 
 
 # =============================================================================
-# Test: Consistency Between Src and SrcCut
+# Test: Consistency Between Src and disk_mesh
 # =============================================================================
 
 class TestSrcVsSrcCut:
-    """Tests for consistency when Src and SrcCut are different."""
+    """Tests for consistency when Src and disk_mesh are different."""
 
     def test_same_mesh_for_src_and_srccut(self):
-        """Works when Src and SrcCut are the same mesh."""
+        """Works when Src and disk_mesh are the same mesh."""
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
         param = MockParam(nf, ne, ide_bound=np.array([], dtype=int), e1r=e1r, e2r=e2r)
@@ -939,12 +939,12 @@ class TestSrcVsSrcCut:
         ut = np.zeros((nf, 3))
         vt = np.zeros((nf, 3))
 
-        # Same mesh for Src and SrcCut
+        # Same mesh for Src and disk_mesh
         Xp, mu = parametrization_from_scales(
             mesh, mesh, dec, param, ang, omega, ut, vt
         )
 
-        assert Xp.shape == (mesh.nv, 2)
+        assert Xp.shape == (mesh.num_vertices, 2)
 
 
 # =============================================================================
@@ -963,8 +963,8 @@ class TestPipelineCompatibility:
         mesh = create_simple_mesh()
         dec = safe_dec_tri(mesh)
 
-        nf = mesh.nf
-        ne = mesh.ne
+        nf = mesh.num_faces
+        ne = mesh.num_edges
 
         e1r, e2r = compute_local_frame(mesh)
 
@@ -987,5 +987,5 @@ class TestPipelineCompatibility:
             mesh, mesh, dec, param, ang, omega, ut, vt
         )
 
-        assert Xp.shape == (mesh.nv, 2)
+        assert Xp.shape == (mesh.num_vertices, 2)
 

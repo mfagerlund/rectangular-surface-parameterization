@@ -47,7 +47,7 @@ python extract_quads.py mesh.obj -o Results/ --scale 10  # Full pipeline
 pytest tests/ -v                                    # Run tests
 ```
 
-Test meshes: `C:/Dev/Colonel/Data/Meshes/sphere320.obj` (genus 0), `C:/Dev/Colonel/Data/Meshes/torus.obj` (genus 1).
+Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) for details.
 
 ## References (READ)
 MATLAB impl: https://github.com/etcorman/RectangularSurfaceParameterization (local: `C:\Slask\RectangularSurfaceParameterization`)

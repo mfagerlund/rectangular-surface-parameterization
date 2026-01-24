@@ -129,11 +129,11 @@ class MockOrthoParam:
         boundary_edges = np.where(np.any(mesh.E2T[:, :2] < 0, axis=1))[0]
         if len(boundary_edges) > 0:
             boundary_verts = np.unique(mesh.E2V[boundary_edges])
-            self.idx_int = np.setdiff1d(np.arange(mesh.nv), boundary_verts)
+            self.idx_int = np.setdiff1d(np.arange(mesh.num_vertices), boundary_verts)
             self.ide_bound = boundary_edges
             self.idx_bound = boundary_verts
         else:
-            self.idx_int = np.arange(mesh.nv)
+            self.idx_int = np.arange(mesh.num_vertices)
             self.ide_bound = np.array([], dtype=int)
             self.idx_bound = np.array([], dtype=int)
 
@@ -168,17 +168,17 @@ def create_test_inputs(mesh: MeshInfo, cones: np.ndarray = None):
     param = MockOrthoParam(mesh, cones)
 
     # Angular field (one angle per face) - initialize to zero
-    ang = np.zeros(mesh.nf)
+    ang = np.zeros(mesh.num_faces)
 
     # Singularity index per vertex - typically zero, non-zero at cones
-    sing = np.zeros(mesh.nv)
+    sing = np.zeros(mesh.num_vertices)
     if cones is not None:
         for c in cones:
             sing[c] = 0.5  # Set a singularity value > 0.1
 
     # k21: rotation index per edge (1 = identity, 2 = 90 deg, etc.)
     # Default to identity (no rotation mismatch)
-    k21 = np.ones(mesh.ne, dtype=int)
+    k21 = np.ones(mesh.num_edges, dtype=int)
 
     # DEC operators
     dec = dec_tri(mesh)
@@ -260,18 +260,18 @@ class TestOutputStructure:
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
-        assert len(result) == 4, "Should return (SrcCut, dec_cut, Align, Rot)"
+        assert len(result) == 4, "Should return (disk_mesh, dec_cut, Align, Rot)"
 
     def test_output_types(self, tetrahedron):
         """Verify types of returned objects."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
-        assert isinstance(SrcCut, MeshInfo), "SrcCut should be MeshInfo"
+        assert isinstance(disk_mesh, MeshInfo), "disk_mesh should be MeshInfo"
         assert isinstance(dec_cut, DEC), "dec_cut should be DEC"
         assert issparse(Align), "Align should be sparse matrix"
         assert issparse(Rot), "Rot should be sparse matrix"
@@ -301,12 +301,12 @@ class TestDiskTopology:
         """
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         # No cutting happens without singularities/rotation mismatch
         assert chi == 2, f"Uncut closed mesh should have chi=2, got {chi}"
 
@@ -321,12 +321,12 @@ class TestDiskTopology:
         # Single k21 mismatch, but NO cones
         k21[0] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         # Without cones, the single-edge cut is pruned, mesh stays closed
         assert chi == 2, f"Single k21 without cones should keep mesh closed (chi=2), got {chi}"
 
@@ -344,12 +344,12 @@ class TestDiskTopology:
         sing[0] = 0.5  # Make vertex 0 a cone
         sing[1] = 0.5  # Make vertex 1 a cone
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         # Single edge cut on closed mesh doesn't produce disk
         # The mesh stays closed because vertices remain connected through other edges
         assert chi == 2, f"Single k21 with cones still insufficient for disk, got chi={chi}"
@@ -372,14 +372,14 @@ class TestDiskTopology:
         sing[0] = 0.5
         sing[3] = 0.5
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 1, f"Cut path should produce disk (chi=1), got {chi}"
-        assert SrcCut.nv > mesh.nv, "Cut should duplicate vertices"
+        assert disk_mesh.num_vertices > mesh.num_vertices, "Cut should duplicate vertices"
 
     def test_octahedron_single_k21_no_cones_stays_closed(self, small_sphere):
         """Octahedron: single k21 mismatch without cones stays closed."""
@@ -388,12 +388,12 @@ class TestDiskTopology:
         # Single k21 mismatch, no cones
         k21[0] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         # Without cones, cuts are pruned
         assert chi == 2, f"Single k21 without cones should keep mesh closed, got chi={chi}"
 
@@ -401,12 +401,12 @@ class TestDiskTopology:
         """Mesh that's already a disk should remain a disk."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(single_triangle_with_boundary)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 1, f"Disk mesh should remain disk with chi=1, got {chi}"
 
 
@@ -435,13 +435,13 @@ class TestBoundaryEdges:
         # Single k21 mismatch, no cones - cut will be pruned
         k21[0] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
         # Without cones, cut is pruned, no boundary created
-        cut_boundary = self._count_boundary_edges(SrcCut)
+        cut_boundary = self._count_boundary_edges(disk_mesh)
         assert cut_boundary == 0, "Single k21 without cones should not create boundary"
 
     def test_tetrahedron_has_boundary_with_cut_path(self, tetrahedron):
@@ -457,12 +457,12 @@ class TestBoundaryEdges:
         sing[0] = 0.5
         sing[3] = 0.5
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        cut_boundary = self._count_boundary_edges(SrcCut)
+        cut_boundary = self._count_boundary_edges(disk_mesh)
         assert cut_boundary > 0, "Cut path with cones should create boundary edges"
 
     def test_tetrahedron_no_boundary_without_k21(self, tetrahedron):
@@ -473,13 +473,13 @@ class TestBoundaryEdges:
         original_boundary = self._count_boundary_edges(mesh)
         assert original_boundary == 0, "Original tetrahedron should have no boundary"
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
         # Without k21 mismatch, mesh stays closed
-        cut_boundary = self._count_boundary_edges(SrcCut)
+        cut_boundary = self._count_boundary_edges(disk_mesh)
         assert cut_boundary == 0, "Uncut mesh should have no boundary edges"
 
     def test_boundary_preserved_for_open_mesh(self, single_triangle_with_boundary):
@@ -488,12 +488,12 @@ class TestBoundaryEdges:
 
         original_boundary = self._count_boundary_edges(mesh)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        cut_boundary = self._count_boundary_edges(SrcCut)
+        cut_boundary = self._count_boundary_edges(disk_mesh)
         # Should have at least as many boundary edges as original
         assert cut_boundary >= original_boundary, \
             f"Cut mesh boundary ({cut_boundary}) should be >= original ({original_boundary})"
@@ -510,34 +510,34 @@ class TestSeamlessConstraints:
         """Align matrix should have correct dimensions when no boundary alignment."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
         # Align should have 0 rows when no boundary/hard edge alignment
         # and columns = 2 * nv of cut mesh
-        assert Align.shape[1] == 2 * SrcCut.nv, \
-            f"Align should have {2*SrcCut.nv} columns, got {Align.shape[1]}"
+        assert Align.shape[1] == 2 * disk_mesh.num_vertices, \
+            f"Align should have {2*disk_mesh.num_vertices} columns, got {Align.shape[1]}"
 
     def test_rot_dimensions(self, tetrahedron):
         """Rot matrix should have correct column dimension."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
         # Rot should have columns = 2 * nv of cut mesh
-        assert Rot.shape[1] == 2 * SrcCut.nv, \
-            f"Rot should have {2*SrcCut.nv} columns, got {Rot.shape[1]}"
+        assert Rot.shape[1] == 2 * disk_mesh.num_vertices, \
+            f"Rot should have {2*disk_mesh.num_vertices} columns, got {Rot.shape[1]}"
 
     def test_matrices_sparse(self, tetrahedron):
         """Both Align and Rot should be sparse matrices."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
@@ -557,7 +557,7 @@ class TestWithoutSeamlessConstraints:
         """Align and Rot should be empty when ifseamless_const=False."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
@@ -573,18 +573,18 @@ class TestWithoutSeamlessConstraints:
         # Force cutting
         k21[0] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
         # Check mesh is valid
-        assert SrcCut.nv > 0, "Cut mesh should have vertices"
-        assert SrcCut.ne > 0, "Cut mesh should have edges"
-        assert SrcCut.nf > 0, "Cut mesh should have faces"
+        assert disk_mesh.num_vertices > 0, "Cut mesh should have vertices"
+        assert disk_mesh.num_edges > 0, "Cut mesh should have edges"
+        assert disk_mesh.num_faces > 0, "Cut mesh should have faces"
 
         # Euler characteristic: depends on whether cutting succeeded
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         # Accept either disk (chi=1) or sphere (chi=2) - current implementation
         # may not always successfully cut to disk
         assert chi in [1, 2], f"Mesh should have chi=1 or 2, got {chi}"
@@ -593,18 +593,18 @@ class TestWithoutSeamlessConstraints:
         """Mesh should be unchanged when no constraints and no k21 mismatch."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
         # Check mesh is valid
-        assert SrcCut.nv > 0, "Mesh should have vertices"
-        assert SrcCut.ne > 0, "Mesh should have edges"
-        assert SrcCut.nf > 0, "Mesh should have faces"
+        assert disk_mesh.num_vertices > 0, "Mesh should have vertices"
+        assert disk_mesh.num_edges > 0, "Mesh should have edges"
+        assert disk_mesh.num_faces > 0, "Mesh should have faces"
 
         # Without k21 mismatch, mesh stays closed (chi=2)
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 2, f"Uncut mesh should have chi=2, got {chi}"
 
 
@@ -619,31 +619,31 @@ class TestDECOperators:
         """d0p should have shape (ne, nv) for cut mesh."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
-        assert dec_cut.d0p.shape == (SrcCut.ne, SrcCut.nv), \
-            f"d0p shape should be ({SrcCut.ne}, {SrcCut.nv}), got {dec_cut.d0p.shape}"
+        assert dec_cut.d0p.shape == (disk_mesh.num_edges, disk_mesh.num_vertices), \
+            f"d0p shape should be ({disk_mesh.num_edges}, {disk_mesh.num_vertices}), got {dec_cut.d0p.shape}"
 
     def test_dec_d1p_shape(self, tetrahedron):
         """d1p should have shape (nf, ne) for cut mesh."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
-        assert dec_cut.d1p.shape == (SrcCut.nf, SrcCut.ne), \
-            f"d1p shape should be ({SrcCut.nf}, {SrcCut.ne}), got {dec_cut.d1p.shape}"
+        assert dec_cut.d1p.shape == (disk_mesh.num_faces, disk_mesh.num_edges), \
+            f"d1p shape should be ({disk_mesh.num_faces}, {disk_mesh.num_edges}), got {dec_cut.d1p.shape}"
 
     def test_dec_exactness(self, tetrahedron):
         """d1p @ d0p should be zero (exactness property)."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
@@ -672,13 +672,13 @@ class TestConeHandling:
         # Need k21 mismatch to force cut
         k21[0] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh_obj, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
         # Should produce valid mesh (may or may not be disk depending on cut success)
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi in [1, 2], f"Mesh should have chi=1 or 2, got {chi}"
 
     def test_cone_at_vertex_no_k21_no_cut(self, tetrahedron):
@@ -693,13 +693,13 @@ class TestConeHandling:
         cones = np.array([0])
         mesh_obj, param, ang, sing, k21, _ = create_test_inputs(mesh, cones)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh_obj, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
         # Without k21 mismatch, mesh stays closed
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 2, f"Uncut mesh should have chi=2, got {chi}"
 
     def test_multiple_cones(self, small_sphere):
@@ -710,13 +710,13 @@ class TestConeHandling:
         cones = np.array([0, 1])
         mesh_obj, param, ang, sing, k21, _ = create_test_inputs(mesh, cones)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh_obj, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
         # Depending on the cone handling, mesh may or may not be cut
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         # Accept both closed (chi=2) and disk (chi=1) topologies
         assert chi in [1, 2], f"Mesh should have chi=1 or 2, got {chi}"
 
@@ -731,13 +731,13 @@ class TestConeHandling:
         # Force cut with k21 mismatch
         k21[0] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh_obj, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
         # With k21 mismatch, should be cut to disk
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 1, f"Cut mesh with multiple cones should be disk (chi=1), got {chi}"
 
 
@@ -755,13 +755,13 @@ class TestRotationMismatch:
         # k21 is already all 1s
         assert np.all(k21 == 1)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
         # With no rotation mismatch, mesh stays closed
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 2, f"Uncut mesh should have chi=2, got {chi}"
 
     def test_nonidentity_rotation_without_cones_pruned(self, tetrahedron):
@@ -775,12 +775,12 @@ class TestRotationMismatch:
         # Single k21 mismatch, no cones
         k21[0] = 2
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         # Without cones, cut is pruned
         assert chi == 2, f"Single k21 without cones should stay closed (chi=2), got {chi}"
 
@@ -794,12 +794,12 @@ class TestRotationMismatch:
         sing[0] = 0.5
         sing[3] = 0.5
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=True, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 1, f"Cut path with cones should produce disk (chi=1), got {chi}"
 
     def test_all_k21_values_valid(self, tetrahedron):
@@ -808,13 +808,13 @@ class TestRotationMismatch:
             mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
             k21[0] = k_val
 
-            SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+            disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
                 mesh, param, ang, sing, k21,
                 ifseamless_const=False, ifboundary=False, ifhardedge=False
             )
 
             # Should not crash for any valid k21 value
-            assert SrcCut.nf > 0, f"Mesh should be valid for k21={k_val}"
+            assert disk_mesh.num_faces > 0, f"Mesh should be valid for k21={k_val}"
 
 
 # =============================================================================
@@ -828,27 +828,27 @@ class TestVertexEdgeCounts:
         """Cutting closed mesh should typically increase vertex count."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
         # Cut mesh should have at least as many vertices
         # (typically more due to vertex duplication along cuts)
-        assert SrcCut.nv >= mesh.nv, \
-            f"Cut mesh vertices ({SrcCut.nv}) should be >= original ({mesh.nv})"
+        assert disk_mesh.num_vertices >= mesh.num_vertices, \
+            f"Cut mesh vertices ({disk_mesh.num_vertices}) should be >= original ({mesh.num_vertices})"
 
     def test_face_count_preserved(self, tetrahedron):
         """Cutting should preserve face count."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        assert SrcCut.nf == mesh.nf, \
-            f"Cut mesh faces ({SrcCut.nf}) should equal original ({mesh.nf})"
+        assert disk_mesh.num_faces == mesh.num_faces, \
+            f"Cut mesh faces ({disk_mesh.num_faces}) should equal original ({mesh.num_faces})"
 
 
 # =============================================================================
@@ -863,9 +863,9 @@ class TestInputValidation:
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
 
         # Verify dimensions match
-        assert len(ang) == mesh.nf, "ang should have nf elements"
-        assert len(sing) == mesh.nv, "sing should have nv elements"
-        assert len(k21) == mesh.ne, "k21 should have ne elements"
+        assert len(ang) == mesh.num_faces, "ang should have nf elements"
+        assert len(sing) == mesh.num_vertices, "sing should have nv elements"
+        assert len(k21) == mesh.num_edges, "k21 should have ne elements"
 
     def test_k21_valid_range(self, tetrahedron):
         """k21 values should be in range 1-4."""
@@ -887,14 +887,14 @@ class TestEdgeCases:
         """Single triangle (minimal mesh) should work."""
         mesh, param, ang, sing, k21, _ = create_test_inputs(single_triangle_with_boundary)
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
         # Should still be a valid mesh
-        assert SrcCut.nv >= 3, "Should have at least 3 vertices"
-        assert SrcCut.nf >= 1, "Should have at least 1 face"
+        assert disk_mesh.num_vertices >= 3, "Should have at least 3 vertices"
+        assert disk_mesh.num_faces >= 1, "Should have at least 1 face"
 
     def test_no_interior_vertices(self, single_triangle_with_boundary):
         """Mesh with no interior vertices should work."""
@@ -903,12 +903,12 @@ class TestEdgeCases:
         # All vertices are on boundary for single triangle
         assert len(param.idx_int) == 0, "Single triangle has no interior vertices"
 
-        SrcCut, dec_cut, Align, Rot = mesh_to_disk_seamless(
+        disk_mesh, dec_cut, Align, Rot = mesh_to_disk_seamless(
             mesh, param, ang, sing, k21,
             ifseamless_const=False, ifboundary=False, ifhardedge=False
         )
 
-        chi = SrcCut.nv - SrcCut.ne + SrcCut.nf
+        chi = disk_mesh.num_vertices - disk_mesh.num_edges + disk_mesh.num_faces
         assert chi == 1, f"Should maintain disk topology, got chi={chi}"
 
 
@@ -934,9 +934,9 @@ class TestConsistency:
         )
 
         # Check cut mesh has same topology
-        assert result1[0].nv == result2[0].nv, "Vertex count should be consistent"
-        assert result1[0].ne == result2[0].ne, "Edge count should be consistent"
-        assert result1[0].nf == result2[0].nf, "Face count should be consistent"
+        assert result1[0].num_vertices == result2[0].num_vertices, "Vertex count should be consistent"
+        assert result1[0].num_edges == result2[0].num_edges, "Edge count should be consistent"
+        assert result1[0].num_faces == result2[0].num_faces, "Face count should be consistent"
 
         # Check constraint matrix shapes
         assert result1[2].shape == result2[2].shape, "Align shape should be consistent"
