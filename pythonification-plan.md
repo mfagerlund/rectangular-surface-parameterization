@@ -13,7 +13,7 @@ Transform the codebase from a MATLAB port with interleaved comments and MATLAB c
 | MATLAB naming (`T2E`, `nf`, `nv`) | ✅ Complete | All fields renamed except T2E (uses SignedEdgeArray) |
 | Solver params hardcoded | ✅ Extracted | `OptimizationParams` in `Orthotropic/optimization_params.py` |
 | Custom OBJ reader | ✅ Replaced | Using trimesh for multi-format, encoding-safe I/O |
-| Package structure | ✅ Started | `rectangular_surface_parameterization/` package created |
+| Package structure | ✅ Complete | All 39 modules migrated, old directories removed |
 
 **Note:** The 66 uses of `ravel('F')` / `flatten('F')` are intentional and correct - they match the algorithm's mathematical derivation. Do not change.
 
@@ -415,13 +415,14 @@ rg "commit 7d1aab4" --type py
 16. [x] Full test suite verification (728 tests pass)
 17. [x] Replaced custom OBJ reader with trimesh (handles encoding, multi-format)
 
-### Phase 5: Module Reorganization (1 session) ✅ MOSTLY COMPLETE
+### Phase 5: Module Reorganization (1 session) ✅ COMPLETE
 18. [x] Created `rectangular_surface_parameterization/` package structure
 19. [x] Core classes importable: `from rectangular_surface_parameterization import MeshInfo, SignedEdgeArray, load_mesh`
 20. [x] Updated pyproject.toml for package discovery
 21. [x] Added `py.typed` marker
-22. [ ] Gradually migrate remaining files to new package
-23. [x] Test run (744 tests pass, 4 pre-existing failures)
+22. [x] Migrated all 39 modules using scripts/migrate_module.py and scripts/migrate_all.py
+23. [x] Removed old directories (Preprocess/, FrameField/, Orthotropic/, ComputeParam/, Utils/)
+24. [x] Test run (746 tests pass)
 
 ### Phase 6: Cross-Platform CI (1-2 sessions)
 21. [ ] Create `.github/workflows/build-libqex.yml`
