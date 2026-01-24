@@ -6,8 +6,8 @@ Command-line reference for rectangular-surface-parameterization.
 
 The algorithm transforms a triangle mesh into a quad mesh through these stages:
 
-<!-- TODO: Add pipeline diagram showing: Input Mesh -> Cross Field -> Cut Graph -> UV Layout -> Quad Mesh -->
-<!-- ![Pipeline overview](images/pipeline_overview.png) -->
+![Example UV Layout](docs/examples/sphere320_smooth/sphere320_uv_layout.png)
+*Example output: Sphere UV layout with checkerboard visualization*
 
 1. **Cross Field** - Compute a smooth 4-directional field on the surface
 2. **Cut Graph** - Find cuts to unfold the mesh to a disk topology
@@ -21,14 +21,10 @@ The algorithm transforms a triangle mesh into a quad mesh through these stages:
 where 3 or 5 quads meet instead of the regular 4. The algorithm automatically places
 singularities based on the mesh's Gaussian curvature (Euler characteristic constraint).
 
-<!-- TODO: Add image showing singularities on a mesh (colored vertices) -->
-<!-- ![Singularities](images/singularities.png) -->
 
 **Seamlessness** ensures that UV coordinates match up across cuts, allowing the quad grid
 to wrap around the surface without visible seams.
 
-<!-- TODO: Add image showing UV layout with seam edges highlighted -->
-<!-- ![UV layout with seams](images/uv_seams.png) -->
 
 ## Basic Commands
 
@@ -78,8 +74,8 @@ Computes the **smoothest possible** cross field by minimizing directional variat
 the mesh using heat flow diffusion. Good general-purpose choice when you don't need
 alignment to surface features.
 
-<!-- TODO: Add image showing smooth cross field on bunny -->
-<!-- ![Smooth cross field](images/crossfield_smooth.png) -->
+![Smooth cross field result](docs/examples/B36_smooth/B36_uv_layout.png)
+*B36 mesh with smooth cross field: 0 flipped triangles*
 
 ```bash
 python run_RSP.py mesh.obj --frame-field smooth
@@ -92,8 +88,8 @@ follows the axis while the other wraps around. On a saddle, directions follow th
 of steepest ascent/descent. Best for organic shapes where you want quads to follow the
 natural geometry.
 
-<!-- TODO: Add image showing curvature-aligned cross field on bunny -->
-<!-- ![Curvature cross field](images/crossfield_curvature.png) -->
+![Curvature cross field result](docs/examples/pig_curvature/pig_uv_layout.png)
+*Pig mesh with curvature-aligned cross field*
 
 ```bash
 python run_RSP.py mesh.obj --frame-field curvature
@@ -105,8 +101,6 @@ Uses a **trivial connection** where singularities are placed at boundary vertice
 their Gaussian curvature. Produces a field with minimal internal singularities. Useful for
 meshes with boundaries where you want predictable singularity placement.
 
-<!-- TODO: Add image showing trivial cross field -->
-<!-- ![Trivial cross field](images/crossfield_trivial.png) -->
 
 ```bash
 python run_RSP.py mesh.obj --frame-field trivial
@@ -114,8 +108,7 @@ python run_RSP.py mesh.obj --frame-field trivial
 
 ### Cross Field Comparison
 
-<!-- TODO: Add side-by-side comparison of all three methods on same mesh -->
-<!-- ![Cross field comparison](images/crossfield_comparison.png) -->
+See **[EXAMPLES.md](EXAMPLES.md)** for side-by-side comparisons of all cross field methods on various meshes.
 
 ## Constraint Options
 
@@ -151,8 +144,8 @@ The `--w-conf-ar` parameter controls the trade-off:
 | `0.5` | Isometric (default) | Balance between angles and areas |
 | `1.0` | Conformal | Preserve angles, allow area variation |
 
-<!-- TODO: Add comparison showing same mesh with different w-conf-ar values -->
-<!-- ![Distortion energy comparison](images/energy_distortion_comparison.png) -->
+![Distortion metrics](docs/examples/pig_smooth/pig_distortion.png)
+*Distortion analysis panel: area, conformal, Jacobian, and orthogonality metrics*
 
 ```bash
 python run_RSP.py mesh.obj --energy distortion --w-conf-ar 0.5
@@ -164,8 +157,8 @@ Optimizes for **Chebyshev nets** where grid lines maintain constant spacing. Use
 architectural applications and fabric/material simulation where you need a net that can
 be physically constructed from inextensible strips.
 
-<!-- TODO: Add image showing Chebyshev net result -->
-<!-- ![Chebyshev net](images/energy_chebyshev.png) -->
+![Chebyshev energy result](docs/examples/SquareMyles_chebyshev/SquareMyles_uv_layout.png)
+*SquareMyles with Chebyshev energy: uniform grid spacing*
 
 ```bash
 python run_RSP.py mesh.obj --energy chebyshev
@@ -177,8 +170,6 @@ Prioritizes **alignment to the cross field directions** over distortion minimiza
 Use with `--frame-field curvature` to get quads that strictly follow principal curvatures,
 even at the cost of some stretching.
 
-<!-- TODO: Add image showing alignment energy result -->
-<!-- ![Alignment energy](images/energy_alignment.png) -->
 
 ```bash
 python run_RSP.py mesh.obj --energy alignment
@@ -186,8 +177,7 @@ python run_RSP.py mesh.obj --energy alignment
 
 ### Energy Comparison
 
-<!-- TODO: Add side-by-side comparison of energy types on same mesh -->
-<!-- ![Energy comparison](images/energy_comparison.png) -->
+See **[EXAMPLES.md](EXAMPLES.md)** for comparisons of distortion vs Chebyshev energy on the same mesh.
 
 ## Mesh Preprocessing
 
@@ -229,7 +219,7 @@ pytest tests/ -v
 
 ## Test Meshes
 
-Test meshes are included in the `Mesh/` folder. See [Mesh/README.md](Mesh/README.md) for details.
+Test meshes are included in the `Mesh/` folder. See [Mesh/README.md](Mesh/README.md) for details and **[EXAMPLES.md](EXAMPLES.md)** for output visualizations of all meshes.
 
 ```bash
 # Simple verification (genus 0)

@@ -5,6 +5,7 @@
 
 import numpy as np
 import os
+from pathlib import Path
 from typing import Optional
 import warnings
 import subprocess
@@ -89,15 +90,20 @@ def save_param(
     # end
 
     if ifquantization:
-        quantize_exe = './QuantizationYoann/build/Quantization'
+        # Resolve path relative to repo root, with OS-specific executable suffix
+        repo_root = Path(__file__).parent.parent.parent
+        exe_name = 'Quantization.exe' if os.name == 'nt' else 'Quantization'
+        quantize_exe = repo_root / 'QuantizationYoann' / 'build' / exe_name
 
-        if not os.path.exists(quantize_exe):
+        if not quantize_exe.exists():
             warnings.warn(
-                'Quantization executable not found at ./QuantizationYoann/build/Quantization. '
+                f'Quantization executable not found at {quantize_exe}. '
                 'Skipping quantization step. '
                 'To enable, build the QuantizationYoann program (requires Gurobi).'
             )
             return
+
+        quantize_exe = str(quantize_exe)
 
         quantiz_path = os.path.join(path_save, f'{mesh_name}_quantiz.obj')
         cmd = [

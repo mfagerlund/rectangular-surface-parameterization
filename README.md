@@ -21,8 +21,8 @@ Computes an orthogonal (rectangular) UV parameterization of a triangle mesh, ali
 - Hard edge and boundary alignment support
 - Integration with [libQEx](https://github.com/hcebke/libQEx) for quad mesh extraction
 
-<!-- TODO: Add hero image showing input mesh -> quad mesh result -->
-<!-- ![Example result](images/hero_example.png) -->
+![Example: Pig UV Layout](docs/examples/pig_smooth/pig_uv_layout.png)
+*Pig mesh parameterization: 3678 faces, only 10 flipped triangles (0.3%)*
 
 ## Installation
 
@@ -87,6 +87,8 @@ python extract_quads.py mesh.obj -o Results/ --scale 10
 > Parameterization works on all platforms.
 
 See **[USAGE.md](USAGE.md)** for complete reference including troubleshooting and Python API.
+
+See **[EXAMPLES.md](EXAMPLES.md)** for a gallery of all test meshes with different configurations.
 
 ## Python Conversion Notes
 
