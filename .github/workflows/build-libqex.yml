@@ -45,7 +45,7 @@ jobs:
         run: |
           cd OpenMesh
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/openmesh-install -DCMAKE_CXX_STANDARD=11
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/openmesh-install -DCMAKE_CXX_STANDARD=11 -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
           cmake --install . --config Release
 
@@ -70,7 +70,7 @@ jobs:
         run: |
           cd libQEx
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_CXX_STANDARD=11
           cmake --build . --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
       - name: Build libQEx (Windows)
@@ -80,7 +80,7 @@ jobs:
           cd libQEx
           mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}\openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}\openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_CXX_FLAGS="/D_USE_MATH_DEFINES"
           cmake --build . --config Release
 
       - name: Find and copy binary (Unix)
