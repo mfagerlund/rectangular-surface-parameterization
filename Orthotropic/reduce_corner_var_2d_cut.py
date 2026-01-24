@@ -76,10 +76,10 @@ def reduce_corner_var_2d_cut(
 
     # for i = 1:mesh.num_vertices
     for i in range(mesh.num_vertices):
-        # [tri_ord,edge_ord,sign_edge] = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E);
+        # [tri_ord,edge_ord,sign_edge] = sort_triangles(i, mesh.triangles, mesh.edge_to_triangle, mesh.triangle_to_triangle, mesh.edge_to_vertex, mesh.T2E);
         # edge_ord = edge_ord.*sign_edge;
 
-        tri_ord, edge_ord, sign_edge = sort_triangles(i, mesh.triangles, mesh.E2T, mesh.T2T, mesh.E2V, mesh.T2E)
+        tri_ord, edge_ord, sign_edge = sort_triangles(i, mesh.triangles, mesh.edge_to_triangle, mesh.triangle_to_triangle, mesh.edge_to_vertex, mesh.T2E)
         # Create signed edge indices using 1-based encoding: (idx+1)*sign
         edge_ord_signed = (edge_ord + 1) * sign_edge
 

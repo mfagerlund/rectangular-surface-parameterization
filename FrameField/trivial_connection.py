@@ -261,8 +261,8 @@ def solve_qp_equality(H, Aeq, beq) -> np.ndarray:
     Returns:
         x: Optimal solution
     """
-    from scipy.sparse.linalg import spsolve
     from scipy.sparse import vstack, hstack, csr_matrix
+    from Utils.sparse_solve import regularized_solve
 
     # Convert to sparse if needed
     if not sp.issparse(H):
@@ -286,8 +286,8 @@ def solve_qp_equality(H, Aeq, beq) -> np.ndarray:
 
     rhs = np.concatenate([np.zeros(n), beq])
 
-    # Solve KKT system
-    solution = spsolve(KKT.tocsr(), rhs)
+    # Solve KKT system with regularization fallback
+    solution = regularized_solve(KKT, rhs)
 
     # Extract x (first n components)
     x = solution[:n]
@@ -334,21 +334,21 @@ def brush_frame_field(param, omega: np.ndarray, tri_fix: np.ndarray,
     else:
         init_tree = 0  # 0-indexed
 
-    # nf = max(param.E2T(:));
+    # nf = max(param.edge_to_triangle(:));
     # ang = zeros(nf,1);
     # ang(tri_fix) = ang_init;
 
-    nf = int(np.max(param.E2T)) + 1  # +1 for 0-indexed
+    nf = int(np.max(param.edge_to_triangle)) + 1  # +1 for 0-indexed
     ang = np.zeros(nf)
     if len(tri_fix) > 0:
         ang[tri_fix] = ang_init
 
     # ang = breadth_first_search(ang, omega(param.ide_int) - param.para_trans(param.ide_int),
-    #                            param.E2T(param.ide_int,:), @(x,y) x+y, init_tree);
+    #                            param.edge_to_triangle(param.ide_int,:), @(x,y) x+y, init_tree);
 
     # BFS propagation
     omega_delta = omega[param.ide_int] - param.para_trans[param.ide_int]
-    E2T_int = param.E2T[param.ide_int, :]
+    E2T_int = param.edge_to_triangle[param.ide_int, :]
 
     ang = breadth_first_search(ang, omega_delta, E2T_int, init_tree)
 

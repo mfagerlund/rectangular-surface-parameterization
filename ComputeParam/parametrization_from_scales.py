@@ -59,7 +59,6 @@
 
 import numpy as np
 from scipy.sparse import csr_matrix, block_diag, vstack
-from scipy.sparse.linalg import spsolve
 from typing import Tuple, Optional
 import sys
 import os
@@ -69,6 +68,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from Preprocess.dec_tri import DEC
 from Preprocess.MeshInfo import MeshInfo
+from Utils.sparse_solve import regularized_solve
 
 
 def solve_qp_equality(H: csr_matrix, Aeq: csr_matrix, beq: np.ndarray) -> np.ndarray:
@@ -97,7 +97,6 @@ def solve_qp_equality(H: csr_matrix, Aeq: csr_matrix, beq: np.ndarray) -> np.nda
         Optimal solution.
     """
     from scipy.sparse import hstack, csr_matrix as sparse_csr
-    from scipy.sparse.linalg import spsolve, lsqr
 
     n = H.shape[0]
     m = Aeq.shape[0]
@@ -119,16 +118,8 @@ def solve_qp_equality(H: csr_matrix, Aeq: csr_matrix, beq: np.ndarray) -> np.nda
 
     rhs = np.concatenate([np.zeros(n), beq])
 
-    # Add small regularization for numerical stability
-    KKT = KKT + 1e-10 * sparse_csr(np.eye(n + m))
-
-    # Solve KKT system
-    try:
-        solution = spsolve(KKT, rhs)
-    except Exception:
-        # Fall back to least squares if direct solve fails
-        result = lsqr(KKT, rhs)
-        solution = result[0]
+    # Solve KKT system with regularization fallback
+    solution = regularized_solve(KKT, rhs)
 
     # Extract x (first n components)
     x = solution[:n]
@@ -366,16 +357,16 @@ def parametrization_from_scales(
         Xp = Xp_flat.reshape((disk_mesh.num_vertices, 2), order='F')
     else:
         # Simple Poisson solve without constraints
-        Xp = spsolve(W.tocsr(), div_dX)
+        Xp = regularized_solve(W.tocsr(), div_dX)
 
-        # Handle case where spsolve returns 1D array for single RHS column
+        # Handle case where solve returns 1D array for single RHS column
         if Xp.ndim == 1:
             Xp = Xp.reshape(-1, 1)
         if Xp.shape[1] == 1 and div_dX.shape[1] == 2:
             # Solve each column separately
             Xp = np.column_stack([
-                spsolve(W.tocsr(), div_dX[:, 0]),
-                spsolve(W.tocsr(), div_dX[:, 1])
+                regularized_solve(W.tocsr(), div_dX[:, 0]),
+                regularized_solve(W.tocsr(), div_dX[:, 1])
             ])
 
     return Xp, mu
@@ -414,14 +405,13 @@ def solve_qp_with_linear_term(
         Optimal solution.
     """
     from scipy.sparse import hstack, csr_matrix as sparse_csr
-    from scipy.sparse.linalg import spsolve, lsqr
 
     n = H.shape[0]
     m = Aeq.shape[0]
 
     if m == 0:
         # No constraints, solve H * x = -f
-        return spsolve(H.tocsr(), -f)
+        return regularized_solve(H.tocsr(), -f)
 
     # Build KKT system
     zeros_mm = sparse_csr((m, m))
@@ -433,13 +423,8 @@ def solve_qp_with_linear_term(
 
     rhs = np.concatenate([-f, beq])
 
-    # Solve KKT system
-    try:
-        solution = spsolve(KKT, rhs)
-    except Exception:
-        # Fall back to least squares if direct solve fails
-        result = lsqr(KKT, rhs)
-        solution = result[0]
+    # Solve KKT system with regularization fallback
+    solution = regularized_solve(KKT, rhs)
 
     # Extract x (first n components)
     x = solution[:n]

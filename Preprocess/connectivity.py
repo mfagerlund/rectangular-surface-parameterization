@@ -173,7 +173,7 @@ def check_mesh_connected(mesh) -> bool:
     from collections import deque
 
     nv = mesh.num_vertices
-    E2V = mesh.E2V
+    E2V = mesh.edge_to_vertex
 
     # Build vertex adjacency list
     adj = [[] for _ in range(nv)]

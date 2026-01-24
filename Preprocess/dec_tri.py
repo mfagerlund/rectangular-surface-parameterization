@@ -20,7 +20,7 @@
 #     cotweight = max(cotweight, 1e-5); % clamp to avoid problems
 # end
 #
-# d0p = sparse([1:ne;1:ne]', mesh.E2V, [ones(ne,1),-ones(ne,1)], ne, nv);
+# d0p = sparse([1:ne;1:ne]', mesh.edge_to_vertex, [ones(ne,1),-ones(ne,1)], ne, nv);
 # d1p = sparse([1:nf;1:nf;1:nf]', abs(mesh.T2E), sign(mesh.T2E), nf, ne);
 # assert(norm(d1p*d0p, 'fro') == 0, 'Assembling DEC: Orinetation problems');
 #
@@ -225,12 +225,12 @@ def dec_tri(mesh: MeshInfo) -> DEC:
         warnings.warn("Non Delaunay mesh: risk of convergence issues!")
         cotweight = np.maximum(cotweight, 1e-5)
 
-    # d0p = sparse([1:ne;1:ne]', mesh.E2V, [ones(ne,1),-ones(ne,1)], ne, nv);
+    # d0p = sparse([1:ne;1:ne]', mesh.edge_to_vertex, [ones(ne,1),-ones(ne,1)], ne, nv);
 
     # d0p is the gradient operator: for each edge, +1 at end vertex, -1 at start vertex
     # E2V[e] = [v0, v1] -> d0p[e, v1] = +1, d0p[e, v0] = -1
     row_idx = np.concatenate([np.arange(ne), np.arange(ne)])
-    col_idx = np.concatenate([mesh.E2V[:, 0], mesh.E2V[:, 1]])
+    col_idx = np.concatenate([mesh.edge_to_vertex[:, 0], mesh.edge_to_vertex[:, 1]])
     data = np.concatenate([np.ones(ne), -np.ones(ne)])
     d0p = csr_matrix((data, (row_idx, col_idx)), shape=(ne, nv))
 

@@ -364,7 +364,7 @@ class TestIdentityScales:
         # Compute edge length ratios between UV and original
         ratios = []
         for e in range(ne):
-            v0, v1 = mesh.E2V[e]
+            v0, v1 = mesh.edge_to_vertex[e]
 
             # Original edge length (in XY plane)
             orig_len = np.linalg.norm(mesh.vertices[v1, :2] - mesh.vertices[v0, :2])
@@ -701,7 +701,7 @@ class TestBoundaryEdgeHandling:
 
         # Find boundary edges (edges with only one adjacent face)
         # For the simple mesh, all outer edges are boundaries
-        E2T = mesh.E2T[:, :2]
+        E2T = mesh.edge_to_triangle[:, :2]
         boundary_edges = np.where(np.any(E2T < 0, axis=1))[0]
 
         param = MockParam(nf, ne, ide_bound=boundary_edges, e1r=e1r, e2r=e2r)
@@ -898,7 +898,7 @@ class TestDifferentTopologies:
         e1r, e2r = compute_local_frame(mesh)
 
         # Find actual boundary edges
-        E2T = mesh.E2T[:, :2]
+        E2T = mesh.edge_to_triangle[:, :2]
         boundary_edges = np.where(np.any(E2T < 0, axis=1))[0]
 
         param = MockParam(nf, ne, ide_bound=boundary_edges, e1r=e1r, e2r=e2r)
@@ -974,7 +974,7 @@ class TestPipelineCompatibility:
                 self.ide_bound = np.array([], dtype=int)
                 self.e1r = e1r
                 self.e2r = e2r
-                self.E2T = mesh.E2T[:, :2]  # Some OrthoParam have E2T
+                self.edge_to_triangle = mesh.edge_to_triangle[:, :2]  # Some OrthoParam have E2T
 
         param = FullParam()
 

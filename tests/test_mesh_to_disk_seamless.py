@@ -126,9 +126,9 @@ class MockOrthoParam:
             Cone vertex indices. If None, no cones are set.
         """
         # Interior vertex indices (all vertices for closed mesh, non-boundary for open)
-        boundary_edges = np.where(np.any(mesh.E2T[:, :2] < 0, axis=1))[0]
+        boundary_edges = np.where(np.any(mesh.edge_to_triangle[:, :2] < 0, axis=1))[0]
         if len(boundary_edges) > 0:
-            boundary_verts = np.unique(mesh.E2V[boundary_edges])
+            boundary_verts = np.unique(mesh.edge_to_vertex[boundary_edges])
             self.idx_int = np.setdiff1d(np.arange(mesh.num_vertices), boundary_verts)
             self.ide_bound = boundary_edges
             self.idx_bound = boundary_verts
@@ -138,7 +138,7 @@ class MockOrthoParam:
             self.idx_bound = np.array([], dtype=int)
 
         # E2T mapping - just use the mesh's E2T for the first two columns
-        self.E2T = mesh.E2T[:, :2]
+        self.edge_to_triangle = mesh.edge_to_triangle[:, :2]
 
         # Fixed edges/triangles (empty by default)
         self.ide_hard = np.array([], dtype=int)
@@ -419,7 +419,7 @@ class TestBoundaryEdges:
 
     def _count_boundary_edges(self, mesh: MeshInfo) -> int:
         """Count edges with only one adjacent face."""
-        return np.sum(np.any(mesh.E2T[:, :2] < 0, axis=1))
+        return np.sum(np.any(mesh.edge_to_triangle[:, :2] < 0, axis=1))
 
     def test_tetrahedron_no_boundary_single_k21_no_cones(self, tetrahedron):
         """Single k21 mismatch without cones: no boundary (cut pruned).

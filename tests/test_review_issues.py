@@ -165,7 +165,7 @@ class TestGraphGeneratorForestBFS:
         l = np.ones(mesh.num_edges)
 
         # Should not raise even if dual graph has multiple components
-        cycle, cocycle = find_graph_generator(l, mesh.triangles, mesh.E2T, mesh.E2V, init=0)
+        cycle, cocycle = find_graph_generator(l, mesh.triangles, mesh.edge_to_triangle, mesh.edge_to_vertex, init=0)
 
         # For a closed mesh with genus 0, should have no generators
         assert len(cycle) == 0, "Sphere should have no cycle generators"

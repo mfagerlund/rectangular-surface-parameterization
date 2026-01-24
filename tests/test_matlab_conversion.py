@@ -262,12 +262,12 @@ class TestPreprocessOrthoParam:
             ifhardedge=False
         )
 
-        assert param.E2T.shape == (Src_out.num_edges, 2), \
-            f"E2T shape should be (ne, 2), got {param.E2T.shape}"
+        assert param.edge_to_triangle.shape == (Src_out.num_edges, 2), \
+            f"E2T shape should be (ne, 2), got {param.edge_to_triangle.shape}"
 
         # All entries should be valid face indices
-        assert np.all(param.E2T >= 0), "E2T should have non-negative entries"
-        assert np.all(param.E2T < Src_out.num_faces), "E2T entries should be < nf"
+        assert np.all(param.edge_to_triangle >= 0), "E2T should have non-negative entries"
+        assert np.all(param.edge_to_triangle < Src_out.num_faces), "E2T entries should be < nf"
 
     def test_local_basis_orthonormal(self, octahedron_data):
         """Verify e1r and e2r form orthonormal basis tangent to surface."""

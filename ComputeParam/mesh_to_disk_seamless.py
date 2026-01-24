@@ -2,19 +2,19 @@
 # function [disk_mesh,dec_cut,Align,Rot] = mesh_to_disk_seamless(Src, param, ang, sing, k21, ifseamless_const, ifboundary, ifhardedge)
 #
 # idcone = param.idx_int(abs(sing(param.idx_int)) > 0.1); % Cone indices
-# [disk_mesh,~,ide_cut_inv,~] = cut_mesh(Src.vertices, Src.triangles, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, k21 ~= 1);
+# [disk_mesh,~,ide_cut_inv,~] = cut_mesh(Src.vertices, Src.triangles, Src.edge_to_vertex, Src.edge_to_triangle, Src.T2E, Src.triangle_to_triangle, idcone, k21 ~= 1);
 # dec_cut = dec_tri(disk_mesh);
 #
 # if ifseamless_const && nargout > 2
-#     edge_bound_cut = find(any(disk_mesh.E2T(:,1:2) == 0, 2));
-#     edge_bound_cut = [edge_bound_cut, sum(disk_mesh.E2T(edge_bound_cut,1:2),2)];
+#     edge_bound_cut = find(any(disk_mesh.edge_to_triangle(:,1:2) == 0, 2));
+#     edge_bound_cut = [edge_bound_cut, sum(disk_mesh.edge_to_triangle(edge_bound_cut,1:2),2)];
 #     edge_bound_cut = edge_bound_cut(~ismember(abs(ide_cut_inv(edge_bound_cut(:,1))), param.ide_bound),:);
 #     [~,id] = sort(abs(ide_cut_inv(edge_bound_cut(:,1))));
 #     ide_cut = ide_cut_inv(edge_bound_cut(id,1));
 #     assert(all(abs(ide_cut(1:2:end-1)) == abs(ide_cut(2:2:end))), 'Cut failed.');
 #     ide_cut_cor = [abs(ide_cut(1:2:end-1)), sign(ide_cut(1:2:end-1)).*edge_bound_cut(id(1:2:end-1),1), sign(ide_cut(2:2:end)).*edge_bound_cut(id(2:2:end),1)];
 #     tri_cut_cor = [edge_bound_cut(id(1:2:end-1),2), edge_bound_cut(id(2:2:end),2)];
-#     ide_cut_cor(:,2:3) = (tri_cut_cor(:,1) == param.E2T(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[2 3]) + (tri_cut_cor(:,2) == param.E2T(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[3 2]);
+#     ide_cut_cor(:,2:3) = (tri_cut_cor(:,1) == param.edge_to_triangle(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[2 3]) + (tri_cut_cor(:,2) == param.edge_to_triangle(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[3 2]);
 #
 #     R0 = eye(2,2);
 #     R1 = [0,-1; 1,0];
@@ -29,7 +29,7 @@
 #     Align = sparse(0,2*disk_mesh.num_vertices);
 #     if (ifboundary && ~isempty(param.ide_bound)) || (ifhardedge && ~isempty(param.ide_hard))
 #         ide_fix_cut = find(ismember(abs(ide_cut_inv), param.ide_fix));
-#         tri_fix_cut = vec(disk_mesh.E2T(ide_fix_cut,1:2));
+#         tri_fix_cut = vec(disk_mesh.edge_to_triangle(ide_fix_cut,1:2));
 #         id = tri_fix_cut ~= 0;
 #         tri_fix_cut = tri_fix_cut(id);
 #         [~,ia] = ismember(param.tri_fix, tri_fix_cut);
@@ -127,14 +127,14 @@ def mesh_to_disk_seamless(
     sing_at_int = np.abs(sing[idx_int])
     idcone = idx_int[sing_at_int > 0.1]
 
-    # [disk_mesh,~,ide_cut_inv,~] = cut_mesh(Src.vertices, Src.triangles, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, k21 ~= 1);
+    # [disk_mesh,~,ide_cut_inv,~] = cut_mesh(Src.vertices, Src.triangles, Src.edge_to_vertex, Src.edge_to_triangle, Src.T2E, Src.triangle_to_triangle, idcone, k21 ~= 1);
 
     # edge_jump_tag: edges where k21 != 1 (non-trivial rotation)
     # k21 is 1-4 where 1 = identity rotation
     edge_jump_tag = (k21 != 1)
 
     SrcCut_raw, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-        Src.vertices, Src.triangles, Src.E2V, Src.E2T, Src.T2E, Src.T2T, idcone, edge_jump_tag
+        Src.vertices, Src.triangles, Src.edge_to_vertex, Src.edge_to_triangle, Src.T2E, Src.triangle_to_triangle, idcone, edge_jump_tag
     )
 
     # Convert CutMeshInfo to full MeshInfo for dec_tri
@@ -145,13 +145,13 @@ def mesh_to_disk_seamless(
 
     # Recompute ide_cut_inv for disk_mesh's edge ordering
     # Map each cut mesh edge to its original edge via vertex mapping
-    orig_edge_map = {tuple(sorted(row)): i for i, row in enumerate(Src.E2V)}
-    mapped_edges = np.sort(idx_cut_inv[disk_mesh.E2V], axis=1)
+    orig_edge_map = {tuple(sorted(row)): i for i, row in enumerate(Src.edge_to_vertex)}
+    mapped_edges = np.sort(idx_cut_inv[disk_mesh.edge_to_vertex], axis=1)
     ide_cut_inv = np.array([orig_edge_map.get(tuple(row), -1) for row in mapped_edges], dtype=int)
     if np.any(ide_cut_inv < 0):
         raise AssertionError("Failed to map cut edges to original edges.")
     # Add sign to preserve orientation (1-based signed encoding)
-    ids = idx_cut_inv[disk_mesh.E2V[:, 0]] == Src.E2V[ide_cut_inv, 0]
+    ids = idx_cut_inv[disk_mesh.edge_to_vertex[:, 0]] == Src.edge_to_vertex[ide_cut_inv, 0]
     ide_cut_inv = np.where(ids, ide_cut_inv + 1, -(ide_cut_inv + 1))
 
     # dec_cut = dec_tri(disk_mesh);
@@ -161,16 +161,16 @@ def mesh_to_disk_seamless(
     # if ifseamless_const && nargout > 2
 
     if ifseamless_const:
-        # edge_bound_cut = find(any(disk_mesh.E2T(:,1:2) == 0, 2));
+        # edge_bound_cut = find(any(disk_mesh.edge_to_triangle(:,1:2) == 0, 2));
 
         # Find boundary edges in cut mesh (edges with only one adjacent face)
         # E2T uses -1 for no neighbor in Python (0 in MATLAB)
-        # disk_mesh.E2T has shape (ne, 4) with columns [t0, t1, s0, s1]
-        E2T_cut = disk_mesh.E2T[:, :2]  # First two columns are face indices
+        # disk_mesh.edge_to_triangle has shape (ne, 4) with columns [t0, t1, s0, s1]
+        E2T_cut = disk_mesh.edge_to_triangle[:, :2]  # First two columns are face indices
         is_boundary = np.any(E2T_cut == -1, axis=1)
         edge_bound_cut_idx = np.where(is_boundary)[0]
 
-        # edge_bound_cut = [edge_bound_cut, sum(disk_mesh.E2T(edge_bound_cut,1:2),2)];
+        # edge_bound_cut = [edge_bound_cut, sum(disk_mesh.edge_to_triangle(edge_bound_cut,1:2),2)];
 
         # Get the single adjacent face for each boundary edge
         # sum of [t0, t1] where one is -1 gives the valid face index (minus -1)
@@ -250,11 +250,11 @@ def mesh_to_disk_seamless(
             edge_bound_cut[idx_even, 1]
         ])
 
-        # ide_cut_cor(:,2:3) = (tri_cut_cor(:,1) == param.E2T(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[2 3]) + (tri_cut_cor(:,2) == param.E2T(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[3 2]);
+        # ide_cut_cor(:,2:3) = (tri_cut_cor(:,1) == param.edge_to_triangle(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[2 3]) + (tri_cut_cor(:,2) == param.edge_to_triangle(ide_cut_cor(:,1),1)).*ide_cut_cor(:,[3 2]);
 
-        # Reorder cut edges so first edge is on same side as param.E2T[orig_edge, 0]
-        # param.E2T is the original mesh E2T, shape (ne, 4) or (ne, 2+)
-        E2T_orig = np.asarray(param.E2T)
+        # Reorder cut edges so first edge is on same side as param.edge_to_triangle[orig_edge, 0]
+        # param.edge_to_triangle is the original mesh E2T, shape (ne, 4) or (ne, 2+)
+        E2T_orig = np.asarray(param.edge_to_triangle)
         t0_orig = E2T_orig[orig_edge, 0]
 
         # Check which cut triangle matches the first original triangle
@@ -345,10 +345,10 @@ def mesh_to_disk_seamless(
             ide_fix_cut = np.where(is_fix_edge)[0]
 
             if len(ide_fix_cut) > 0:
-                # tri_fix_cut = vec(disk_mesh.E2T(ide_fix_cut,1:2));
+                # tri_fix_cut = vec(disk_mesh.edge_to_triangle(ide_fix_cut,1:2));
 
                 # Get triangles adjacent to fixed cut edges
-                tri_fix_cut_2d = disk_mesh.E2T[ide_fix_cut, :2]  # shape (n_fix, 2)
+                tri_fix_cut_2d = disk_mesh.edge_to_triangle[ide_fix_cut, :2]  # shape (n_fix, 2)
                 tri_fix_cut = tri_fix_cut_2d.flatten('F')  # column-major flatten
 
                 # id = tri_fix_cut ~= 0;

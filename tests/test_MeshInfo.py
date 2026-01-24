@@ -103,14 +103,14 @@ class TestFieldsPopulated:
         assert hasattr(mesh, 'num_faces')
         assert hasattr(mesh, 'num_vertices')
         assert hasattr(mesh, 'num_edges')
-        assert hasattr(mesh, 'E2V')
+        assert hasattr(mesh, 'edge_to_vertex')
         assert hasattr(mesh, 'T2E')
-        assert hasattr(mesh, 'E2T')
-        assert hasattr(mesh, 'T2T')
+        assert hasattr(mesh, 'edge_to_triangle')
+        assert hasattr(mesh, 'triangle_to_triangle')
         assert hasattr(mesh, 'normal')
         assert hasattr(mesh, 'area')
-        assert hasattr(mesh, 'Nv')
-        assert hasattr(mesh, 'SqEdgeLength')
+        assert hasattr(mesh, 'vertex_normals')
+        assert hasattr(mesh, 'sq_edge_length')
         assert hasattr(mesh, 'corner_angle')
         assert hasattr(mesh, 'cot_corner_angle')
 
@@ -124,14 +124,14 @@ class TestFieldsPopulated:
         assert mesh.num_faces is not None
         assert mesh.num_vertices is not None
         assert mesh.num_edges is not None
-        assert mesh.E2V is not None
+        assert mesh.edge_to_vertex is not None
         assert mesh.T2E is not None
-        assert mesh.E2T is not None
-        assert mesh.T2T is not None
+        assert mesh.edge_to_triangle is not None
+        assert mesh.triangle_to_triangle is not None
         assert mesh.normal is not None
         assert mesh.area is not None
-        assert mesh.Nv is not None
-        assert mesh.SqEdgeLength is not None
+        assert mesh.vertex_normals is not None
+        assert mesh.sq_edge_length is not None
         assert mesh.corner_angle is not None
         assert mesh.cot_corner_angle is not None
 
@@ -199,7 +199,7 @@ class TestNormals:
         X, T = single_triangle
         mesh = mesh_info(X, T)
 
-        norms = np.linalg.norm(mesh.Nv, axis=1)
+        norms = np.linalg.norm(mesh.vertex_normals, axis=1)
         np.testing.assert_allclose(norms, 1.0, atol=1e-10,
             err_msg="Vertex normals should have unit length")
 
@@ -208,7 +208,7 @@ class TestNormals:
         X, T = tetrahedron
         mesh = mesh_info(X, T)
 
-        norms = np.linalg.norm(mesh.Nv, axis=1)
+        norms = np.linalg.norm(mesh.vertex_normals, axis=1)
         np.testing.assert_allclose(norms, np.ones(mesh.num_vertices), atol=1e-10,
             err_msg="All vertex normals should have unit length")
 
@@ -351,14 +351,14 @@ class TestConnectivityShapes:
         # nv=3, nf=1, ne=3 for a single triangle
         assert mesh.vertices.shape == (3, 3), f"X shape should be (3, 3), got {mesh.vertices.shape}"
         assert mesh.triangles.shape == (1, 3), f"T shape should be (1, 3), got {mesh.triangles.shape}"
-        assert mesh.E2V.shape == (3, 2), f"E2V shape should be (3, 2), got {mesh.E2V.shape}"
+        assert mesh.edge_to_vertex.shape == (3, 2), f"E2V shape should be (3, 2), got {mesh.edge_to_vertex.shape}"
         assert mesh.T2E.shape == (1, 3), f"T2E shape should be (1, 3), got {mesh.T2E.shape}"
-        assert mesh.E2T.shape == (3, 4), f"E2T shape should be (3, 4), got {mesh.E2T.shape}"
-        assert mesh.T2T.shape == (1, 3), f"T2T shape should be (1, 3), got {mesh.T2T.shape}"
+        assert mesh.edge_to_triangle.shape == (3, 4), f"E2T shape should be (3, 4), got {mesh.edge_to_triangle.shape}"
+        assert mesh.triangle_to_triangle.shape == (1, 3), f"T2T shape should be (1, 3), got {mesh.triangle_to_triangle.shape}"
         assert mesh.normal.shape == (1, 3), f"normal shape should be (1, 3), got {mesh.normal.shape}"
         assert mesh.area.shape == (1,), f"area shape should be (1,), got {mesh.area.shape}"
-        assert mesh.Nv.shape == (3, 3), f"Nv shape should be (3, 3), got {mesh.Nv.shape}"
-        assert mesh.SqEdgeLength.shape == (3,), f"SqEdgeLength shape should be (3,), got {mesh.SqEdgeLength.shape}"
+        assert mesh.vertex_normals.shape == (3, 3), f"Nv shape should be (3, 3), got {mesh.vertex_normals.shape}"
+        assert mesh.sq_edge_length.shape == (3,), f"SqEdgeLength shape should be (3,), got {mesh.sq_edge_length.shape}"
         assert mesh.corner_angle.shape == (1, 3), f"corner_angle shape should be (1, 3), got {mesh.corner_angle.shape}"
         assert mesh.cot_corner_angle.shape == (1, 3), f"cot_corner_angle shape should be (1, 3), got {mesh.cot_corner_angle.shape}"
 
@@ -370,14 +370,14 @@ class TestConnectivityShapes:
         # nv=4, nf=4, ne=6 for a tetrahedron
         assert mesh.vertices.shape == (4, 3), f"X shape should be (4, 3), got {mesh.vertices.shape}"
         assert mesh.triangles.shape == (4, 3), f"T shape should be (4, 3), got {mesh.triangles.shape}"
-        assert mesh.E2V.shape == (6, 2), f"E2V shape should be (6, 2), got {mesh.E2V.shape}"
+        assert mesh.edge_to_vertex.shape == (6, 2), f"E2V shape should be (6, 2), got {mesh.edge_to_vertex.shape}"
         assert mesh.T2E.shape == (4, 3), f"T2E shape should be (4, 3), got {mesh.T2E.shape}"
-        assert mesh.E2T.shape == (6, 4), f"E2T shape should be (6, 4), got {mesh.E2T.shape}"
-        assert mesh.T2T.shape == (4, 3), f"T2T shape should be (4, 3), got {mesh.T2T.shape}"
+        assert mesh.edge_to_triangle.shape == (6, 4), f"E2T shape should be (6, 4), got {mesh.edge_to_triangle.shape}"
+        assert mesh.triangle_to_triangle.shape == (4, 3), f"T2T shape should be (4, 3), got {mesh.triangle_to_triangle.shape}"
         assert mesh.normal.shape == (4, 3), f"normal shape should be (4, 3), got {mesh.normal.shape}"
         assert mesh.area.shape == (4,), f"area shape should be (4,), got {mesh.area.shape}"
-        assert mesh.Nv.shape == (4, 3), f"Nv shape should be (4, 3), got {mesh.Nv.shape}"
-        assert mesh.SqEdgeLength.shape == (6,), f"SqEdgeLength shape should be (6,), got {mesh.SqEdgeLength.shape}"
+        assert mesh.vertex_normals.shape == (4, 3), f"Nv shape should be (4, 3), got {mesh.vertex_normals.shape}"
+        assert mesh.sq_edge_length.shape == (6,), f"SqEdgeLength shape should be (6,), got {mesh.sq_edge_length.shape}"
         assert mesh.corner_angle.shape == (4, 3), f"corner_angle shape should be (4, 3), got {mesh.corner_angle.shape}"
         assert mesh.cot_corner_angle.shape == (4, 3), f"cot_corner_angle shape should be (4, 3), got {mesh.cot_corner_angle.shape}"
 
@@ -391,7 +391,7 @@ class TestConnectivityShapes:
         assert mesh.num_faces == 2, f"Expected 2 faces, got {mesh.num_faces}"
         assert mesh.num_edges == 5, f"Expected 5 edges (6 half-edges, 1 shared), got {mesh.num_edges}"
 
-        assert mesh.E2V.shape == (5, 2), f"E2V shape should be (5, 2), got {mesh.E2V.shape}"
+        assert mesh.edge_to_vertex.shape == (5, 2), f"E2V shape should be (5, 2), got {mesh.edge_to_vertex.shape}"
         assert mesh.T2E.shape == (2, 3), f"T2E shape should be (2, 3), got {mesh.T2E.shape}"
         assert mesh.corner_angle.shape == (2, 3), f"corner_angle shape should be (2, 3), got {mesh.corner_angle.shape}"
 
@@ -408,7 +408,7 @@ class TestEdgeLengths:
         X, T = single_triangle
         mesh = mesh_info(X, T)
 
-        assert np.all(mesh.SqEdgeLength > 0), "All squared edge lengths should be positive"
+        assert np.all(mesh.sq_edge_length > 0), "All squared edge lengths should be positive"
 
     def test_equilateral_triangle_edge_lengths(self, single_triangle):
         """Equilateral triangle with side 1 has all edges with squared length 1."""
@@ -416,7 +416,7 @@ class TestEdgeLengths:
         mesh = mesh_info(X, T)
 
         # All edges should have squared length 1
-        np.testing.assert_allclose(mesh.SqEdgeLength, np.ones(3), atol=1e-10,
+        np.testing.assert_allclose(mesh.sq_edge_length, np.ones(3), atol=1e-10,
             err_msg="Equilateral triangle with side 1 should have all SqEdgeLength = 1")
 
     def test_right_triangle_edge_lengths(self, right_triangle):
@@ -425,7 +425,7 @@ class TestEdgeLengths:
         mesh = mesh_info(X, T)
 
         expected_sq_lengths = sorted([9.0, 16.0, 25.0])  # 3^2, 4^2, 5^2
-        actual_sq_lengths = sorted(mesh.SqEdgeLength)
+        actual_sq_lengths = sorted(mesh.sq_edge_length)
         np.testing.assert_allclose(actual_sq_lengths, expected_sq_lengths, atol=1e-10,
             err_msg="3-4-5 triangle should have squared edge lengths 9, 16, 25")
 
@@ -472,13 +472,13 @@ class TestDataclass:
         _ = mesh.num_faces
         _ = mesh.num_vertices
         _ = mesh.num_edges
-        _ = mesh.E2V
+        _ = mesh.edge_to_vertex
         _ = mesh.T2E
-        _ = mesh.E2T
-        _ = mesh.T2T
+        _ = mesh.edge_to_triangle
+        _ = mesh.triangle_to_triangle
         _ = mesh.normal
         _ = mesh.area
-        _ = mesh.Nv
-        _ = mesh.SqEdgeLength
+        _ = mesh.vertex_normals
+        _ = mesh.sq_edge_length
         _ = mesh.corner_angle
         _ = mesh.cot_corner_angle

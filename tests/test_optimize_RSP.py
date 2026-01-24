@@ -43,7 +43,7 @@ class MockParam:
     ide_int: np.ndarray = field(default_factory=lambda: np.array([], dtype=int))
     idx_int: np.ndarray = field(default_factory=lambda: np.array([], dtype=int))
     ang_basis: Optional[np.ndarray] = None
-    E2T: Optional[np.ndarray] = None
+    edge_to_triangle: Optional[np.ndarray] = None
     para_trans: Optional[np.ndarray] = None
 
 
@@ -271,7 +271,7 @@ class TestMockParam:
         """Optional fields should be None by default."""
         param = MockParam()
         assert param.ang_basis is None
-        assert param.E2T is None
+        assert param.edge_to_triangle is None
         assert param.para_trans is None
 
     def test_custom_values(self):
@@ -352,12 +352,12 @@ def tetrahedron_setup():
     # Build E2T (face pairs per edge)
     E2T = np.zeros((Src.num_edges, 2), dtype=int)
     for e in range(Src.num_edges):
-        E2T[e, 0] = max(Src.E2T[e, 0], 0)
-        E2T[e, 1] = max(Src.E2T[e, 1], 0) if Src.E2T[e, 1] >= 0 else E2T[e, 0]
-    param.E2T = E2T
+        E2T[e, 0] = max(Src.edge_to_triangle[e, 0], 0)
+        E2T[e, 1] = max(Src.edge_to_triangle[e, 1], 0) if Src.edge_to_triangle[e, 1] >= 0 else E2T[e, 0]
+    param.edge_to_triangle = E2T
 
     # Compute local basis angles
-    edge = Src.vertices[Src.E2V[:, 1], :] - Src.vertices[Src.E2V[:, 0], :]
+    edge = Src.vertices[Src.edge_to_vertex[:, 1], :] - Src.vertices[Src.edge_to_vertex[:, 0], :]
     edge = edge / np.linalg.norm(edge, axis=1, keepdims=True)
     e1r = Src.vertices[Src.triangles[:, 1], :] - Src.vertices[Src.triangles[:, 0], :]
     e1r = e1r / np.linalg.norm(e1r, axis=1, keepdims=True)

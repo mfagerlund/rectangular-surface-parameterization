@@ -5,55 +5,10 @@
 
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import spsolve, eigsh, lsqr
+from scipy.sparse.linalg import eigsh
 from typing import Tuple, Optional
-import warnings
 
-
-def regularized_solve(A, b, reg=1e-10):
-    """
-    Solve Ax = b with regularization fallback for singular matrices.
-
-    MATLAB vs scipy difference:
-        MATLAB's backslash operator (\\) automatically handles singular matrices
-        by switching to least-squares or QR factorization. Python's spsolve
-        uses strict LU decomposition that fails on singular matrices.
-
-    This function provides MATLAB-like robustness by:
-    1. Trying direct solve first (fast path)
-    2. Adding small diagonal regularization if singular
-    3. Falling back to least-squares (lsqr) as last resort
-
-    Args:
-        A: Sparse matrix (can be singular)
-        b: Right-hand side vector
-        reg: Regularization strength (default 1e-10)
-
-    Returns:
-        Solution vector x that minimizes ||Ax - b||
-    """
-    A_csr = A.tocsr() if not sp.isspmatrix_csr(A) else A
-
-    # Suppress singular matrix warnings since we handle them
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore', 'Matrix is exactly singular')
-        warnings.filterwarnings('ignore', 'Matrix is singular')
-        x = spsolve(A_csr, b)
-
-    if not np.any(np.isnan(x)):
-        return x
-
-    # Add regularization and retry
-    n = A.shape[0]
-    A_reg = A_csr + reg * sp.eye(n, format='csr')
-    x = spsolve(A_reg, b)
-
-    if not np.any(np.isnan(x)):
-        return x
-
-    # If still singular, use least-squares
-    result = lsqr(A_csr, b, atol=1e-10, btol=1e-10)
-    return result[0]
+from Utils.sparse_solve import regularized_solve
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:
@@ -180,7 +135,7 @@ def compute_face_cross_field(
         omega_cadff = solve_qp_equality(H, Aeq, beq)
 
     # I = [param.ide_int,param.ide_int];
-    # J = param.E2T(param.ide_int,1:2);
+    # J = param.edge_to_triangle(param.ide_int,1:2);
     # if ifcadff
     #     rot = param.para_trans(param.ide_int) - omega_cadff(param.ide_int);
     # else
@@ -199,9 +154,9 @@ def compute_face_cross_field(
     # I = [param.ide_int, param.ide_int] - row indices (edges)
     I = np.concatenate([ide_int, ide_int])
 
-    # J = param.E2T(param.ide_int, 1:2) - column indices (faces)
+    # J = param.edge_to_triangle(param.ide_int, 1:2) - column indices (faces)
     # MATLAB E2T is 1-indexed, Python is 0-indexed
-    J = param.E2T[ide_int, :2].ravel('F')  # Column-major flattening
+    J = param.edge_to_triangle[ide_int, :2].ravel('F')  # Column-major flattening
 
     # Compute rotation
     if ifcadff:
@@ -450,21 +405,21 @@ def brush_frame_field(
     else:
         init_tree = 0  # 0-indexed
 
-    # nf = max(param.E2T(:));
+    # nf = max(param.edge_to_triangle(:));
     # ang = zeros(nf,1);
     # ang(tri_fix) = ang_init;
 
-    nf = int(np.max(param.E2T)) + 1  # +1 for 0-indexed
+    nf = int(np.max(param.edge_to_triangle)) + 1  # +1 for 0-indexed
     ang = np.zeros(nf)
     if len(tri_fix) > 0:
         ang[tri_fix] = ang_init
 
     # ang = breadth_first_search(ang, omega(param.ide_int) - param.para_trans(param.ide_int),
-    #                            param.E2T(param.ide_int,:), @(x,y) x+y, init_tree);
+    #                            param.edge_to_triangle(param.ide_int,:), @(x,y) x+y, init_tree);
 
     # BFS propagation
     omega_delta = omega[param.ide_int] - param.para_trans[param.ide_int]
-    E2T_int = param.E2T[param.ide_int, :]
+    E2T_int = param.edge_to_triangle[param.ide_int, :]
 
     ang = breadth_first_search(ang, omega_delta, E2T_int, init_tree)
 

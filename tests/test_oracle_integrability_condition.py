@@ -730,7 +730,7 @@ class TestHardAndBoundaryEdges:
         nv = mesh.num_vertices
 
         # Find actual boundary edges
-        E2T = mesh.E2T[:, :2]
+        E2T = mesh.edge_to_triangle[:, :2]
         boundary_edges = np.where(np.any(E2T < 0, axis=1))[0]
 
         param = MockParam(nf, ne, ide_bound=boundary_edges)
@@ -860,7 +860,7 @@ class TestDifferentTopologies:
         nv = mesh.num_vertices
 
         # Find boundary edges and mark them
-        E2T = mesh.E2T[:, :2]
+        E2T = mesh.edge_to_triangle[:, :2]
         boundary_edges = np.where(np.any(E2T < 0, axis=1))[0]
 
         param = MockParam(nf, ne, ide_bound=boundary_edges)

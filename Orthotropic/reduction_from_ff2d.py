@@ -47,15 +47,15 @@ def reduction_from_ff2d(
         Block diagonal reduction matrix combining ut and vt reductions
     """
     # k21 = ones(mesh.num_edges,1);
-    # [~,k21i] = min(abs(exp(1i*ang(param.E2T(param.ide_int,2))+(0:3)*1i*pi/2+1i*(omega(param.ide_int)-param.para_trans(param.ide_int))) - exp(1i*ang(param.E2T(param.ide_int,1)))), [], 2);
+    # [~,k21i] = min(abs(exp(1i*ang(param.edge_to_triangle(param.ide_int,2))+(0:3)*1i*pi/2+1i*(omega(param.ide_int)-param.para_trans(param.ide_int))) - exp(1i*ang(param.edge_to_triangle(param.ide_int,1)))), [], 2);
     # k21(param.ide_int) = k21i;
 
     k21 = np.ones(mesh.num_edges, dtype=int)
 
     # Get face indices for interior edges (E2T is 0-indexed in Python)
     # E2T[e, 0] = face on one side, E2T[e, 1] = face on other side
-    face1 = param.E2T[param.ide_int, 0]
-    face2 = param.E2T[param.ide_int, 1]
+    face1 = param.edge_to_triangle[param.ide_int, 0]
+    face2 = param.edge_to_triangle[param.ide_int, 1]
 
     # Compute angle difference
     ang_diff = omega[param.ide_int] - param.para_trans[param.ide_int]

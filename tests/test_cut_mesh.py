@@ -285,7 +285,7 @@ class TestBuildMeshInfo:
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.E2V.shape == (info.num_edges, 2)
+        assert info.edge_to_vertex.shape == (info.num_edges, 2)
 
     def test_E2V_sorted_vertices(self, tetrahedron):
         """E2V should have v0 < v1 for each edge."""
@@ -293,14 +293,14 @@ class TestBuildMeshInfo:
         info = _build_meshinfo(X, T)
 
         for e in range(info.num_edges):
-            assert info.E2V[e, 0] < info.E2V[e, 1], f"Edge {e} not sorted: {info.E2V[e]}"
+            assert info.edge_to_vertex[e, 0] < info.edge_to_vertex[e, 1], f"Edge {e} not sorted: {info.edge_to_vertex[e]}"
 
     def test_E2T_shape(self, tetrahedron):
         """E2T should have shape (ne, 2)."""
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.E2T.shape == (info.num_edges, 2)
+        assert info.edge_to_triangle.shape == (info.num_edges, 2)
 
     def test_T2E_shape(self, tetrahedron):
         """T2E should have shape (nf, 3)."""
@@ -314,7 +314,7 @@ class TestBuildMeshInfo:
         X, T = tetrahedron
         info = _build_meshinfo(X, T)
 
-        assert info.T2T.shape == (info.num_faces, 3)
+        assert info.triangle_to_triangle.shape == (info.num_faces, 3)
 
     def test_boundary_edges_marked(self, two_triangles_strip):
         """Boundary edges should have E2T[e,1] = -1."""
@@ -322,7 +322,7 @@ class TestBuildMeshInfo:
         info = _build_meshinfo(X, T)
 
         # Count boundary edges (one face neighbor is -1)
-        n_boundary = np.sum(info.E2T[:, 1] == -1)
+        n_boundary = np.sum(info.edge_to_triangle[:, 1] == -1)
         # Open strip should have 4 boundary edges
         assert n_boundary == 4, f"Expected 4 boundary edges, got {n_boundary}"
 
@@ -332,7 +332,7 @@ class TestBuildMeshInfo:
         info = _build_meshinfo(X, T)
 
         # All edges should have two faces
-        n_boundary = np.sum(info.E2T[:, 1] == -1)
+        n_boundary = np.sum(info.edge_to_triangle[:, 1] == -1)
         assert n_boundary == 0, f"Closed mesh has {n_boundary} boundary edges"
 
 
@@ -437,11 +437,11 @@ class TestCutMesh:
         edge_jump_tag[0] = True
 
         # Use vertices of the cut edge as cones to prevent pruning
-        v0, v1 = info.E2V[0]
+        v0, v1 = info.edge_to_vertex[0]
         idcone = np.array([v0, v1])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -461,11 +461,11 @@ class TestCutMesh:
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
 
-        v0, v1 = info.E2V[0]
+        v0, v1 = info.edge_to_vertex[0]
         idcone = np.array([v0, v1])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -483,7 +483,7 @@ class TestCutMesh:
         idcone = np.array([], dtype=int)
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -500,10 +500,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -517,10 +517,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -535,10 +535,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -552,10 +552,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -571,10 +571,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -589,16 +589,16 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        v0, v1 = info.E2V[0]
+        v0, v1 = info.edge_to_vertex[0]
         idcone = np.array([v0, v1])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
         # Original mesh was closed (no boundary)
-        orig_boundary = np.sum(info.E2T[:, 1] == -1)
+        orig_boundary = np.sum(info.edge_to_triangle[:, 1] == -1)
         assert orig_boundary == 0, "Original tetrahedron should have no boundary"
 
         # edge_cut should be a boolean array marking cut edges
@@ -612,10 +612,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -629,10 +629,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -652,10 +652,10 @@ class TestCutMesh:
 
         edge_jump_tag = np.zeros(info.num_edges, dtype=bool)
         edge_jump_tag[0] = True
-        idcone = np.array([info.E2V[0, 0]])
+        idcone = np.array([info.edge_to_vertex[0, 0]])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -672,14 +672,14 @@ class TestCutMeshOneBased:
 
         # Convert to 1-based
         T_1based = T + 1
-        E2V_1based = info.E2V + 1
-        E2T_1based = info.E2T.copy()
+        E2V_1based = info.edge_to_vertex + 1
+        E2T_1based = info.edge_to_triangle.copy()
         E2T_1based[E2T_1based >= 0] += 1
         E2T_1based[E2T_1based < 0] = 0  # MATLAB uses 0 for missing
 
         # T2E and T2T also need adjustment
         T2E_1based = info.T2E + 1  # Assuming unsigned
-        T2T_1based = info.T2T.copy()
+        T2T_1based = info.triangle_to_triangle.copy()
         T2T_1based[T2T_1based >= 0] += 1
         T2T_1based[T2T_1based < 0] = 0
 
@@ -713,12 +713,12 @@ class TestCutMeshEdgeCases:
         edge_jump_tag[1] = True
 
         # Use all vertices from both edges as cones
-        v0, v1 = info.E2V[0]
-        v2, v3 = info.E2V[1]
+        v0, v1 = info.edge_to_vertex[0]
+        v2, v3 = info.edge_to_vertex[1]
         idcone = np.array([v0, v1, v2, v3])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -735,7 +735,7 @@ class TestCutMeshEdgeCases:
         idcone = np.array([], dtype=int)  # No cones
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 
@@ -752,11 +752,11 @@ class TestCutMeshEdgeCases:
         edge_jump_tag[0] = True
 
         # Use both vertices of the cut edge as cones
-        v0, v1 = info.E2V[0]
+        v0, v1 = info.edge_to_vertex[0]
         idcone = np.array([v0, v1])
 
         disk_mesh, idx_cut_inv, ide_cut_inv, edge_cut = cut_mesh(
-            info.vertices, info.triangles, info.E2V, info.E2T, info.T2E, info.T2T,
+            info.vertices, info.triangles, info.edge_to_vertex, info.edge_to_triangle, info.T2E, info.triangle_to_triangle,
             idcone, edge_jump_tag
         )
 

@@ -5,12 +5,13 @@
 
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import spsolve
+from scipy.sparse.linalg import spsolve, lsqr
 import warnings
 from typing import Optional, Tuple, Any
 from dataclasses import dataclass
 
 from Orthotropic.optimization_params import OptimizationParams, DEFAULT_PARAMS
+from Utils.sparse_solve import regularized_solve
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:
@@ -265,14 +266,11 @@ def optimize_RSP(
         #     assert(norm(A*x - b) < 1e-5, 'Optimization failed.');
         # end
 
-        # Solve KKT system
-        try:
-            x = spsolve(A_kkt, b_kkt)
-            residual = np.linalg.norm(A_kkt @ x - b_kkt)
-            if residual >= opt_params.kkt_residual_tol:
-                raise ValueError(f'Direct solve residual too large: {residual}')
-        except Exception:
-            # Fallback: regularized solve
+        # Solve KKT system with regularization fallback for singular matrices
+        x = regularized_solve(A_kkt, b_kkt)
+        residual = np.linalg.norm(A_kkt @ x - b_kkt)
+        if residual >= opt_params.kkt_residual_tol:
+            # Fallback: regularized solve with explicit regularization
             x = _solve_qp_equality_constrained(H_reg, A_kkt, b_kkt, opt_params)
             residual = np.linalg.norm(A_kkt @ x - b_kkt)
             if residual >= opt_params.kkt_residual_tol:

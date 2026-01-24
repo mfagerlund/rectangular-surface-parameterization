@@ -450,7 +450,7 @@ class TestBoundaryVertices:
         """Cut the shared interior edge of two triangles."""
         # Find the interior edge (the one with two adjacent faces)
         # E2T[:, 1] == -1 means boundary edge
-        interior_edges = np.where(two_triangles_strip.E2T[:, 1] != -1)[0]
+        interior_edges = np.where(two_triangles_strip.edge_to_triangle[:, 1] != -1)[0]
 
         if len(interior_edges) > 0:
             ide_cut = np.zeros(two_triangles_strip.num_edges, dtype=bool)
@@ -711,7 +711,7 @@ class TestClosedMeshBehavior:
     def test_tetrahedron_closed_mesh(self, tetrahedron):
         """Tetrahedron is a closed mesh - all interior edges."""
         # Verify closed mesh
-        boundary_edges = np.sum(tetrahedron.E2T[:, 1] == -1)
+        boundary_edges = np.sum(tetrahedron.edge_to_triangle[:, 1] == -1)
         assert boundary_edges == 0, "Tetrahedron should have no boundary edges"
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(tetrahedron)
@@ -720,7 +720,7 @@ class TestClosedMeshBehavior:
     def test_octahedron_closed_mesh(self, octahedron):
         """Octahedron is a closed mesh - all interior edges."""
         # Verify closed mesh
-        boundary_edges = np.sum(octahedron.E2T[:, 1] == -1)
+        boundary_edges = np.sum(octahedron.edge_to_triangle[:, 1] == -1)
         assert boundary_edges == 0, "Octahedron should have no boundary edges"
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(octahedron)
@@ -730,7 +730,7 @@ class TestClosedMeshBehavior:
     def test_three_triangles_fan(self, three_triangles_fan):
         """Three triangles fan has boundary edges (not a closed mesh)."""
         # Three triangles in a fan arrangement have outer boundary edges
-        boundary_edges = np.sum(three_triangles_fan.E2T[:, 1] == -1)
+        boundary_edges = np.sum(three_triangles_fan.edge_to_triangle[:, 1] == -1)
         # The fan has boundary edges around the perimeter
         assert boundary_edges > 0, "Three triangles fan should have boundary edges"
 

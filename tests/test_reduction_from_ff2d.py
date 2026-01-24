@@ -50,7 +50,7 @@ class MockParam:
     """Mock parameter object with required attributes."""
 
     def __init__(self, E2T, ide_int, para_trans):
-        self.E2T = E2T
+        self.edge_to_triangle = E2T
         self.ide_int = ide_int
         self.para_trans = para_trans
 
@@ -211,7 +211,7 @@ class TestK21Range:
         """Tetrahedron (closed mesh): k21 values should be in [1, 4]."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -231,7 +231,7 @@ class TestK21Range:
         """Octahedron (closed mesh): k21 values should be in [1, 4]."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -251,7 +251,7 @@ class TestK21Range:
         """Cube (12 faces, 18 edges): k21 values should be in [1, 4]."""
         Src = cube
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -271,7 +271,7 @@ class TestK21Range:
         """Icosahedron (20 faces, 30 edges): k21 values should be in [1, 4]."""
         Src = icosahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -299,7 +299,7 @@ class TestK21Defaults:
         """Zero angles and zero omega/para_trans should give k21 = 1."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -327,7 +327,7 @@ class TestReductionShape:
         """Tetrahedron: Reduction should have shape (6*nf, 2*nv)."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -353,7 +353,7 @@ class TestReductionShape:
         """Octahedron: Reduction shape check."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -376,7 +376,7 @@ class TestReductionShape:
         """Cube: Reduction shape check."""
         Src = cube
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -399,7 +399,7 @@ class TestReductionShape:
         """Icosahedron: Reduction shape check."""
         Src = icosahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -430,7 +430,7 @@ class TestReductionSparsity:
         """Reduction matrix should be a sparse matrix."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -449,7 +449,7 @@ class TestReductionSparsity:
         """Reduction matrix should be in CSR format."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -469,7 +469,7 @@ class TestReductionSparsity:
         """Reduction matrix should have block diagonal structure."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -498,7 +498,7 @@ class TestReductionSparsity:
         """Reduction matrix should have reasonable number of non-zeros."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -532,7 +532,7 @@ class TestDifferentAngles:
         """Zero frame field angles should give k21 = 1 for matching parallel transport."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -552,7 +552,7 @@ class TestDifferentAngles:
         """Constant frame field angles across faces."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -574,7 +574,7 @@ class TestDifferentAngles:
         """Random frame field angles should produce valid k21."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(42)
@@ -598,7 +598,7 @@ class TestDifferentAngles:
         """Test with pi/2 rotation difference between faces on octahedron."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -622,7 +622,7 @@ class TestDifferentAngles:
         """Test with non-zero omega values."""
         Src = cube
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -644,7 +644,7 @@ class TestDifferentAngles:
         """Test with non-zero para_trans values."""
         Src = cube
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         # Non-zero parallel transport angles
         para_trans = np.full(Src.num_edges, np.pi / 3)
@@ -674,7 +674,7 @@ class TestSignBits:
         """Sign bits s should be +1 or -1."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -700,7 +700,7 @@ class TestSignBits:
         """First block (v2t_smooth) should have all +1 non-zero entries."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -726,7 +726,7 @@ class TestSignBits:
         """Sign bits should still be +/-1 with random angles."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(123)
@@ -760,7 +760,7 @@ class TestK21Length:
         """k21 should have length 6 for tetrahedron (6 edges)."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -780,7 +780,7 @@ class TestK21Length:
         """k21 should have length 12 for octahedron (12 edges)."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -800,7 +800,7 @@ class TestK21Length:
         """k21 should have length 18 for cube (18 edges)."""
         Src = cube
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -820,7 +820,7 @@ class TestK21Length:
         """k21 should have length 30 for icosahedron (30 edges)."""
         Src = icosahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -848,7 +848,7 @@ class TestK21Type:
         """k21 should be an integer array."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -868,7 +868,7 @@ class TestK21Type:
         """k21 values should only be 1, 2, 3, or 4 (discrete)."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(999)
@@ -900,7 +900,7 @@ class TestInteriorEdges:
         """Tetrahedron (closed) should have all 6 interior edges."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         assert len(ide_int) == 6, f"Expected 6 interior edges, got {len(ide_int)}"
@@ -909,7 +909,7 @@ class TestInteriorEdges:
         """Octahedron (closed) should have all 12 interior edges."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         assert len(ide_int) == 12, f"Expected 12 interior edges, got {len(ide_int)}"
@@ -918,7 +918,7 @@ class TestInteriorEdges:
         """Cube (closed) should have all 18 interior edges."""
         Src = cube
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         assert len(ide_int) == 18, f"Expected 18 interior edges, got {len(ide_int)}"
@@ -935,7 +935,7 @@ class TestEdgeCases:
         """Test with large angle values (multiples of 2*pi)."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -957,7 +957,7 @@ class TestEdgeCases:
         """Test with negative angle values."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -978,7 +978,7 @@ class TestEdgeCases:
         """Test with very small angle values near zero."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -999,7 +999,7 @@ class TestEdgeCases:
         """Test with empty ide_int (forcing all k21 to be 1)."""
         Src = tetrahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.array([], dtype=int)
         para_trans = np.zeros(Src.num_edges)
 
@@ -1029,7 +1029,7 @@ class TestConsistency:
         """Same random seed should produce identical results."""
         Src = octahedron
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
@@ -1058,7 +1058,7 @@ class TestConsistency:
         """k21 should potentially change when angle differences change."""
         Src = cube
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -1113,7 +1113,7 @@ class TestRealMeshes:
         """Test k21 range on sphere mesh."""
         Src = sphere_mesh
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -1133,7 +1133,7 @@ class TestRealMeshes:
         """Test Reduction shape on sphere mesh."""
         Src = sphere_mesh
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -1156,7 +1156,7 @@ class TestRealMeshes:
         """Test k21 range on torus mesh (genus 1)."""
         Src = torus_mesh
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
         para_trans = np.zeros(Src.num_edges)
 
@@ -1176,7 +1176,7 @@ class TestRealMeshes:
         """Test with random angles on sphere mesh."""
         Src = sphere_mesh
 
-        E2T = Src.E2T[:, :2].copy()
+        E2T = Src.edge_to_triangle[:, :2].copy()
         ide_int = np.where((E2T[:, 0] != -1) & (E2T[:, 1] != -1))[0]
 
         np.random.seed(777)

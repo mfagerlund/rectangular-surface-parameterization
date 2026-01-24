@@ -246,7 +246,7 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
     def trace_streamline(start_face, direction_field, max_steps=200, step_size=None):
         """Trace a streamline from a starting face following the direction field."""
         if step_size is None:
-            step_size = np.sqrt(np.mean(Src.SqEdgeLength)) * 0.15
+            step_size = np.sqrt(np.mean(Src.sq_edge_length)) * 0.15
 
         path = [barycenters[start_face].copy()]
         current_pos = path[0].copy()
@@ -492,7 +492,7 @@ def verify_cut_graph(Src: MeshInfo, k21: np.ndarray, sing: np.ndarray,
 
         # Draw cut edges as thick red lines, lifted outward
         for e in cut_edge_indices:
-            v0, v1 = Src.E2V[e]
+            v0, v1 = Src.edge_to_vertex[e]
             p0 = lift_point(Src.vertices[v0])
             p1 = lift_point(Src.vertices[v1])
             ax.plot([p0[0], p1[0]], [p0[1], p1[1]], [p0[2], p1[2]],

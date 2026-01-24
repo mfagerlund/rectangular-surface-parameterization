@@ -5,10 +5,10 @@
 
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import spsolve
 from typing import Tuple, Optional
 
 from .brush_frame_field import brush_frame_field
+from Utils.sparse_solve import regularized_solve
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:
@@ -55,12 +55,12 @@ def compute_curvature_cross_field(
         cos_angle = np.sum(u * v, axis=1)
         return np.arctan2(sin_angle, cos_angle)
 
-    # edge = mesh.vertices(mesh.E2V(:,2),:) - mesh.vertices(mesh.E2V(:,1),:);
+    # edge = mesh.vertices(mesh.edge_to_vertex(:,2),:) - mesh.vertices(mesh.edge_to_vertex(:,1),:);
     # edge_length = sqrt(sum(edge.^2,2));
     # edge = edge./edge_length;
 
     # Edge vectors (0-indexed)
-    edge = mesh.vertices[mesh.E2V[:, 1], :] - mesh.vertices[mesh.E2V[:, 0], :]
+    edge = mesh.vertices[mesh.edge_to_vertex[:, 1], :] - mesh.vertices[mesh.edge_to_vertex[:, 0], :]
     edge_length = np.sqrt(np.sum(edge**2, axis=1))
     edge = edge / edge_length[:, np.newaxis]
 
@@ -75,20 +75,20 @@ def compute_curvature_cross_field(
         edge[:, 2] * edge[:, 0], edge[:, 2] * edge[:, 1], edge[:, 2] * edge[:, 2]
     ])
 
-    # ide_int = all(mesh.E2T(:,1:2) ~= 0,2);
+    # ide_int = all(mesh.edge_to_triangle(:,1:2) ~= 0,2);
     # dihedral_angle = zeros(mesh.num_edges,1);
-    # dihedral_angle(ide_int) = mesh.E2T(ide_int,4).*comp_angle(mesh.normal(mesh.E2T(ide_int,1),:), mesh.normal(mesh.E2T(ide_int,2),:), edge(ide_int,:));
+    # dihedral_angle(ide_int) = mesh.edge_to_triangle(ide_int,4).*comp_angle(mesh.normal(mesh.edge_to_triangle(ide_int,1),:), mesh.normal(mesh.edge_to_triangle(ide_int,2),:), edge(ide_int,:));
 
     # Interior edges: both adjacent triangles exist (not -1 in 0-indexed)
-    ide_int = np.all(mesh.E2T[:, 0:2] >= 0, axis=1)
+    ide_int = np.all(mesh.edge_to_triangle[:, 0:2] >= 0, axis=1)
     dihedral_angle = np.zeros(mesh.num_edges)
 
     # For interior edges, compute dihedral angle
-    # mesh.E2T[:, 3] contains orientation sign, mesh.E2T[:, 0:2] are triangle indices
+    # mesh.edge_to_triangle[:, 3] contains orientation sign, mesh.edge_to_triangle[:, 0:2] are triangle indices
     int_idx = np.where(ide_int)[0]
-    t1 = mesh.E2T[int_idx, 0]
-    t2 = mesh.E2T[int_idx, 1]
-    sign_e = mesh.E2T[int_idx, 3]
+    t1 = mesh.edge_to_triangle[int_idx, 0]
+    t2 = mesh.edge_to_triangle[int_idx, 1]
+    sign_e = mesh.edge_to_triangle[int_idx, 3]
 
     dihedral_angle[int_idx] = sign_e * comp_angle(
         mesh.normal[t1, :],
@@ -204,7 +204,7 @@ def compute_curvature_cross_field(
     # if smoothing_iter > 0
     if smoothing_iter > 0:
         # I = [param.ide_int,param.ide_int];
-        # J = param.E2T(param.ide_int,1:2);
+        # J = param.edge_to_triangle(param.ide_int,1:2);
         # rot = param.para_trans(param.ide_int);
         # S = [exp(1i*4*rot/2); -exp(-1i*4*rot/2)];
         # d0d_cplx = sparse(I, J, S, mesh.num_edges, mesh.num_faces);
@@ -218,7 +218,7 @@ def compute_curvature_cross_field(
         # Row indices: each interior edge appears twice
         I = np.concatenate([ide_int_param, ide_int_param])
         # Column indices: the two adjacent triangles
-        J = np.concatenate([param.E2T[ide_int_param, 0], param.E2T[ide_int_param, 1]])
+        J = np.concatenate([param.edge_to_triangle[ide_int_param, 0], param.edge_to_triangle[ide_int_param, 1]])
 
         rot = param.para_trans[ide_int_param]
         # Values: complex exponentials for connection
@@ -254,9 +254,9 @@ def compute_curvature_cross_field(
 
                 # Solve for free triangles
                 rhs = M_ff @ z[param.tri_free] - A_fc @ z_fix
-                z[param.tri_free] = spsolve(A_ff.tocsr(), rhs)
+                z[param.tri_free] = regularized_solve(A_ff, rhs)
             else:
-                z = spsolve(A_mat.tocsr(), M @ z)
+                z = regularized_solve(A_mat, M @ z)
 
             # Normalize to unit circle
             z = z / np.abs(z)

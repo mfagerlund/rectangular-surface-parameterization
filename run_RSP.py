@@ -217,13 +217,13 @@ def main():
         print(f"  Boundary edges: {len(param.ide_bound)}")
         print(f"  Fixed edges: {len(param.ide_fix)}")
 
-    # col = zeros(Src.num_vertices,1); col(Src.E2V(param.ide_fix,:)) = 1;
+    # col = zeros(Src.num_vertices,1); col(Src.edge_to_vertex(param.ide_fix,:)) = 1;
     # figure; trisurf(...); title('Constraint')
 
     if ifplot:
         col = np.zeros(Src.num_vertices)
         if len(param.ide_fix) > 0:
-            col[Src.E2V[param.ide_fix, :].flatten()] = 1
+            col[Src.edge_to_vertex[param.ide_fix, :].flatten()] = 1
 
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -508,7 +508,7 @@ def main():
         print("Warning: The quantization step will fail.")
         ifquantization = False
 
-    # save_param(ifquantization, path_save, mesh_name, sqrt(area_tot)*Src.vertices, Src.triangles, UV, disk_mesh.triangles, sing, Src.E2V(param.ide_hard,:));
+    # save_param(ifquantization, path_save, mesh_name, sqrt(area_tot)*Src.vertices, Src.triangles, UV, disk_mesh.triangles, sing, Src.edge_to_vertex(param.ide_hard,:));
 
     if verbose:
         print(f"Saving parametrization to {path_save}...")
@@ -518,7 +518,7 @@ def main():
 
     # Get hard edge vertices (may be empty)
     if len(param.ide_hard) > 0:
-        E2V_hardedge = Src.E2V[param.ide_hard, :]
+        E2V_hardedge = Src.edge_to_vertex[param.ide_hard, :]
     else:
         E2V_hardedge = np.zeros((0, 2), dtype=int)
 
