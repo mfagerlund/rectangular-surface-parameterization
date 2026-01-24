@@ -10,7 +10,7 @@ Transform the codebase from a MATLAB port with interleaved comments and MATLAB c
 | MATLAB comments (`# %`) | ✅ Removed | Commit 5696cf1 |
 | Dict-based mesh structs | ✅ Converted | `MeshInfo`, `DEC`, `OrthoParam`, `Weight` are dataclasses |
 | Signed 1-based edge encoding | ✅ Abstracted | `SignedEdgeArray` class with `.indices`/`.signs` API |
-| MATLAB naming (`T2E`, `nf`, `nv`) | ✅ Mostly done | Core fields renamed, connectivity fields remain |
+| MATLAB naming (`T2E`, `nf`, `nv`) | ✅ Complete | All fields renamed except T2E (uses SignedEdgeArray) |
 | Solver params hardcoded | ✅ Extracted | `OptimizationParams` in `Orthotropic/optimization_params.py` |
 | Custom OBJ reader | ✅ Replaced | Using trimesh for multi-format, encoding-safe I/O |
 | Package structure | ✅ Started | `rectangular_surface_parameterization/` package created |
@@ -396,11 +396,17 @@ rg "commit 7d1aab4" --type py
    - Created `Orthotropic/optimization_params.py` with all solver parameters
    - Updated `optimize_RSP()` to accept optional `opt_params` argument
 
-### Phase 3: Naming (1-2 sessions) ✅ MOSTLY COMPLETE
+### Phase 3: Naming (1-2 sessions) ✅ COMPLETE
 9. [x] Renamed `Src` -> `mesh`, `SrcCut` -> `disk_mesh` (1765 occurrences)
 10. [x] Renamed MeshInfo fields: `nv/nf/ne` -> `num_vertices/num_faces/num_edges`
 11. [x] Renamed MeshInfo fields: `X` -> `vertices`, `T` -> `triangles`
-12. [ ] Remaining: Connectivity fields (`E2V`, `T2E`, `E2T`, `T2T`, `Nv`, `SqEdgeLength`)
+12. [x] Renamed connectivity fields (409 occurrences, commit 839c67f):
+    - `E2V` -> `edge_to_vertex`
+    - `E2T` -> `edge_to_triangle`
+    - `T2T` -> `triangle_to_triangle`
+    - `Nv` -> `vertex_normals`
+    - `SqEdgeLength` -> `sq_edge_length`
+    - `T2E` retained (encapsulates SignedEdgeArray)
 
 ### Phase 4: Edge Encoding (2-3 sessions) ✅ COMPLETE
 13. [x] Implement `SignedEdgeArray` class
@@ -409,13 +415,13 @@ rg "commit 7d1aab4" --type py
 16. [x] Full test suite verification (728 tests pass)
 17. [x] Replaced custom OBJ reader with trimesh (handles encoding, multi-format)
 
-### Phase 5: Module Reorganization (1 session) ✅ STARTED
+### Phase 5: Module Reorganization (1 session) ✅ MOSTLY COMPLETE
 18. [x] Created `rectangular_surface_parameterization/` package structure
 19. [x] Core classes importable: `from rectangular_surface_parameterization import MeshInfo, SignedEdgeArray, load_mesh`
 20. [x] Updated pyproject.toml for package discovery
-21. [ ] Add `py.typed` marker
+21. [x] Added `py.typed` marker
 22. [ ] Gradually migrate remaining files to new package
-23. [ ] Final test run
+23. [x] Test run (744 tests pass, 4 pre-existing failures)
 
 ### Phase 6: Cross-Platform CI (1-2 sessions)
 21. [ ] Create `.github/workflows/build-libqex.yml`
