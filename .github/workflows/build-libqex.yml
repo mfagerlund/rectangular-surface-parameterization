@@ -37,15 +37,15 @@ jobs:
 
       - name: Clone OpenMesh
         run: |
-          git clone --depth 1 --recurse-submodules https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
-          echo "OpenMesh commit: $(git -C OpenMesh rev-parse HEAD)" >> $GITHUB_STEP_SUMMARY
+          git clone --depth 1 --branch OpenMesh-9.0 --recurse-submodules https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
+          echo "OpenMesh version: OpenMesh-9.0 ($(git -C OpenMesh rev-parse HEAD))" >> $GITHUB_STEP_SUMMARY
 
       - name: Build OpenMesh (Unix)
         if: runner.os != 'Windows'
         run: |
           cd OpenMesh
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/openmesh-install
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/openmesh-install -DCMAKE_CXX_STANDARD=11
           cmake --build . --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
           cmake --install . --config Release
 
@@ -70,7 +70,7 @@ jobs:
         run: |
           cd libQEx
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/openmesh-install
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
       - name: Build libQEx (Windows)
@@ -80,7 +80,7 @@ jobs:
           cd libQEx
           mkdir build
           cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}\openmesh-install
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}\openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build . --config Release
 
       - name: Find and copy binary (Unix)
