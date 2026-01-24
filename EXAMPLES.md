@@ -59,7 +59,7 @@ python run_RSP.py Mesh/torus.obj --frame-field smooth -v
 *Distortion is relatively uniform across the surface*
 
 ![Torus Smooth Quads](docs/examples/torus_smooth/torus_quads.png)
-*Extracted quad mesh: 87 quads - note periodic structure from torus topology*
+*Extracted quad mesh: 887 quads with clean periodic structure*
 
 ---
 
@@ -113,7 +113,7 @@ python run_RSP.py Mesh/pig.obj --frame-field smooth -v
 *Distortion concentrated at high-curvature areas (ears, snout)*
 
 ![Pig Smooth Quads](docs/examples/pig_smooth/pig_quads.png)
-*Extracted quad mesh: 80 quads with 46 triangular hole-fills*
+*Extracted quad mesh: 888 quads*
 
 ### Curvature-Aligned Cross Field
 
@@ -128,7 +128,7 @@ python run_RSP.py Mesh/pig.obj --frame-field curvature -v
 *Curvature-aligned distortion pattern*
 
 ![Pig Curvature Quads](docs/examples/pig_curvature/pig_quads.png)
-*Extracted quad mesh: 90 quads with 76 triangular hole-fills*
+*Extracted quad mesh: 938 quads*
 
 ---
 
@@ -149,7 +149,7 @@ python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth -v
 *Distortion analysis*
 
 ![SquareMyles Smooth Quads](docs/examples/SquareMyles_smooth/SquareMyles_quads.png)
-*Extracted quad mesh: 88 quads with 56 triangular hole-fills*
+*Extracted quad mesh: 917 quads*
 
 ### Chebyshev Energy
 
@@ -164,7 +164,7 @@ python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth --energy chebyshev -
 *Chebyshev energy optimizes for constant grid spacing - note the different orthogonality pattern*
 
 ![SquareMyles Chebyshev Quads](docs/examples/SquareMyles_chebyshev/SquareMyles_quads.png)
-*Extracted quad mesh: 76 quads with 66 triangular hole-fills*
+*Extracted quad mesh: 948 quads*
 
 ---
 
@@ -174,13 +174,13 @@ python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth --energy chebyshev -
 |------|-------|-------------|--------|---------|------|-------|
 | sphere320 | 320 | smooth | distortion | 0 | 0.0% | 400 |
 | sphere320 | 320 | curvature | distortion | 0 | 0.0% | 102 |
-| torus | 1152 | smooth | distortion | 0 | 0.0% | 87 |
+| torus | 1152 | smooth | distortion | 0 | 0.0% | 887 |
 | B36 | 4556 | smooth | distortion | 0 | 0.0% | N/A* |
 | B36 | 4556 | curvature | distortion | 0 | 0.0% | N/A* |
-| pig | 3678 | smooth | distortion | 10 | 0.3% | 80 |
-| pig | 3678 | curvature | distortion | 23 | 0.6% | 90 |
-| SquareMyles | 1328 | smooth | distortion | 0 | 0.0% | 88 |
-| SquareMyles | 1328 | smooth | chebyshev | 0 | 0.0% | 76 |
+| pig | 3678 | smooth | distortion | 10 | 0.3% | 888 |
+| pig | 3678 | curvature | distortion | 23 | 0.6% | 938 |
+| SquareMyles | 1328 | smooth | distortion | 0 | 0.0% | 917 |
+| SquareMyles | 1328 | smooth | chebyshev | 0 | 0.0% | 948 |
 
 *B36 quad extraction fails due to UV overlaps (libQEx limitation)
 
