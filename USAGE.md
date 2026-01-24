@@ -15,6 +15,9 @@ The algorithm transforms a triangle mesh into a quad mesh through these stages:
 4. **UV Recovery** - Integrate the field to get UV coordinates
 5. **Quad Extraction** - Extract quads from integer UV grid lines (optional, via libQEx)
 
+![Example Quad Mesh](docs/examples/sphere320_smooth/sphere320_quads.jpg)
+*Final result: Quad mesh extracted from the parameterization (908 quads)*
+
 ### Key Concepts
 
 **Singularities** are points where the cross field cannot be defined smoothly. They appear
@@ -54,8 +57,9 @@ python run_RSP.py mesh.obj -o Results/ -v --plot
 
 ### Full Pipeline (Parameterization + Quad Extraction)
 
-> **Note:** Quad extraction currently requires **Windows x64**. Pre-built binaries for
-> libQEx are included in `bin/`. See [Other Platforms](#other-platforms) below.
+> **Note:** Quad extraction requires libQEx binaries, which are automatically downloaded
+> from GitHub Releases on first use (Windows, Linux, macOS supported).
+> See [Other Platforms](#other-platforms) for building from source.
 
 ```bash
 # Generate quad mesh from triangle mesh
@@ -71,6 +75,9 @@ python extract_quads.py mesh.obj -o Results/ --scale 10 --skip-rsp
 **Output:** `Results/<mesh>_quads.obj`
 
 The `--scale` parameter controls quad density (higher = more quads).
+
+![Torus Quad Mesh](docs/examples/torus_smooth/torus_quads.jpg)
+*Torus quad mesh: 887 quads with clean periodic structure*
 
 ## Cross Field Options
 
@@ -103,6 +110,9 @@ natural geometry.
 
 ![Curvature cross field result](docs/examples/pig_curvature/pig_uv_layout.jpg)
 *Pig mesh with curvature-aligned cross field*
+
+![Curvature cross field quads](docs/examples/pig_curvature/pig_quads.jpg)
+*Curvature-aligned quad mesh: 938 quads following principal curvature directions*
 
 ```bash
 python run_RSP.py mesh.obj --frame-field curvature
@@ -174,6 +184,9 @@ be physically constructed from inextensible strips.
 
 ![Chebyshev energy result](docs/examples/SquareMyles_chebyshev/SquareMyles_uv_layout.jpg)
 *SquareMyles with Chebyshev energy: uniform grid spacing*
+
+![Chebyshev energy quads](docs/examples/SquareMyles_chebyshev/SquareMyles_quads.jpg)
+*Chebyshev quad mesh: 948 quads with constant grid spacing*
 
 ```bash
 python run_RSP.py mesh.obj --energy chebyshev
@@ -295,11 +308,16 @@ flip_count = result.n_flips  # Number of flipped triangles
 The **parameterization** (`run_RSP.py`) works on all platforms (Windows, Linux, macOS) -
 it's pure Python with NumPy/SciPy.
 
-**Quad extraction** (`extract_quads.py`) currently requires Windows x64 because it uses
-pre-built libQEx binaries. On other platforms, you can still generate the parameterized
-mesh with UVs, then use external tools for quad extraction.
+**Quad extraction** (`extract_quads.py`) also works on all platforms. Pre-built libQEx
+binaries are automatically downloaded from GitHub Releases on first use:
+- Windows x64
+- Linux x64
+- macOS Intel (x64)
+- macOS Apple Silicon (ARM64)
 
-### Building libQEx for Linux/macOS
+If automatic download fails, you can build from source (see below).
+
+### Building libQEx from Source
 
 libQEx is open source and can be built from source:
 
@@ -332,14 +350,9 @@ cp qex_extract /path/to/rectangular-surface-parameterization/bin/
 
 See `docs/libqex_setup.md` for detailed instructions.
 
-### Contributing Binaries
+### CI-Built Binaries
 
-If you build libQEx for Linux or macOS, consider contributing the binaries via a pull
-request. Please include:
-
-1. The compiled `qex_extract` binary (and any required `.so`/`.dylib` files)
-2. Platform info (OS version, architecture)
-3. Build instructions you used
-
-For security, we prefer contributors who can provide reproducible build instructions or
-submit via GitHub Actions CI. Future improvement: automated cross-platform builds via CI.
+Binaries for all platforms are built automatically via GitHub Actions when a new release
+tag is created. See `.github/workflows/build-libqex.yml` for the build configuration.
+The workflow builds from the latest commits of libQEx and OpenMesh and records the
+exact commit hashes in the run summary for GPL compliance.
