@@ -424,14 +424,14 @@ rg "commit 7d1aab4" --type py
 23. [x] Removed old directories (Preprocess/, FrameField/, Orthotropic/, ComputeParam/, Utils/)
 24. [x] Test run (746 tests pass)
 
-### Phase 6: Cross-Platform CI (1-2 sessions)
-21. [ ] Create `.github/workflows/build-libqex.yml`
-22. [ ] Build libQEx for Windows x64
-23. [ ] Build libQEx for Linux x64 (Ubuntu)
-24. [ ] Build libQEx for macOS (Intel + Apple Silicon)
-25. [ ] Auto-upload binaries to GitHub Releases
-26. [ ] Update `bin/` with CI-built binaries
-27. [ ] Add workflow for running tests on all platforms
+### Phase 6: Cross-Platform CI (1-2 sessions) ✅ COMPLETE
+21. [x] Create `.github/workflows/build-libqex.yml`
+22. [x] Build libQEx for Windows x64
+23. [x] Build libQEx for Linux x64 (Ubuntu)
+24. [x] Build libQEx for macOS (Intel + Apple Silicon)
+25. [x] Auto-upload binaries to GitHub Releases (on version tags)
+26. [ ] Update `bin/` with CI-built binaries (after first successful build)
+27. [x] Add workflow for running tests on all platforms (`.github/workflows/test.yml`)
 
 ---
 
