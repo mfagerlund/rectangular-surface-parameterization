@@ -5,8 +5,8 @@
 > UV parameterization that serves as input to quad extraction.
 >
 > **Implementation:** We use [libQEx](https://github.com/hcebke/libQEx) for robust quad extraction.
-> Pre-built binaries are automatically downloaded from GitHub Releases on first use.
-> See `bin/BINARIES.txt` for details or `docs/libqex_setup.md` to build from source.
+> Windows binaries are included in `bin/`. For Linux/macOS, build from source -
+> see `docs/libqex_setup.md`.
 
 **Source**: Bommes et al., "Integer-Grid Maps for Reliable Quad Meshing", SIGGRAPH 2013
 

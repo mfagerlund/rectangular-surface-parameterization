@@ -57,9 +57,8 @@ python run_RSP.py mesh.obj -o Results/ -v --plot
 
 ### Full Pipeline (Parameterization + Quad Extraction)
 
-> **Note:** Quad extraction requires libQEx binaries, which are automatically downloaded
-> from GitHub Releases on first use (Windows, Linux, macOS supported).
-> See [Other Platforms](#other-platforms) for building from source.
+> **Note:** Quad extraction requires libQEx binaries. Windows binaries are included in `bin/`.
+> For Linux/macOS, build from source - see [Other Platforms](#other-platforms).
 
 ```bash
 # Generate quad mesh from triangle mesh
@@ -308,14 +307,9 @@ flip_count = result.n_flips  # Number of flipped triangles
 The **parameterization** (`run_RSP.py`) works on all platforms (Windows, Linux, macOS) -
 it's pure Python with NumPy/SciPy.
 
-**Quad extraction** (`extract_quads.py`) also works on all platforms. Pre-built libQEx
-binaries are automatically downloaded from GitHub Releases on first use:
-- Windows x64
-- Linux x64
-- macOS Intel (x64)
-- macOS Apple Silicon (ARM64)
-
-If automatic download fails, you can build from source (see below).
+**Quad extraction** (`extract_quads.py`) requires libQEx binaries:
+- **Windows x64**: Pre-built binaries included in `bin/`
+- **Linux/macOS**: Build from source (see below)
 
 ### Building libQEx from Source
 

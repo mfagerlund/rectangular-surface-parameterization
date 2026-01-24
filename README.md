@@ -87,8 +87,8 @@ python extract_quads.py mesh.obj -o Results/ --scale 10
 
 **Output:** `<mesh>_quads.obj`
 
-> **Note:** Quad extraction requires libQEx binaries, which are automatically downloaded
-> from GitHub Releases on first use (Windows, Linux, macOS supported).
+> **Note:** Quad extraction requires libQEx binaries. Windows binaries are included in `bin/`.
+> For Linux/macOS, build from source - see `docs/libqex_setup.md`.
 > Parameterization works on all platforms without binaries.
 
 See **[USAGE.md](USAGE.md)** for complete reference including troubleshooting and Python API.
