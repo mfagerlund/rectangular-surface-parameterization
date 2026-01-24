@@ -125,20 +125,22 @@ See **[EXAMPLES.md](EXAMPLES.md)** for side-by-side comparisons of all cross fie
 
 ## Constraint Options
 
+All constraints are **enabled by default**. Use `--no-*` flags to disable:
+
 ```bash
-# Align to sharp edges (detected automatically)
-python run_RSP.py mesh.obj --hard-edges
+# Disable hard edge alignment (edges auto-detected by dihedral angle)
+python run_RSP.py mesh.obj --no-hardedge
 
-# Align to mesh boundary
-python run_RSP.py mesh.obj --boundary
+# Disable boundary alignment
+python run_RSP.py mesh.obj --no-boundary
 
-# Enforce seamless constraints (required for quad extraction)
-python run_RSP.py mesh.obj --seamless
+# Disable seamlessness (not recommended for quad extraction)
+python run_RSP.py mesh.obj --no-seamless
 ```
 
-These can be combined:
+Disable multiple:
 ```bash
-python run_RSP.py mesh.obj --hard-edges --boundary --seamless
+python run_RSP.py mesh.obj --no-hardedge --no-boundary
 ```
 
 ## Energy Types

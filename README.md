@@ -32,7 +32,7 @@ git clone https://github.com/mfagerlund/rectangular-surface-parameterization.git
 cd rectangular-surface-parameterization
 
 # Install dependencies
-pip install numpy scipy matplotlib
+pip install numpy scipy matplotlib trimesh
 
 # Optional: for mesh preprocessing
 pip install pymeshlab
@@ -60,7 +60,8 @@ python run_RSP.py mesh.obj -o Results/ -v
 | `--w-conf-ar` | `0.5` | Conformal/area weight (0=area, 0.5=isometric, 1=conformal) |
 | `--no-hardedge` | off | Disable hard edge constraints |
 | `--no-boundary` | off | Disable boundary alignment |
-| `--save-viz` | off | Save UV visualization PNGs |
+| `--no-seamless` | off | Disable seamlessness constraint |
+| `--visualize` | `1,2,3,4,5` | Stages to visualize (use `none` to disable) |
 | `--plot` | off | Show interactive matplotlib plots |
 
 **Output:** `<mesh>_param.obj` with UV coordinates

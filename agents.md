@@ -22,7 +22,7 @@ Entry point. Line-by-line translation from official MATLAB code.
 - `rectangular_surface_parameterization/utils/` - visualization, preprocessing
 
 ## Requirements
-Python 3.8+, NumPy, SciPy, Matplotlib. Install: `pip install numpy scipy matplotlib`
+Python 3.8+, NumPy, SciPy, Matplotlib, trimesh. Install: `pip install numpy scipy matplotlib trimesh`
 
 Optional for mesh preprocessing: `pip install pymeshlab`
 
