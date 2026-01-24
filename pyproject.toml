@@ -65,8 +65,18 @@ Documentation = "https://github.com/mfagerlund/rectangular-surface-parameterizat
 [project.scripts]
 rsp = "run_RSP:main"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "rectangular_surface_parameterization*",
+    "Preprocess*",
+    "FrameField*",
+    "Orthotropic*",
+    "ComputeParam*",
+    "Utils*"
+]
+
 [tool.setuptools]
-packages = ["Preprocess", "FrameField", "Orthotropic", "ComputeParam", "Utils"]
 py-modules = ["run_RSP", "extract_quads"]
 
 [tool.pytest.ini_options]
