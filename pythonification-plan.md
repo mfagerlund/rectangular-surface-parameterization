@@ -336,10 +336,16 @@ Focus on **algorithmic** improvements instead:
 ## Implementation Order
 
 ### Phase 1: Quick Wins (1-2 sessions)
-1. [ ] Archive MATLAB comments to `docs/matlab-reference.md`
-2. [ ] Strip MATLAB comments from Python files
-3. [ ] Delete `MATLAB_CONVERSION.md` (contents moved to docs)
-4. [ ] Rename local folder from `Corman-Crane` to `rectangular-surface-parameterization`
+1. [ ] Strip MATLAB comments from Python files
+2. [ ] Add header comment to each file referencing commit `7d1aab4` for line-by-line translation
+3. [ ] Rename local folder from `Corman-Crane` to `rectangular-surface-parameterization`
+
+**Reference commit for MATLAB translation:** `7d1aab4`
+When stripping comments, add this header to each Python file:
+```python
+# For the original line-by-line MATLAB translation with interleaved comments,
+# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
+```
 
 ### Phase 2: Type Safety (2-3 sessions)
 4. [ ] Create `core/` module with dataclasses
