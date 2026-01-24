@@ -15,7 +15,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "ComputeParam"))
 
-from ComputeParam.cut_mesh import (
+from rectangular_surface_parameterization.parameterization.cut_mesh import (
     cut_mesh,
     _build_meshinfo,
     _union_find,

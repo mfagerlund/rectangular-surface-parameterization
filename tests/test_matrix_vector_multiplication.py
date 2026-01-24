@@ -17,7 +17,7 @@ import sys
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ComputeParam.matrix_vector_multiplication import matrix_vector_multiplication
+from rectangular_surface_parameterization.parameterization.matrix_ops import matrix_vector_multiplication
 
 
 # =============================================================================

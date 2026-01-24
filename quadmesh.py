@@ -137,7 +137,7 @@ def main(mesh, output_dir, scale, target_faces, frame_field,
         else:
             try:
                 sys.path.insert(0, str(project_root))
-                from Utils.preprocess_mesh import preprocess_mesh
+                from rectangular_surface_parameterization.utils.preprocess_mesh import preprocess_mesh
                 import pymeshlab
 
                 # Check mesh size
@@ -230,8 +230,8 @@ def main(mesh, output_dir, scale, target_faces, frame_field,
                 click.secho("\n[3/4] Quad Extraction (libQEx)", fg='blue', bold=True)
 
             sys.path.insert(0, str(project_root))
-            from Utils.readOBJ import readOBJ
-            from Utils.libqex_wrapper import extract_quads, save_quad_obj
+            from rectangular_surface_parameterization.io.read_obj import readOBJ
+            from rectangular_surface_parameterization.utils.libqex_wrapper import extract_quads, save_quad_obj
 
             # Load parameterized mesh
             V, F, UV, TF, *_ = readOBJ(str(param_path))
@@ -319,7 +319,7 @@ def main(mesh, output_dir, scale, target_faces, frame_field,
                 click.secho("\n[4/4] Rendering", fg='blue', bold=True)
 
             try:
-                from Utils.render_quads import read_quad_obj, render_quad_mesh
+                from rectangular_surface_parameterization.utils.render_quads import read_quad_obj, render_quad_mesh
 
                 render_path = output_dir / f"{mesh_name}_render.png"
                 vertices, quads, tris = read_quad_obj(outputs['quads'])

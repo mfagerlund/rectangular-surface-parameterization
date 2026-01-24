@@ -13,7 +13,7 @@ import sys
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Utils.vec import vec
+from rectangular_surface_parameterization.utils.vec import vec
 
 
 # =============================================================================

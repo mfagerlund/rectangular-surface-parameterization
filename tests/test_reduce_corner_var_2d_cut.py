@@ -25,10 +25,10 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "Orthotropic"))
 sys.path.insert(0, str(project_root / "Preprocess"))
 
-from Orthotropic.reduce_corner_var_2d_cut import reduce_corner_var_2d_cut
-from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
-from Preprocess.MeshInfo import mesh_info
-from Preprocess.sort_triangles import clear_cache
+from rectangular_surface_parameterization.optimization.reduce_corner_var_cut import reduce_corner_var_2d_cut
+from rectangular_surface_parameterization.optimization.reduce_corner_var import reduce_corner_var_2d
+from rectangular_surface_parameterization.core.mesh_info import mesh_info
+from rectangular_surface_parameterization.preprocessing.sort_triangles import clear_cache
 
 
 # NOTE: These bugs have been FIXED:

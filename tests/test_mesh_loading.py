@@ -18,28 +18,28 @@ class TestOBJReader:
 
     def test_load_sphere(self):
         """Sphere should load without issues."""
-        from Utils.readOBJ import readOBJ
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
         V, F, *_ = readOBJ(str(MESH_DIR / "sphere320.obj"))
         assert V.shape == (162, 3)
         assert F.shape == (320, 3)
 
     def test_load_torus(self):
         """Torus should load without issues."""
-        from Utils.readOBJ import readOBJ
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
         V, F, *_ = readOBJ(str(MESH_DIR / "torus.obj"))
         assert V.shape[0] > 0
         assert F.shape[0] > 0
 
     def test_load_pig(self):
         """Pig should load without issues."""
-        from Utils.readOBJ import readOBJ
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
         V, F, *_ = readOBJ(str(MESH_DIR / "pig.obj"))
         assert V.shape == (1843, 3)
         assert F.shape == (3560, 3)
 
     def test_load_B36(self):
         """B36 should load without issues."""
-        from Utils.readOBJ import readOBJ
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
         V, F, *_ = readOBJ(str(MESH_DIR / "B36.obj"))
         assert V.shape == (2200, 3)
         assert F.shape == (4396, 3)
@@ -50,7 +50,7 @@ class TestOBJReader:
         This test catches the encoding bug where the OBJ reader uses
         the system default encoding (cp1252 on Windows) instead of UTF-8.
         """
-        from Utils.readOBJ import readOBJ
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
         V, F, *_ = readOBJ(str(MESH_DIR / "SquareMyles.obj"))
         assert V.shape == (706, 3)
         assert F.shape == (1328, 3)
@@ -61,25 +61,25 @@ class TestMeshConnectivity:
 
     def test_sphere_connected(self):
         """Sphere should be a single connected component."""
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
 
         V, F, *_ = readOBJ(str(MESH_DIR / "sphere320.obj"))
         mesh = mesh_info(V, F)
 
         # Check all vertices are reachable via edge connectivity
-        from Preprocess.connectivity import check_mesh_connected
+        from rectangular_surface_parameterization.preprocessing.connectivity import check_mesh_connected
         assert check_mesh_connected(mesh), "Sphere should be connected"
 
     def test_torus_connected(self):
         """Torus should be a single connected component."""
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
 
         V, F, *_ = readOBJ(str(MESH_DIR / "torus.obj"))
         mesh = mesh_info(V, F)
 
-        from Preprocess.connectivity import check_mesh_connected
+        from rectangular_surface_parameterization.preprocessing.connectivity import check_mesh_connected
         assert check_mesh_connected(mesh), "Torus should be connected"
 
     def test_pig_connected(self):
@@ -88,24 +88,24 @@ class TestMeshConnectivity:
         This test catches the bug where find_graph_generator reports
         disconnected components on meshes that should be connected.
         """
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
 
         V, F, *_ = readOBJ(str(MESH_DIR / "pig.obj"))
         mesh = mesh_info(V, F)
 
-        from Preprocess.connectivity import check_mesh_connected
+        from rectangular_surface_parameterization.preprocessing.connectivity import check_mesh_connected
         assert check_mesh_connected(mesh), "Pig should be connected"
 
     def test_B36_connected(self):
         """B36 should be a single connected component."""
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
 
         V, F, *_ = readOBJ(str(MESH_DIR / "B36.obj"))
         mesh = mesh_info(V, F)
 
-        from Preprocess.connectivity import check_mesh_connected
+        from rectangular_surface_parameterization.preprocessing.connectivity import check_mesh_connected
         assert check_mesh_connected(mesh), "B36 should be connected"
 
 
@@ -114,10 +114,10 @@ class TestPreprocessing:
 
     def test_preprocess_sphere(self):
         """Sphere should preprocess without errors."""
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
-        from Preprocess.dec_tri import dec_tri
-        from Preprocess.preprocess_ortho_param import preprocess_ortho_param
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
+        from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+        from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param
 
         V, F, *_ = readOBJ(str(MESH_DIR / "sphere320.obj"))
         mesh = mesh_info(V, F)
@@ -128,10 +128,10 @@ class TestPreprocessing:
 
     def test_preprocess_torus(self):
         """Torus should preprocess without errors."""
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
-        from Preprocess.dec_tri import dec_tri
-        from Preprocess.preprocess_ortho_param import preprocess_ortho_param
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
+        from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+        from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param
 
         V, F, *_ = readOBJ(str(MESH_DIR / "torus.obj"))
         mesh = mesh_info(V, F)
@@ -145,10 +145,10 @@ class TestPreprocessing:
 
         This test catches the 'disconnected components' bug in preprocessing.
         """
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
-        from Preprocess.dec_tri import dec_tri
-        from Preprocess.preprocess_ortho_param import preprocess_ortho_param
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
+        from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+        from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param
 
         V, F, *_ = readOBJ(str(MESH_DIR / "pig.obj"))
         mesh = mesh_info(V, F)
@@ -159,10 +159,10 @@ class TestPreprocessing:
 
     def test_preprocess_B36(self):
         """B36 should preprocess without errors."""
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
-        from Preprocess.dec_tri import dec_tri
-        from Preprocess.preprocess_ortho_param import preprocess_ortho_param
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
+        from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+        from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param
 
         V, F, *_ = readOBJ(str(MESH_DIR / "B36.obj"))
         mesh = mesh_info(V, F)
@@ -177,11 +177,11 @@ class TestCrossField:
 
     def test_crossfield_sphere_smooth(self):
         """Sphere should compute smooth cross field."""
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
-        from Preprocess.dec_tri import dec_tri
-        from Preprocess.preprocess_ortho_param import preprocess_ortho_param
-        from FrameField.compute_face_cross_field import compute_face_cross_field
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
+        from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+        from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param
+        from rectangular_surface_parameterization.cross_field.face_field import compute_face_cross_field
 
         V, F, *_ = readOBJ(str(MESH_DIR / "sphere320.obj"))
         mesh = mesh_info(V, F)
@@ -201,11 +201,11 @@ class TestCrossField:
 
         This test catches the singular matrix bug in cross field computation.
         """
-        from Utils.readOBJ import readOBJ
-        from Preprocess.MeshInfo import mesh_info
-        from Preprocess.dec_tri import dec_tri
-        from Preprocess.preprocess_ortho_param import preprocess_ortho_param
-        from FrameField.compute_face_cross_field import compute_face_cross_field
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
+        from rectangular_surface_parameterization.core.mesh_info import mesh_info
+        from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+        from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param
+        from rectangular_surface_parameterization.cross_field.face_field import compute_face_cross_field
 
         V, F, *_ = readOBJ(str(MESH_DIR / "B36.obj"))
         mesh = mesh_info(V, F)

@@ -19,9 +19,9 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "Preprocess"))
 sys.path.insert(0, str(project_root / "ComputeParam"))
 
-from Preprocess.MeshInfo import MeshInfo, mesh_info
-from Preprocess.dec_tri import DEC, dec_tri
-from ComputeParam.parametrization_from_scales import (
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
+from rectangular_surface_parameterization.preprocessing.dec import DEC, dec_tri
+from rectangular_surface_parameterization.parameterization.integrate import (
     parametrization_from_scales,
     solve_qp_equality,
     solve_qp_with_linear_term,

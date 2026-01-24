@@ -9,7 +9,7 @@ from typing import Optional
 import warnings
 import subprocess
 
-from Utils.writeObj import writeObj
+from rectangular_surface_parameterization.io.write_obj import writeObj
 
 
 # function save_param(ifquantization, path_save, mesh_name, X, T, UV, TUV, sing, E2V_hardedge)

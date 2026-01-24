@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Preprocess"))
 
-from Preprocess.angles_of_triangles import angles_of_triangles
+from rectangular_surface_parameterization.preprocessing.angles_of_triangles import angles_of_triangles
 
 
 # =============================================================================

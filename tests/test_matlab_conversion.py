@@ -20,11 +20,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import MATLAB-converted modules
-from Preprocess.MeshInfo import MeshInfo, mesh_info
-from Preprocess.dec_tri import DEC, dec_tri
-from Preprocess.preprocess_ortho_param import preprocess_ortho_param, OrthoParam
-from FrameField.compute_face_cross_field import compute_face_cross_field
-from FrameField.compute_curvature_cross_field import compute_curvature_cross_field
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
+from rectangular_surface_parameterization.preprocessing.dec import DEC, dec_tri
+from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param, OrthoParam
+from rectangular_surface_parameterization.cross_field.face_field import compute_face_cross_field
+from rectangular_surface_parameterization.cross_field.curvature_field import compute_curvature_cross_field
 
 import warnings
 

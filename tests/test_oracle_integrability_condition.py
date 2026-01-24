@@ -21,9 +21,9 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "Preprocess"))
 sys.path.insert(0, str(project_root / "Orthotropic"))
 
-from Preprocess.MeshInfo import MeshInfo, mesh_info
-from Preprocess.dec_tri import DEC, dec_tri
-from Orthotropic.oracle_integrability_condition import oracle_integrability_condition
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
+from rectangular_surface_parameterization.preprocessing.dec import DEC, dec_tri
+from rectangular_surface_parameterization.optimization.integrability import oracle_integrability_condition
 
 
 # =============================================================================

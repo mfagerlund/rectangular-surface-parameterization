@@ -7,8 +7,8 @@ import numpy as np
 import scipy.sparse as sp
 from typing import Tuple, Optional
 
-from .brush_frame_field import brush_frame_field
-from Utils.sparse_solve import regularized_solve
+from .brush_field import brush_frame_field
+from rectangular_surface_parameterization.utils.sparse_solve import regularized_solve
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:

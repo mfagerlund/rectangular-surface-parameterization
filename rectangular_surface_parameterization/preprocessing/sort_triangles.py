@@ -5,7 +5,7 @@
 
 import numpy as np
 from typing import Tuple, Optional, Dict, Any
-from Preprocess.sort_triangles_comp import sort_triangles_comp
+from rectangular_surface_parameterization.preprocessing.sort_triangles_comp import sort_triangles_comp
 
 # Module-level cache (replaces MATLAB persistent variables)
 # Cache keys are (mesh_id, vertex_idx) tuples to ensure cross-mesh isolation

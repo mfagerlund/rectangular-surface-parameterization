@@ -66,9 +66,9 @@ import os
 # Add parent directory for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from Preprocess.dec_tri import DEC
-from Preprocess.MeshInfo import MeshInfo
-from Utils.sparse_solve import regularized_solve
+from rectangular_surface_parameterization.preprocessing.dec import DEC
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo
+from rectangular_surface_parameterization.utils.sparse_solve import regularized_solve
 
 
 def solve_qp_equality(H: csr_matrix, Aeq: csr_matrix, beq: np.ndarray) -> np.ndarray:

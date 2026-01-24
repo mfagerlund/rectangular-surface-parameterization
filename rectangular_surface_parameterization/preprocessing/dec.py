@@ -78,7 +78,7 @@ from scipy.sparse import csr_matrix, diags
 from scipy.sparse.linalg import norm as sparse_norm
 import warnings
 
-from .MeshInfo import MeshInfo
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo
 
 
 @dataclass

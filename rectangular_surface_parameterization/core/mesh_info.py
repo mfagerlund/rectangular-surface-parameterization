@@ -33,8 +33,8 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from .connectivity import connectivity
-from .angles_of_triangles import angles_of_triangles
+from rectangular_surface_parameterization.preprocessing.connectivity import connectivity
+from rectangular_surface_parameterization.preprocessing.angles_of_triangles import angles_of_triangles
 from .signed_edge_array import SignedEdgeArray
 
 

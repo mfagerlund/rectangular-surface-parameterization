@@ -8,7 +8,7 @@ Uses PyMeshLab to clean and remesh input meshes to meet pipeline requirements:
 - Consistent orientation
 
 Usage:
-    from Utils.preprocess_mesh import preprocess_mesh
+    from rectangular_surface_parameterization.utils.preprocess_mesh import preprocess_mesh
 
     clean_path = preprocess_mesh("bunny.obj", "bunny_clean.obj")
 """

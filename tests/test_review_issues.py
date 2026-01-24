@@ -19,12 +19,12 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from scipy.sparse import csr_matrix
-from Preprocess.MeshInfo import mesh_info
-from Preprocess.find_graph_generator import (
+from rectangular_surface_parameterization.core.mesh_info import mesh_info
+from rectangular_surface_parameterization.preprocessing.find_graph_generator import (
     find_graph_generator,
     _compute_predecessors_bfs,
 )
-from Utils.extract_scale_from_param import extract_scale_from_param, DistortionMetrics
+from rectangular_surface_parameterization.utils.extract_scale import extract_scale_from_param, DistortionMetrics
 
 
 # =============================================================================
@@ -87,7 +87,7 @@ class TestCutEdgePairingValidation:
 
     def test_even_cut_edges_passes(self, tetrahedron):
         """Even number of cut edges should work normally."""
-        from ComputeParam.mesh_to_disk_seamless import mesh_to_disk_seamless
+        from rectangular_surface_parameterization.parameterization.seamless import mesh_to_disk_seamless
         from tests.test_mesh_to_disk_seamless import create_test_inputs
 
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)
@@ -108,7 +108,7 @@ class TestCutEdgePairingValidation:
 
     def test_no_seamless_const_skips_validation(self, tetrahedron):
         """When ifseamless_const=False, pairing validation is skipped."""
-        from ComputeParam.mesh_to_disk_seamless import mesh_to_disk_seamless
+        from rectangular_surface_parameterization.parameterization.seamless import mesh_to_disk_seamless
         from tests.test_mesh_to_disk_seamless import create_test_inputs
 
         mesh, param, ang, sing, k21, _ = create_test_inputs(tetrahedron)

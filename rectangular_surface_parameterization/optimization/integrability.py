@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 from typing import Optional, Tuple, Union
 
-from Orthotropic.omega_from_scale import omega_from_scale
+from rectangular_surface_parameterization.optimization.omega_from_scale import omega_from_scale
 
 
 # function [F,Jf,Hf] = oracle_integrability_condition(mesh, param, dec, omega, ut, vt, ang, lambda, Reduction, ide_free)

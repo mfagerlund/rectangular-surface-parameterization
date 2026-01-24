@@ -8,7 +8,7 @@ import scipy.sparse as sp
 from scipy.sparse.linalg import eigsh
 from typing import Tuple, Optional
 
-from Utils.sparse_solve import regularized_solve
+from rectangular_surface_parameterization.utils.sparse_solve import regularized_solve
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:

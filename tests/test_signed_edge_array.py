@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from Preprocess.signed_edge_array import SignedEdgeArray
+from rectangular_surface_parameterization.core.signed_edge_array import SignedEdgeArray
 
 
 class TestConstruction:

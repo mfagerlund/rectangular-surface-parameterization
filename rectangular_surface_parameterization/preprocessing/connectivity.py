@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from Preprocess.signed_edge_array import SignedEdgeArray
+from rectangular_surface_parameterization.core.signed_edge_array import SignedEdgeArray
 
 
 # function [E2V, T2E, E2T, T2T] = connectivity(T)

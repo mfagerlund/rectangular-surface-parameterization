@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Preprocess"))
 
-from Preprocess.connectivity import connectivity
+from rectangular_surface_parameterization.preprocessing.connectivity import connectivity
 
 
 # =============================================================================

@@ -14,8 +14,8 @@ from scipy.sparse.csgraph import connected_components, dijkstra
 from dataclasses import dataclass, field
 from typing import Optional, Tuple, List
 
-from .MeshInfo import MeshInfo, mesh_info
-from .dec_tri import DEC, dec_tri
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
+from .dec import DEC, dec_tri
 from .connectivity import connectivity
 from .gaussian_curvature import gaussian_curvature
 from .angles_of_triangles import angles_of_triangles

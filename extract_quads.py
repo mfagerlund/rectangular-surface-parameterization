@@ -17,8 +17,8 @@ from pathlib import Path
 import subprocess
 import numpy as np
 
-from Utils.readOBJ import readOBJ
-from Utils.libqex_wrapper import extract_quads, save_quad_obj
+from rectangular_surface_parameterization.io.read_obj import readOBJ
+from rectangular_surface_parameterization.utils.libqex_wrapper import extract_quads, save_quad_obj
 
 
 def preprocess_mesh_if_needed(mesh_path, output_dir, verbose=False):
@@ -28,7 +28,7 @@ def preprocess_mesh_if_needed(mesh_path, output_dir, verbose=False):
     Returns the path to the cleaned mesh.
     """
     try:
-        from Utils.preprocess_mesh import preprocess_mesh
+        from rectangular_surface_parameterization.utils.preprocess_mesh import preprocess_mesh
     except ImportError:
         print("Warning: PyMeshLab not installed. Skipping preprocessing.")
         print("Install with: pip install pymeshlab")

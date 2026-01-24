@@ -26,11 +26,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Preprocess"))
 sys.path.insert(0, str(Path(__file__).parent.parent / "Orthotropic"))
 
-from Preprocess.MeshInfo import mesh_info
-from Preprocess.connectivity import connectivity
-from Preprocess.sort_triangles import clear_cache as clear_sort_cache
-from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
-from Orthotropic.reduction_from_ff2d import reduction_from_ff2d
+from rectangular_surface_parameterization.core.mesh_info import mesh_info
+from rectangular_surface_parameterization.preprocessing.connectivity import connectivity
+from rectangular_surface_parameterization.preprocessing.sort_triangles import clear_cache as clear_sort_cache
+from rectangular_surface_parameterization.optimization.reduce_corner_var import reduce_corner_var_2d
+from rectangular_surface_parameterization.optimization.reduction import reduction_from_ff2d
 
 
 # Clear cache before each test to avoid cross-test pollution
@@ -1092,7 +1092,7 @@ class TestRealMeshes:
     @pytest.fixture
     def sphere_mesh(self):
         """Load sphere mesh if available."""
-        from Utils.readOBJ import readOBJ
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
         path = Path(r"C:\Dev\Colonel\Data\Meshes\sphere320.obj")
         if not path.exists():
             pytest.skip(f"Sphere mesh not found: {path}")
@@ -1102,7 +1102,7 @@ class TestRealMeshes:
     @pytest.fixture
     def torus_mesh(self):
         """Load torus mesh if available."""
-        from Utils.readOBJ import readOBJ
+        from rectangular_surface_parameterization.io.read_obj import readOBJ
         path = Path(r"C:\Dev\Colonel\Data\Meshes\torus.obj")
         if not path.exists():
             pytest.skip(f"Torus mesh not found: {path}")

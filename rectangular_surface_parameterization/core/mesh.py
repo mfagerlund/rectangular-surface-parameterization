@@ -34,8 +34,8 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 # Import from old locations during migration
-from Preprocess.connectivity import connectivity
-from Preprocess.angles_of_triangles import angles_of_triangles
+from rectangular_surface_parameterization.preprocessing.connectivity import connectivity
+from rectangular_surface_parameterization.preprocessing.angles_of_triangles import angles_of_triangles
 from rectangular_surface_parameterization.core.signed_edge_array import SignedEdgeArray
 
 

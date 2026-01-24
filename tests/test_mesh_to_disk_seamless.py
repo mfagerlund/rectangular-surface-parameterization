@@ -18,9 +18,9 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "Preprocess"))
 sys.path.insert(0, str(project_root / "ComputeParam"))
 
-from Preprocess.MeshInfo import MeshInfo, mesh_info
-from Preprocess.dec_tri import DEC, dec_tri
-from ComputeParam.mesh_to_disk_seamless import wrap_to_pi, mesh_to_disk_seamless
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
+from rectangular_surface_parameterization.preprocessing.dec import DEC, dec_tri
+from rectangular_surface_parameterization.parameterization.seamless import wrap_to_pi, mesh_to_disk_seamless
 
 
 # =============================================================================

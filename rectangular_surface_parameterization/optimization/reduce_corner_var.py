@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sp
 from typing import Tuple, List
 
-from Preprocess.sort_triangles import sort_triangles
+from rectangular_surface_parameterization.preprocessing.sort_triangles import sort_triangles
 
 
 # function [Edge_jump,v2t,base_tri] = reduce_corner_var_2d(mesh)

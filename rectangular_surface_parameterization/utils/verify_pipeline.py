@@ -22,17 +22,17 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from Utils.readOBJ import readOBJ
-from Preprocess.MeshInfo import MeshInfo, mesh_info
-from Preprocess.dec_tri import dec_tri
-from Preprocess.preprocess_ortho_param import preprocess_ortho_param
-from FrameField.compute_face_cross_field import compute_face_cross_field
-from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
-from Orthotropic.reduction_from_ff2d import reduction_from_ff2d
-from Orthotropic.optimize_RSP import optimize_RSP
-from ComputeParam.mesh_to_disk_seamless import mesh_to_disk_seamless
-from ComputeParam.parametrization_from_scales import parametrization_from_scales
-from Utils.extract_scale_from_param import extract_scale_from_param
+from rectangular_surface_parameterization.io.read_obj import readOBJ
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
+from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+from rectangular_surface_parameterization.preprocessing.preprocess import preprocess_ortho_param
+from rectangular_surface_parameterization.cross_field.face_field import compute_face_cross_field
+from rectangular_surface_parameterization.optimization.reduce_corner_var import reduce_corner_var_2d
+from rectangular_surface_parameterization.optimization.reduction import reduction_from_ff2d
+from rectangular_surface_parameterization.optimization.solver import optimize_RSP
+from rectangular_surface_parameterization.parameterization.seamless import mesh_to_disk_seamless
+from rectangular_surface_parameterization.parameterization.integrate import parametrization_from_scales
+from rectangular_surface_parameterization.utils.extract_scale import extract_scale_from_param
 
 
 # -----------------------------------------------------------------------------

@@ -15,7 +15,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "Preprocess"))
 
-from Preprocess.MeshInfo import MeshInfo, mesh_info
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo, mesh_info
 
 
 # =============================================================================

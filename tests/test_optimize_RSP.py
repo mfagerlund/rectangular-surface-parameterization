@@ -25,7 +25,7 @@ sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(project_root / "Orthotropic"))
 sys.path.insert(0, str(project_root / "Preprocess"))
 
-from Orthotropic.optimize_RSP import optimize_RSP, OptimizeResult, wrap_to_pi, _zero_rows
+from rectangular_surface_parameterization.optimization.solver import optimize_RSP, OptimizeResult, wrap_to_pi, _zero_rows
 
 
 # =============================================================================
@@ -317,10 +317,10 @@ def tetrahedron_setup():
     Set up a tetrahedron mesh with all necessary structures for optimization.
     This is a closed mesh (genus 0) so there's no boundary.
     """
-    from Preprocess.MeshInfo import mesh_info
-    from Preprocess.dec_tri import dec_tri
-    from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
-    from Orthotropic.reduction_from_ff2d import reduction_from_ff2d
+    from rectangular_surface_parameterization.core.mesh_info import mesh_info
+    from rectangular_surface_parameterization.preprocessing.dec import dec_tri
+    from rectangular_surface_parameterization.optimization.reduce_corner_var import reduce_corner_var_2d
+    from rectangular_surface_parameterization.optimization.reduction import reduction_from_ff2d
 
     # Create mesh - regular tetrahedron
     X = np.array([

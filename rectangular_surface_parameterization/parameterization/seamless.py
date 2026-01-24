@@ -60,9 +60,9 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from .cut_mesh import cut_mesh, MeshInfo as CutMeshInfo
-from .matrix_vector_multiplication import matrix_vector_multiplication
-from Preprocess.dec_tri import dec_tri, DEC
-from Preprocess.MeshInfo import MeshInfo
+from .matrix_ops import matrix_vector_multiplication
+from rectangular_surface_parameterization.preprocessing.dec import dec_tri, DEC
+from rectangular_surface_parameterization.core.mesh_info import MeshInfo
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:
@@ -140,7 +140,7 @@ def mesh_to_disk_seamless(
     # Convert CutMeshInfo to full MeshInfo for dec_tri
     # IMPORTANT: mesh_info() creates a new edge ordering, so we must recompute ide_cut_inv
     # to match the new ordering. We do this after building disk_mesh.
-    from Preprocess.MeshInfo import mesh_info
+    from rectangular_surface_parameterization.core.mesh_info import mesh_info
     disk_mesh = mesh_info(SrcCut_raw.vertices, SrcCut_raw.triangles)
 
     # Recompute ide_cut_inv for disk_mesh's edge ordering

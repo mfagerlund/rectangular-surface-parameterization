@@ -10,8 +10,8 @@ import warnings
 from typing import Optional, Tuple, Any
 from dataclasses import dataclass
 
-from Orthotropic.optimization_params import OptimizationParams, DEFAULT_PARAMS
-from Utils.sparse_solve import regularized_solve
+from rectangular_surface_parameterization.optimization.params import OptimizationParams, DEFAULT_PARAMS
+from rectangular_surface_parameterization.utils.sparse_solve import regularized_solve
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:
@@ -78,8 +78,8 @@ def optimize_RSP(
         OptimizeResult with u, v, ut, vt, om, angn, flag, it
         flag: 1 = reached max iter, 0 = convergence, -1 = linesearch failed
     """
-    from Orthotropic.oracle_integrability_condition import oracle_integrability_condition
-    from Orthotropic.objective_ortho_param import objective_ortho_param
+    from rectangular_surface_parameterization.optimization.integrability import oracle_integrability_condition
+    from rectangular_surface_parameterization.optimization.objective import objective_ortho_param
 
     # Use default optimization parameters if not provided
     if opt_params is None:
@@ -431,7 +431,7 @@ def optimize_RSP(
         # Show new frame field
         if if_plot:
             import matplotlib.pyplot as plt
-            from FrameField.plot_frame_field import plot_frame_field
+            from rectangular_surface_parameterization.cross_field.plot import plot_frame_field
             fig = plot_frame_field(None, mesh, param, angn, err_ang)
             plt.title(f'New frame field {it + 1}')
             plt.colorbar()

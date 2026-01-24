@@ -5,7 +5,7 @@ This module provides a Python interface to the libQEx library for extracting
 quad meshes from triangle meshes with UV parameterization.
 
 Usage:
-    from Utils.libqex_wrapper import extract_quads
+    from rectangular_surface_parameterization.utils.libqex_wrapper import extract_quads
 
     quad_verts, quad_faces = extract_quads(vertices, triangles, uvs_per_triangle)
 """

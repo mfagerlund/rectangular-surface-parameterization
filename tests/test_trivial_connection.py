@@ -11,11 +11,10 @@ import scipy.sparse as sp
 from pathlib import Path
 import sys
 
-# Add parent directory and FrameField to path
+# Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / "FrameField"))
 
-from trivial_connection import wrap_to_pi, solve_qp_equality, breadth_first_search
+from rectangular_surface_parameterization.cross_field.trivial_connection import wrap_to_pi, solve_qp_equality, breadth_first_search
 
 
 # =============================================================================

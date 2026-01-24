@@ -262,7 +262,7 @@ def solve_qp_equality(H, Aeq, beq) -> np.ndarray:
         x: Optimal solution
     """
     from scipy.sparse import vstack, hstack, csr_matrix
-    from Utils.sparse_solve import regularized_solve
+    from rectangular_surface_parameterization.utils.sparse_solve import regularized_solve
 
     # Convert to sparse if needed
     if not sp.issparse(H):
