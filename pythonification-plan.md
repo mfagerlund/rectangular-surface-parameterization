@@ -336,8 +336,8 @@ Focus on **algorithmic** improvements instead:
 ## Implementation Order
 
 ### Phase 1: Quick Wins (1-2 sessions)
-1. [ ] Strip MATLAB comments from Python files
-2. [ ] Add header comment to each file referencing commit `7d1aab4` for line-by-line translation
+1. [x] Strip MATLAB comments from Python files (commit 5696cf1)
+2. [x] Add header comment to each file referencing commit `7d1aab4` for line-by-line translation
 3. [ ] Rename local folder from `Corman-Crane` to `rectangular-surface-parameterization`
 
 **Reference commit for MATLAB translation:** `7d1aab4`
