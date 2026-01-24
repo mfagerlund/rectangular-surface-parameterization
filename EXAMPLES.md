@@ -71,7 +71,7 @@ python run_RSP.py Mesh/B36.obj --frame-field smooth --save-viz
 ```
 
 ![B36 Smooth UV](docs/examples/B36_smooth/B36_uv_layout.png)
-*UV Layout: **0 flipped triangles** - complex shape unfolds cleanly*
+*UV Layout: **0 flipped triangles** - note: overlapping regions are expected for complex shapes (see [Understanding UV Overlaps](#understanding-uv-overlaps))*
 
 ![B36 Smooth Distortion](docs/examples/B36_smooth/B36_distortion.png)
 *Distortion varies across the surface due to geometric complexity*
@@ -169,6 +169,18 @@ python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth --energy chebyshev -
 | pig | 3678 | curvature | distortion | 23 | 0.6% |
 | SquareMyles | 1328 | smooth | distortion | 0 | 0.0% |
 | SquareMyles | 1328 | smooth | chebyshev | 0 | 0.0% |
+
+## Understanding UV Overlaps
+
+**Important:** This algorithm produces **seamless** parameterizations, not **bijective** (overlap-free) ones.
+
+| Property | Meaning | Required for |
+|----------|---------|--------------|
+| **Seamless** | UVs match across cut edges | Quad meshing |
+| **No flipped triangles** | Local orientation preserved | Both |
+| **Bijective (no overlaps)** | No self-intersection in UV space | Texture mapping |
+
+Complex shapes like B36 and pig may have **overlapping regions** in UV space. This is expected and OK for quad meshing - libQEx handles overlaps during extraction. If you need overlap-free UVs for texturing, additional post-processing would be required.
 
 ## Visualization Guide
 
