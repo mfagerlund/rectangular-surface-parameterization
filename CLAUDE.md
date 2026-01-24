@@ -171,9 +171,10 @@ See `docs/mesh-quality-investigation.md`:
 | Mesh | Issue | Workaround |
 |------|-------|------------|
 | stanford-bunny | Unreferenced vertices | Fixed in dec_tri.py |
-| cow, spot | Singular matrix in cross field | Needs better solver |
+| cow, spot | Singular matrix in cross field | Fixed with regularized_solve() |
 | teapot | Gaussian curvature mismatch (holes) | Needs boundary support |
 | suzanne | Non-manifold edges | Use --preprocess |
+| pig, SquareMyles | Open mesh with boundaries | Fixed: auto-uses reduce_corner_var_2d_cut |
 
 ## License
 

@@ -45,6 +45,7 @@ from FrameField.brush_frame_field import brush_frame_field
 from FrameField.plot_frame_field import plot_frame_field
 
 from Orthotropic.reduce_corner_var_2d import reduce_corner_var_2d
+from Orthotropic.reduce_corner_var_2d_cut import reduce_corner_var_2d_cut
 from Orthotropic.reduction_from_ff2d import reduction_from_ff2d
 from Orthotropic.optimize_RSP import optimize_RSP
 
@@ -324,7 +325,12 @@ def main():
     if verbose:
         print("Computing cross field jumps...")
 
-    Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
+    # Use cut version for meshes with boundaries
+    if len(param.ide_bound) > 0:
+        # For open meshes, treat boundary edges as cut edges
+        Edge_jump, v2t, base_tri = reduce_corner_var_2d_cut(Src, param.ide_bound)
+    else:
+        Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
     k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
 
     # itmax = 200;

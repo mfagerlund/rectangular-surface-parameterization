@@ -5,8 +5,55 @@
 
 import numpy as np
 import scipy.sparse as sp
-from scipy.sparse.linalg import spsolve, eigsh
+from scipy.sparse.linalg import spsolve, eigsh, lsqr
 from typing import Tuple, Optional
+import warnings
+
+
+def regularized_solve(A, b, reg=1e-10):
+    """
+    Solve Ax = b with regularization fallback for singular matrices.
+
+    MATLAB vs scipy difference:
+        MATLAB's backslash operator (\\) automatically handles singular matrices
+        by switching to least-squares or QR factorization. Python's spsolve
+        uses strict LU decomposition that fails on singular matrices.
+
+    This function provides MATLAB-like robustness by:
+    1. Trying direct solve first (fast path)
+    2. Adding small diagonal regularization if singular
+    3. Falling back to least-squares (lsqr) as last resort
+
+    Args:
+        A: Sparse matrix (can be singular)
+        b: Right-hand side vector
+        reg: Regularization strength (default 1e-10)
+
+    Returns:
+        Solution vector x that minimizes ||Ax - b||
+    """
+    A_csr = A.tocsr() if not sp.isspmatrix_csr(A) else A
+
+    # Suppress singular matrix warnings since we handle them
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', 'Matrix is exactly singular')
+        warnings.filterwarnings('ignore', 'Matrix is singular')
+        x = spsolve(A_csr, b)
+
+    if not np.any(np.isnan(x)):
+        return x
+
+    # Add regularization and retry
+    n = A.shape[0]
+    A_reg = A_csr + reg * sp.eye(n, format='csr')
+    x = spsolve(A_reg, b)
+
+    if not np.any(np.isnan(x)):
+        return x
+
+    # If still singular, use least-squares
+    result = lsqr(A_csr, b, atol=1e-10, btol=1e-10)
+    return result[0]
 
 
 def wrap_to_pi(x: np.ndarray) -> np.ndarray:
@@ -208,7 +255,7 @@ def compute_face_cross_field(
         Wcon_ff = Wcon[np.ix_(tri_free, tri_free)]
         Wcon_fc = Wcon[np.ix_(tri_free, tri_fix)]
         rhs = Wcon_fc @ z_fix
-        z[tri_free] = -spsolve(Wcon_ff.tocsr(), rhs)
+        z[tri_free] = -regularized_solve(Wcon_ff, rhs)
 
         # D = eigs(Wcon, dec.star0d, 5, 'sm');
         # dt = 20*real(D(2));
@@ -263,11 +310,11 @@ def compute_face_cross_field(
             A_fc = A[np.ix_(tri_free, tri_fix)]
             star0d_ff = dec.star0d[np.ix_(tri_free, tri_free)]
             rhs = dt * star0d_ff @ z[tri_free] - A_fc @ z_fix
-            z[tri_free] = spsolve(A_ff.tocsr(), rhs)
+            z[tri_free] = regularized_solve(A_ff, rhs)
         else:
             # z = A\(dt*dec.star0d*z)
             rhs = dt * dec.star0d @ z
-            z = spsolve(A.tocsr(), rhs)
+            z = regularized_solve(A, rhs)
         # z = z./abs(z);
         z = z / np.abs(z)
 
@@ -354,7 +401,7 @@ def solve_qp_equality(H, Aeq, beq) -> np.ndarray:
     rhs = np.concatenate([np.zeros(n), beq])
 
     # Solve KKT system
-    solution = spsolve(KKT.tocsr(), rhs)
+    solution = regularized_solve(KKT, rhs)
 
     # Extract x (first n components)
     x = solution[:n]

@@ -62,12 +62,13 @@ def find_graph_generator(
 # w(ide_bound) = 0;
 
     # Primal graph
-    # Set edge weights, zero at boundaries
-    # MATLAB uses 0 for "no triangle", Python uses -1
+    # Set edge weights, prefer boundaries (low weight) but keep them in the graph.
+    # MATLAB uses 0 for "zero cost" edges, but scipy treats 0 as "no edge".
+    # Use a very small positive weight to preserve MATLAB semantics.
     ide_bound = np.any(E2T[:, :2] < 0, axis=1)
     l = np.abs(l) + 1e-5
     w = l.copy()
-    w[ide_bound] = 0
+    w[ide_bound] = 1e-10  # Small but positive to keep edges in MST
 
 
 # try
