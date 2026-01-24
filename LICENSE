@@ -1,0 +1,67 @@
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+Corman-Crane Rectangular Surface Parameterization (Python)
+Copyright (C) 2025 Etienne Corman and Keenan Crane (original algorithm and MATLAB implementation)
+Copyright (C) 2025 Mattias Fagerlund (Python conversion and pipeline extensions)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+ATTRIBUTION
+
+This Python implementation is a derivative work based on the original MATLAB
+implementation by Etienne Corman and Keenan Crane, available at:
+https://github.com/etcorman/RectangularSurfaceParameterization
+
+The core algorithm implements the method described in:
+
+  "Rectangular Surface Parameterization"
+  Etienne Corman and Keenan Crane
+  ACM Transactions on Graphics (SIGGRAPH), 2025
+
+If you use this software in academic work, please cite the original paper:
+
+  @article{Corman:2025:RSP,
+    author = {Corman, Etienne and Crane, Keenan},
+    title = {Rectangular Surface Parameterization},
+    journal = {ACM Trans. Graph.},
+    volume = {44},
+    number = {4},
+    year = {2025},
+    publisher = {ACM},
+    address = {New York, NY, USA},
+  }
+
+---
+
+PYTHON CONVERSION
+
+This Python implementation was created by Mattias Fagerlund, including:
+- Complete port of all MATLAB algorithms to Python/NumPy/SciPy
+- Integration with libQEx for quad mesh extraction
+- Mesh preprocessing utilities
+- Visualization and verification tools
+
+The conversion preserves the mathematical algorithms exactly as designed by
+Corman and Crane. All credit for the underlying method belongs to the
+original authors.
+
+---
+
+COMMERCIAL LICENSING
+
+For commercial licensing inquiries, please contact the original authors:
+- Etienne Corman: etienne.corman@cnrs.fr
+- Keenan Crane: kmcrane@cs.cmu.edu

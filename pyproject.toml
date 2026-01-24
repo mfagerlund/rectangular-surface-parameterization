@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rectangular-surface-parameterization"
+version = "0.1.0"
+description = "Rectangular (orthogonal) surface parameterization for quad meshing - Python port of Corman & Crane SIGGRAPH 2025"
+readme = "README.md"
+license = {text = "AGPL-3.0-or-later"}
+authors = [
+    {name = "Etienne Corman", email = "etienne.corman@cnrs.fr"},
+    {name = "Keenan Crane", email = "kmcrane@cs.cmu.edu"},
+    {name = "Mattias Fagerlund"}
+]
+maintainers = [
+    {name = "Mattias Fagerlund"}
+]
+keywords = [
+    "mesh",
+    "parameterization",
+    "quad-mesh",
+    "cross-field",
+    "geometry-processing",
+    "siggraph"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling"
+]
+requires-python = ">=3.8"
+dependencies = [
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.4.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0"
+]
+preprocessing = [
+    "pymeshlab>=2022.2"
+]
+
+[project.urls]
+Homepage = "https://github.com/mfagerlund/rectangular-surface-parameterization"
+Repository = "https://github.com/mfagerlund/rectangular-surface-parameterization"
+Documentation = "https://github.com/mfagerlund/rectangular-surface-parameterization#readme"
+"Original Paper" = "https://www.cs.cmu.edu/~kmcrane/Projects/RectangularSurfaceParameterization/"
+"Original MATLAB" = "https://github.com/etcorman/RectangularSurfaceParameterization"
+
+[project.scripts]
+rsp = "run_RSP:main"
+
+[tool.setuptools]
+packages = ["Preprocess", "FrameField", "Orthotropic", "ComputeParam", "Utils"]
+py-modules = ["run_RSP", "extract_quads"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v"

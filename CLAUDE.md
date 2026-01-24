@@ -38,47 +38,16 @@ Optional for mesh preprocessing: `pip install pymeshlab`
 
 ## Commands
 
-### MATLAB-ported pipeline (PRIMARY)
+See **[USAGE.md](USAGE.md)** for complete CLI reference.
+
+Quick examples:
 ```bash
-# Basic run
-python run_RSP.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o Results/ -v
-
-# With UV visualization PNGs (shows flipped faces in red)
-python run_RSP.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o Results/ -v --save-viz
-
-# Interactive plots
-python run_RSP.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" -o Results/ -v --plot
-```
-Output files: `Results/<mesh>_param.obj`, `Results/uv_layout.png`, `Results/mesh_flips.png`, `Results/distortion.png`
-
-### Verification
-```bash
-python verify_pipeline.py "C:/Dev/Colonel/Data/Meshes/sphere320.obj" --stage geometry
-pytest tests/ -v
+python run_RSP.py mesh.obj -o Results/ -v          # Parameterization
+python extract_quads.py mesh.obj -o Results/ --scale 10  # Full pipeline
+pytest tests/ -v                                    # Run tests
 ```
 
 Test meshes: `C:/Dev/Colonel/Data/Meshes/sphere320.obj` (genus 0), `C:/Dev/Colonel/Data/Meshes/torus.obj` (genus 1).
-
-### Quad Extraction (full pipeline)
-```bash
-# Generate quad mesh from triangle mesh (RSP + libQEx)
-python extract_quads.py mesh.obj -o Results/ --scale 10
-
-# With preprocessing for problematic meshes (requires pymeshlab)
-python extract_quads.py mesh.obj -o Results/ --scale 10 --preprocess
-
-# Skip RSP if already parameterized
-python extract_quads.py mesh.obj -o Results/ --scale 10 --skip-rsp
-```
-
-### Mesh Preprocessing (standalone)
-```bash
-# Preprocess a mesh for the RSP pipeline (requires pymeshlab)
-python Utils/preprocess_mesh.py mesh.obj mesh_clean.obj
-
-# Check mesh quality diagnostics
-python -c "from Utils.preprocess_mesh import check_mesh_quality; check_mesh_quality('mesh.obj')"
-```
 
 ## References (READ)
 MATLAB impl: https://github.com/etcorman/RectangularSurfaceParameterization (local: `C:\Slask\RectangularSurfaceParameterization`)
@@ -207,7 +176,16 @@ See `docs/mesh-quality-investigation.md`:
 | suzanne | Non-manifold edges | Use --preprocess |
 
 ## License
-MIT
 
-## Note
-`README.md` is a symlink to this file.
+AGPL-3.0-or-later (GNU Affero General Public License v3.0 or later)
+
+This is a derivative work of the original MATLAB implementation by Etienne Corman
+and Keenan Crane. See LICENSE file for full attribution and terms.
+
+## TODO: Rename Local Folder
+The GitHub repo has been renamed to `rectangular-surface-parameterization`.
+Rename the local folder to match:
+```bash
+cd /c/Dev
+mv Corman-Crane rectangular-surface-parameterization
+```

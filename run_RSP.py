@@ -409,7 +409,7 @@ def main():
     if args.save_viz:
         if verbose:
             print(f"Saving visualizations to {path_save}...")
-        visualize_run_RSP_result(Src, SrcCut, Xp, disto, output_dir=path_save)
+        visualize_run_RSP_result(Src, SrcCut, Xp, disto, output_dir=path_save, mesh_name=mesh_name)
 
     # %% Plot results
     if ifplot:

@@ -42,8 +42,9 @@ def _fill_holes_with_triangles(vertices, quads, verbose=True):
     """
     Fill holes in a quad mesh with triangles.
 
-    Finds boundary edges, groups into connected components, and fan-triangulates
-    each hole from its centroid. Handles complex boundaries where holes share vertices.
+    Traces boundary loops using quad face orientation to correctly handle
+    cases where multiple holes share vertices. Each loop is fan-triangulated
+    from its own centroid.
 
     Parameters
     ----------
@@ -63,10 +64,8 @@ def _fill_holes_with_triangles(vertices, quads, verbose=True):
     """
     from collections import defaultdict
 
-    # Build edge counts - each edge in a quad appears once per face
-    # For a closed mesh, interior edges appear twice (in two adjacent faces)
+    # Build undirected edge counts
     edge_count = defaultdict(int)
-
     for quad in quads:
         for i in range(4):
             v0, v1 = quad[i], quad[(i + 1) % 4]
@@ -74,70 +73,209 @@ def _fill_holes_with_triangles(vertices, quads, verbose=True):
             edge_count[edge] += 1
 
     # Boundary edges appear only once
-    boundary_edges = [(v0, v1) for (v0, v1), c in edge_count.items() if c == 1]
+    boundary_edges_set = {e for e, c in edge_count.items() if c == 1}
 
-    if not boundary_edges:
+    if not boundary_edges_set:
         if verbose:
             print("  No holes to fill (mesh is watertight)")
         return [], np.zeros((0, 3))
 
-    # Find connected components of boundary edges using union-find
-    parent = {}
+    # Build directed boundary edges from quads
+    # For quad [a,b,c,d], edges are a->b, b->c, c->d, d->a
+    directed_edges_set = set()
+    for quad in quads:
+        for i in range(4):
+            v0, v1 = quad[i], quad[(i + 1) % 4]
+            edge_key = (min(v0, v1), max(v0, v1))
+            if edge_key in boundary_edges_set:
+                directed_edges_set.add((v0, v1))
 
-    def find(x):
-        if x not in parent:
-            parent[x] = x
-        if parent[x] != x:
-            parent[x] = find(parent[x])
-        return parent[x]
+    directed_edges = list(directed_edges_set)
 
-    def union(x, y):
-        px, py = find(x), find(y)
-        if px != py:
-            parent[px] = py
+    # Build vertex-to-incident-faces map for edge ordering around vertices
+    vertex_faces = defaultdict(list)  # vertex -> list of (quad_idx, position_in_quad)
+    for qi, quad in enumerate(quads):
+        for i in range(4):
+            vertex_faces[quad[i]].append((qi, i))
 
-    # Union vertices connected by boundary edges
-    for v0, v1 in boundary_edges:
-        union(v0, v1)
+    # Build next_edge map using face topology
+    # For each boundary edge, find its successor by looking at the face containing it
+    next_edge = {}
 
-    # Group edges by component
-    components = defaultdict(list)
-    for v0, v1 in boundary_edges:
-        root = find(v0)
-        components[root].append((v0, v1))
+    # For each directed boundary edge (a, b), find the next edge (b, c)
+    # If edges (a,b) and (b,c) are both boundary and in the same face, they're consecutive
+    # If (a,b) is boundary but (b,c) is interior, walk through connected faces to find
+    # the next boundary edge starting at b
+
+    for e in directed_edges:
+        a, b = e
+
+        # Find the quad containing directed edge (a, b)
+        containing_quad = None
+        edge_pos = None
+        for qi, quad in enumerate(quads):
+            for i in range(4):
+                if quad[i] == a and quad[(i + 1) % 4] == b:
+                    containing_quad = qi
+                    edge_pos = i
+                    break
+            if containing_quad is not None:
+                break
+
+        if containing_quad is None:
+            continue
+
+        # Get the next vertex in this quad after b
+        quad = quads[containing_quad]
+        c = quad[(edge_pos + 2) % 4]
+        next_candidate = (b, c)
+
+        if next_candidate in directed_edges_set:
+            # Both edges are boundary - they're consecutive
+            next_edge[e] = next_candidate
+        else:
+            # Edge (b, c) is interior - need to walk through faces to find next boundary edge
+            # Walk around vertex b through connected faces until we find a boundary outgoing edge
+            current_qi = containing_quad
+            current_next = c  # The vertex after b in current face
+
+            # Keep walking to adjacent faces until we find a boundary edge
+            for _ in range(len(quads)):  # Safety limit
+                # Find the face adjacent to current face across edge (b, current_next)
+                # That face has edge (current_next, b) as one of its edges
+                found_adjacent = False
+                for qi, quad in enumerate(quads):
+                    if qi == current_qi:
+                        continue
+                    for i in range(4):
+                        if quad[i] == current_next and quad[(i + 1) % 4] == b:
+                            # Found adjacent face
+                            # The next vertex after b in this face
+                            next_v = quad[(i + 2) % 4]
+                            out_candidate = (b, next_v)
+                            if out_candidate in directed_edges_set:
+                                # Found the next boundary edge
+                                next_edge[e] = out_candidate
+                                found_adjacent = True
+                                break
+                            else:
+                                # Keep walking
+                                current_qi = qi
+                                current_next = next_v
+                                found_adjacent = True
+                                break
+                    if found_adjacent:
+                        break
+
+                if e in next_edge:
+                    break
+                if not found_adjacent:
+                    # No adjacent face found - we've reached a gap (but shouldn't happen)
+                    break
+
+    # Walk boundary loops
+    visited = set()
+    loops = []
+
+    for start_edge in directed_edges:
+        if start_edge in visited:
+            continue
+
+        loop_vertices = []
+        current = start_edge
+
+        while current not in visited:
+            visited.add(current)
+            loop_vertices.append(current[0])
+
+            if current not in next_edge:
+                break
+
+            next_e = next_edge[current]
+            if next_e == start_edge:
+                # Completed loop
+                break
+            current = next_e
+
+        if len(loop_vertices) >= 3:
+            loops.append(loop_vertices)
+
+    # Split loops at repeated vertices (pinch points) to avoid non-manifold edges
+    # A figure-8 loop that visits vertex v twice should be split into 2 sub-loops
+    final_loops = []
+    for loop in loops:
+        # Check for repeated vertices
+        seen = {}
+        repeated = []
+        for i, v in enumerate(loop):
+            if v in seen:
+                repeated.append((seen[v], i))
+            seen[v] = i
+
+        if not repeated:
+            # No repeats - keep loop as is
+            final_loops.append(loop)
+        else:
+            # Split at repeated vertices
+            # For each pair (first_idx, second_idx), split into sub-loops
+            # Sort by first occurrence index
+            repeated.sort()
+
+            # Extract sub-loops
+            remaining = loop[:]
+            for first_idx, second_idx in repeated:
+                if second_idx <= first_idx:
+                    continue
+                # Find current positions in remaining
+                try:
+                    v = loop[first_idx]
+                    curr_first = remaining.index(v)
+                    # Find second occurrence
+                    curr_second = None
+                    for i in range(curr_first + 1, len(remaining)):
+                        if remaining[i] == v:
+                            curr_second = i
+                            break
+                    if curr_second is not None:
+                        # Extract sub-loop from first to second
+                        sub_loop = remaining[curr_first:curr_second]
+                        if len(sub_loop) >= 3:
+                            final_loops.append(sub_loop)
+                        # Remove the sub-loop from remaining, keep the shared vertex
+                        remaining = remaining[:curr_first+1] + remaining[curr_second+1:]
+                except ValueError:
+                    continue
+
+            # Add what remains
+            if len(remaining) >= 3:
+                final_loops.append(remaining)
 
     if verbose:
-        print(f"  Found {len(components)} holes with {len(boundary_edges)} boundary edges")
+        print(f"  Found {len(final_loops)} holes with {len(boundary_edges_set)} boundary edges")
 
-    # Triangulate each component using fan triangulation from centroid
+    # Triangulate each loop using fan from centroid
     triangles = []
     n_verts = len(vertices)
     new_vertices = []
 
-    for comp_edges in components.values():
-        if len(comp_edges) < 3:
+    for loop in final_loops:
+        if len(loop) < 3:
             continue
 
-        # Get all vertices in this component
-        comp_verts = set()
-        for v0, v1 in comp_edges:
-            comp_verts.add(v0)
-            comp_verts.add(v1)
-
-        # Compute centroid of component vertices
-        comp_vert_list = list(comp_verts)
-        centroid = vertices[comp_vert_list].mean(axis=0)
-
-        # Add centroid as new vertex
+        # Compute centroid
+        centroid = vertices[loop].mean(axis=0)
         centroid_idx = n_verts + len(new_vertices)
         new_vertices.append(centroid)
 
-        # Create a triangle for each boundary edge
-        for v0, v1 in comp_edges:
-            triangles.append([v0, v1, centroid_idx])
+        # Create triangles around the loop
+        # Reverse winding to match quad orientation (boundary traced from inside)
+        for i in range(len(loop)):
+            v0 = loop[i]
+            v1 = loop[(i + 1) % len(loop)]
+            triangles.append([v1, v0, centroid_idx])
 
     if verbose and triangles:
-        print(f"  Added {len(triangles)} triangles to fill holes ({len(new_vertices)} new vertices)")
+        print(f"  Added {len(triangles)} triangles to fill {len(final_loops)} holes ({len(new_vertices)} new vertices)")
 
     return triangles, np.array(new_vertices) if new_vertices else np.zeros((0, 3))
 

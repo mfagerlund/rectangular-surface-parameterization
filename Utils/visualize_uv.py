@@ -336,15 +336,16 @@ def visualize_run_RSP_result(
     SrcCut,
     Xp: np.ndarray,
     disto,
-    output_dir: str = "output"
+    output_dir: str = "output",
+    mesh_name: str = None
 ) -> int:
     """
     Comprehensive visualization of run_RSP.py output.
 
     Creates:
-    - uv_layout.png: UV with flips highlighted
-    - mesh_flips.png: 3D mesh with flipped faces
-    - distortion.png: Distortion metrics
+    - {mesh_name}_uv_layout.png: UV with flips highlighted
+    - {mesh_name}_mesh_flips.png: 3D mesh with flipped faces
+    - {mesh_name}_distortion.png: Distortion metrics
 
     Args:
         Src: Original MeshInfo
@@ -352,6 +353,7 @@ def visualize_run_RSP_result(
         Xp: UV coordinates (nv_cut, 2)
         disto: DistortionMetrics from extract_scale_from_param
         output_dir: Output directory
+        mesh_name: Mesh name prefix for output files (e.g., 'sphere320')
 
     Returns:
         n_flipped: Number of flipped triangles
@@ -359,19 +361,23 @@ def visualize_run_RSP_result(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Build filename prefix
+    prefix = f"{mesh_name}_" if mesh_name else ""
+
     # 1. UV layout with flips
     n_flipped = save_uv_visualization(
         Xp, SrcCut.T, disto.detJ,
-        str(output_dir / "uv_layout.png")
+        str(output_dir / f"{prefix}uv_layout.png")
     )
 
     # 2. 3D mesh with flipped faces highlighted
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111, projection='3d')
     plot_mesh_with_flips(Src.X, Src.T, disto.detJ, ax=ax)
-    plt.savefig(output_dir / "mesh_flips.png", dpi=150)
+    mesh_flips_path = output_dir / f"{prefix}mesh_flips.png"
+    plt.savefig(mesh_flips_path, dpi=150)
     plt.close()
-    print(f"Saved: {output_dir / 'mesh_flips.png'}")
+    print(f"Saved: {mesh_flips_path}")
 
     # 3. Distortion metrics
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
@@ -409,8 +415,9 @@ def visualize_run_RSP_result(
     plt.colorbar(im, ax=ax)
 
     plt.tight_layout()
-    plt.savefig(output_dir / "distortion.png", dpi=150)
+    distortion_path = output_dir / f"{prefix}distortion.png"
+    plt.savefig(distortion_path, dpi=150)
     plt.close()
-    print(f"Saved: {output_dir / 'distortion.png'}")
+    print(f"Saved: {distortion_path}")
 
     return n_flipped
