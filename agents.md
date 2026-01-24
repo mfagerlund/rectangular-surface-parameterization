@@ -49,9 +49,9 @@ Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) fo
 ![Sphere Distortion](docs/images/sphere320_distortion.png)
 *Four quality metrics: Area distortion, conformal distortion, Jacobian determinant (negative = flipped), orthogonality error.*
 
-### Sphere - 3D Mesh View
-![Sphere Mesh](docs/images/sphere320_mesh_flips.png)
-*Original mesh with flipped faces highlighted (none in this case).*
+### Sphere - Quad Mesh
+![Sphere Quads](docs/examples/sphere320_smooth/sphere320_quads.png)
+*Extracted quad mesh: 400 quads with 16 triangular hole-fills at singularities.*
 
 ### Torus (genus 1) - UV Layout
 ![Torus UV Layout](docs/images/torus_uv_layout.png)

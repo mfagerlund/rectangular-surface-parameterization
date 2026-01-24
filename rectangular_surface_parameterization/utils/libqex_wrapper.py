@@ -469,8 +469,15 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None, fi
     if result.returncode != 0:
         raise RuntimeError(f"qex_extract failed: {result.stderr}")
 
-    # Parse output
-    output_lines = result.stdout.strip().split("\n")
+    # Parse output - strip ANSI escape codes first
+    import re
+    ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
+    clean_output = ansi_escape.sub('', result.stdout)
+    output_lines = clean_output.strip().split("\n")
+
+    # Filter out non-numeric lines (warnings, etc.)
+    output_lines = [line for line in output_lines if line and not line.startswith('Skipping')]
+
     if len(output_lines) < 1:
         raise RuntimeError("qex_extract produced empty output")
 

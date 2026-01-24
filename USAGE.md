@@ -230,10 +230,9 @@ pytest tests/ -v
 | File | Description |
 |------|-------------|
 | `<mesh>_param.obj` | Parameterized mesh with UV coordinates |
-| `<mesh>_quads.obj` | Extracted quad mesh |
-| `uv_layout.png` | UV space visualization |
-| `mesh_flips.png` | 3D mesh with flipped faces in red |
-| `distortion.png` | Distortion heatmap |
+| `<mesh>_quads.obj` | Extracted quad mesh (from extract_quads.py) |
+| `stage5_uv_layout.png` | UV space visualization with checkerboard |
+| `stage5_quality.png` | Distortion heatmap (4 metrics) |
 
 ## Test Meshes
 

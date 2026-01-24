@@ -88,6 +88,9 @@ def load_mesh_with_uvs(obj_path):
     """
     Load OBJ file and return vertices, triangles, and per-triangle UVs.
 
+    Parses OBJ directly to properly handle UV indices per face corner.
+    The trimesh-based readOBJ doesn't preserve UV indices correctly.
+
     Returns
     -------
     X : ndarray, shape (n_verts, 3)
@@ -97,24 +100,52 @@ def load_mesh_with_uvs(obj_path):
     uv_per_tri : ndarray, shape (n_tris, 3, 2)
         UV coordinates per triangle corner.
     """
-    V, F, UV, TF, *_ = readOBJ(str(obj_path))
+    vertices = []
+    uvs = []
+    faces = []  # List of [(v_idx, uv_idx), ...] per face
 
-    n_tris = F.shape[0]
+    with open(obj_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
 
-    # Check if we have UV data
-    if UV.shape[0] == 0 or TF.shape[0] == 0:
+            parts = line.split()
+            if not parts:
+                continue
+
+            if parts[0] == 'v' and len(parts) >= 4:
+                vertices.append([float(parts[1]), float(parts[2]), float(parts[3])])
+            elif parts[0] == 'vt' and len(parts) >= 3:
+                uvs.append([float(parts[1]), float(parts[2])])
+            elif parts[0] == 'f' and len(parts) >= 4:
+                face = []
+                for p in parts[1:4]:  # Only take first 3 vertices (triangles)
+                    indices = p.split('/')
+                    v_idx = int(indices[0]) - 1  # OBJ is 1-indexed
+                    uv_idx = int(indices[1]) - 1 if len(indices) > 1 and indices[1] else -1
+                    face.append((v_idx, uv_idx))
+                faces.append(face)
+
+    if not vertices:
+        raise ValueError("OBJ file has no vertices")
+    if not faces:
+        raise ValueError("OBJ file has no faces")
+    if not uvs:
         raise ValueError("OBJ file has no UV coordinates")
 
-    # Convert to per-triangle UVs
-    uv_per_tri = np.zeros((n_tris, 3, 2), dtype=np.float64)
-    for i in range(n_tris):
-        for j in range(3):
-            uv_idx = TF[i, j]
-            if uv_idx < 0 or uv_idx >= UV.shape[0]:
-                raise ValueError(f"Invalid UV index {uv_idx} in triangle {i}")
-            uv_per_tri[i, j, :] = UV[uv_idx, :2]  # Take only first 2 components
+    V = np.array(vertices, dtype=np.float64)
+    T = np.array([[f[0][0], f[1][0], f[2][0]] for f in faces], dtype=np.int64)
 
-    return V, F, uv_per_tri
+    # Build per-triangle UVs
+    uv_per_tri = np.zeros((len(faces), 3, 2), dtype=np.float64)
+    for i, face in enumerate(faces):
+        for j, (v_idx, uv_idx) in enumerate(face):
+            if uv_idx < 0 or uv_idx >= len(uvs):
+                raise ValueError(f"Invalid UV index {uv_idx} in triangle {i}")
+            uv_per_tri[i, j, :] = uvs[uv_idx]
+
+    return V, T, uv_per_tri
 
 
 def main():
