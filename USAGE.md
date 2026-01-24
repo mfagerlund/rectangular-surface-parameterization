@@ -68,6 +68,10 @@ The `--scale` parameter controls quad density (higher = more quads).
 The cross field determines the orientation of the UV grid on the surface. Different methods
 produce different quad layouts.
 
+> **Note on UV overlaps:** The images below may show overlapping regions in UV space. This is
+> **expected behavior** - the algorithm produces *seamless* UVs for quad meshing, not *bijective*
+> (overlap-free) UVs for texturing. libQEx handles overlaps during quad extraction.
+
 ### `--frame-field smooth` (default)
 
 Computes the **smoothest possible** cross field by minimizing directional variation across
@@ -185,10 +189,10 @@ For meshes with quality issues (non-manifold edges, holes, etc.):
 
 ```bash
 # Standalone preprocessing
-python Utils/preprocess_mesh.py input.obj output_clean.obj
+python -m rectangular_surface_parameterization.utils.preprocess_mesh input.obj output_clean.obj
 
 # Check mesh quality
-python -c "from Utils.preprocess_mesh import check_mesh_quality; check_mesh_quality('mesh.obj')"
+python -c "from rectangular_surface_parameterization.utils.preprocess_mesh import check_mesh_quality; check_mesh_quality('mesh.obj')"
 ```
 
 Or use the `--preprocess` flag with extract_quads.py.
@@ -196,12 +200,12 @@ Or use the `--preprocess` flag with extract_quads.py.
 ## Verification
 
 ```bash
-# Verify specific pipeline stage
-python verify_pipeline.py mesh.obj --stage geometry
-python verify_pipeline.py mesh.obj --stage cross_field
-python verify_pipeline.py mesh.obj --stage cut_graph
-python verify_pipeline.py mesh.obj --stage optimization
-python verify_pipeline.py mesh.obj --stage uv_recovery
+# Verify specific pipeline stage (1=geometry, 2=cross_field, 3=cut_graph, 4=optimization, 5=uv_recovery)
+python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 1
+python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 2
+python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 3
+python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 4
+python -m rectangular_surface_parameterization.utils.verify_pipeline mesh.obj --stage 5
 
 # Run all tests
 pytest tests/ -v
