@@ -5,22 +5,13 @@ libQEx is used for robust quad mesh extraction from integer-grid maps.
 > **Note:** Quad extraction is **beyond the scope of the Corman-Crane paper**.
 > The paper produces seamless UV parameterization; libQEx extracts quads from it.
 
-## Automatic Download (Recommended)
+## Pre-built Binaries
 
-**No setup required.** When you run `extract_quads.py`, the appropriate binary
-for your platform is automatically downloaded from GitHub Releases.
+**Windows x64**: Binaries are included in the `bin/` directory. No setup required.
 
-Supported platforms:
-- Windows x64
-- Linux x64
-- macOS Intel (x64)
-- macOS Apple Silicon (ARM64)
+**Linux/macOS**: Build from source (see below).
 
-Binaries are cached locally:
-- Windows: `%LOCALAPPDATA%\rsp\bin\`
-- Linux/macOS: `~/.cache/rsp/bin/`
-
-## Building from Source (Optional)
+## Building from Source
 
 ### Prerequisites
 

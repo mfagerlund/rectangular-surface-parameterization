@@ -108,15 +108,13 @@ def _download_binary(bin_dir, verbose=True):
         raise
 
 
-def _find_qex_exe(auto_download=True):
+def _find_qex_exe(auto_download=False):
     """Find the qex_extract executable.
 
     Search order:
     1. Repo bin/ directory (for development)
     2. Current working directory
     3. User cache directory (~/.cache/rsp/bin or %LOCALAPPDATA%\\rsp\\bin)
-
-    If not found and auto_download=True, downloads from GitHub Releases to cache.
     """
     _, exe_name = _get_platform_binary_name()
     if exe_name is None:
@@ -138,20 +136,21 @@ def _find_qex_exe(auto_download=True):
     if cache_exe.exists():
         return str(cache_exe)
 
-    # 4. Try to download to cache directory
-    if auto_download:
-        try:
-            return _download_binary(cache_dir)
-        except Exception:
-            pass  # Fall through to error message
-
-    raise FileNotFoundError(
-        f"Could not find {exe_name}.\n"
-        f"Download pre-built binaries from GitHub Releases:\n"
-        f"  https://github.com/{GITHUB_REPO}/releases\n"
-        f"Place in: {cache_dir}\n"
-        f"Or build from source - see bin/BINARIES.txt for instructions."
-    )
+    # Platform-specific error message
+    system = platform.system().lower()
+    if system == "windows":
+        raise FileNotFoundError(
+            f"Could not find {exe_name}.\n"
+            f"Windows binaries should be included in bin/ directory.\n"
+            f"If missing, reinstall or build from source - see docs/libqex_setup.md"
+        )
+    else:
+        raise FileNotFoundError(
+            f"Could not find {exe_name}.\n"
+            f"Linux/macOS binaries must be built from source.\n"
+            f"See docs/libqex_setup.md for build instructions.\n"
+            f"Place the built binary in: {cache_dir}"
+        )
 
 
 def _fill_holes_with_triangles(vertices, quads, verbose=True):
