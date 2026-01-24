@@ -38,6 +38,24 @@ pytest tests/ -v                                    # Run tests
 
 Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) for details.
 
+## Example Output
+
+### Sphere (genus 0) - UV Layout
+![Sphere UV Layout](docs/images/sphere320_uv_layout.png)
+*Left: UV layout with triangle mesh. Right: Checkerboard pattern for distortion visualization. **0 flipped triangles.***
+
+### Sphere - Distortion Analysis
+![Sphere Distortion](docs/images/sphere320_distortion.png)
+*Four quality metrics: Area distortion, conformal distortion, Jacobian determinant (negative = flipped), orthogonality error.*
+
+### Sphere - 3D Mesh View
+![Sphere Mesh](docs/images/sphere320_mesh_flips.png)
+*Original mesh with flipped faces highlighted (none in this case).*
+
+### Torus (genus 1) - UV Layout
+![Torus UV Layout](docs/images/torus_uv_layout.png)
+*Torus parameterization showing characteristic cut structure for genus-1 surface. **0 flipped triangles.***
+
 ## References (READ)
 MATLAB impl: https://github.com/etcorman/RectangularSurfaceParameterization (local: `C:\Slask\RectangularSurfaceParameterization`)
 Paper: `D:\Data\GDrive\FlatrPDFs\corman-crane-rectangular-parameterization-siggraph2025.pdf`
