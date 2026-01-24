@@ -49,6 +49,26 @@ from rectangular_surface_parameterization.optimization.solver import optimize_RS
 from rectangular_surface_parameterization.parameterization.integrate import parametrization_from_scales
 from rectangular_surface_parameterization.parameterization.seamless import mesh_to_disk_seamless
 
+# Stage visualization functions
+from rectangular_surface_parameterization.utils.verify_pipeline import (
+    verify_geometry, verify_cross_field, verify_cut_graph,
+    verify_optimization, verify_uv_recovery
+)
+
+
+def parse_visualize_stages(viz_arg: str) -> set:
+    """Parse --visualize argument into set of stage numbers."""
+    if not viz_arg or viz_arg.lower() == 'none':
+        return set()
+    stages = set()
+    for part in viz_arg.split(','):
+        part = part.strip()
+        if part.isdigit():
+            stage = int(part)
+            if 1 <= stage <= 5:
+                stages.add(stage)
+    return stages
+
 
 @dataclass
 class Weight:
@@ -109,9 +129,12 @@ Examples:
 
     # Visualization
     parser.add_argument('--plot', action='store_true',
-                        help='Show visualization plots')
-    parser.add_argument('--save-viz', action='store_true',
-                        help='Save UV visualization PNGs to output directory')
+                        help='Show interactive matplotlib plots')
+    parser.add_argument('--visualize', type=str, nargs='?', const='1,2,3,4,5', default='1,2,3,4,5',
+                        metavar='STAGES',
+                        help='Stages to visualize as comma-separated list (default: 1,2,3,4,5 = all). '
+                             'Use --visualize "" or --visualize none to disable. '
+                             'Stages: 1=geometry, 2=cross_field, 3=cut_graph, 4=optimization, 5=uv_recovery')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Verbose output')
 
@@ -122,13 +145,8 @@ def main():
     """Main entry point."""
     args = parse_args()
 
-    # mesh_name = 'B36';
-    # frame_field_type = 'smooth';
-    # ifhardedge   = true;
-    # ifboundary   = true;
-    # ifseamless_const = true;
-    # ifquantization = true;
-    # energy_type = 'distortion';
+    # Parse visualization stages
+    viz_stages = parse_visualize_stages(args.visualize)
 
     mesh_path = Path(args.mesh)
     mesh_name = mesh_path.stem
@@ -213,6 +231,12 @@ def main():
         print(f"  Hard edges: {len(param.ide_hard)}")
         print(f"  Boundary edges: {len(param.ide_bound)}")
         print(f"  Fixed edges: {len(param.ide_fix)}")
+
+    # Stage 1 visualization: Geometry
+    if 1 in viz_stages:
+        if verbose:
+            print("Generating Stage 1 visualizations (geometry)...")
+        verify_geometry(Src, Path(path_save))
 
     # col = zeros(Src.num_vertices,1); col(Src.edge_to_vertex(param.ide_fix,:)) = 1;
     # figure; trisurf(...); title('Constraint')
@@ -308,6 +332,12 @@ def main():
         print(f"  Negative singularities: {id_sing_m}")
         print(f"  Total singularities: {id_sing_p + id_sing_m}")
 
+    # Stage 2 visualization: Cross Field
+    if 2 in viz_stages:
+        if verbose:
+            print("Generating Stage 2 visualizations (cross field)...")
+        verify_cross_field(Src, param, ang, sing, Path(path_save))
+
     # plot_frame_field(1, Src, param, ang, sing);
     # title('Init frame field');
 
@@ -329,6 +359,12 @@ def main():
     else:
         Edge_jump, v2t, base_tri = reduce_corner_var_2d(Src)
     k21, Reduction = reduction_from_ff2d(Src, param, ang, omega, Edge_jump, v2t)
+
+    # Stage 3 visualization: Cut Graph
+    if 3 in viz_stages:
+        if verbose:
+            print("Generating Stage 3 visualizations (cut graph)...")
+        verify_cut_graph(Src, k21, sing, param, Path(path_save))
 
     # itmax = 200;
     # ifplot = false;
@@ -360,6 +396,12 @@ def main():
         else:
             print(f"  Line search failed at iteration {result.it}")
 
+    # Stage 4 visualization: Optimization
+    if 4 in viz_stages:
+        if verbose:
+            print("Generating Stage 4 visualizations (optimization)...")
+        verify_optimization(Src, ut, vt, angn, dec, Path(path_save))
+
     # [disk_mesh,dec_cut,Align,Rot] = mesh_to_disk_seamless(Src, param, angn, sing, k21, ifseamless_const, ifboundary, ifhardedge);
     # [Xp,dX] = parametrization_from_scales(Src, disk_mesh, dec_cut, param, angn, om, ut, vt, Align, Rot);
 
@@ -387,11 +429,11 @@ def main():
         print(f"  Flipped triangles: {n_flipped}")
         print(f"  Max integrability error: {np.max(curl_dX):.2e}")
 
-    # Save visualization PNGs
-    if args.save_viz:
+    # Stage 5 visualization: UV Recovery
+    if 5 in viz_stages:
         if verbose:
-            print(f"Saving visualizations to {path_save}...")
-        visualize_run_RSP_result(Src, disk_mesh, Xp, disto, output_dir=path_save, mesh_name=mesh_name)
+            print("Generating Stage 5 visualizations (UV recovery)...")
+        verify_uv_recovery(Xp, disk_mesh.triangles, disto.detJ, Path(path_save))
 
     if ifplot:
         fig, axes = plt.subplots(2, 2, figsize=(12, 10))
