@@ -313,8 +313,8 @@ def sort_triangles_comp(
 
         if T2E is not None:
             # ide = unique(abs(T2E(trii,:)))
-            # T2E uses 1-based signed encoding, so abs(T2E)-1 gives 0-based edge indices
-            ide = np.unique(np.abs(T2E[trii, :].ravel()) - 1)
+            # T2E is a SignedEdgeArray - use .indices for 0-based edge indices
+            ide = np.unique(T2E[trii, :].indices.ravel())
             # Remove -1 if present (no edge marker, from edges that were index 0 in broken encoding)
             ide = ide[ide >= 0]
 

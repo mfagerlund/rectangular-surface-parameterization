@@ -249,10 +249,9 @@ def parametrization_from_scales(
 
     e1_edge = np.column_stack([e1, e1, e1])  # shape (nf, 3)
 
-    # T2E is signed 1-based encoding: decode as abs(T2E)-1 for 0-based edge index
-    T2E = np.asarray(Src.T2E)
-    T2E_abs = np.abs(T2E) - 1  # 0-based edge indices
-    T2E_sign = np.sign(T2E)
+    # T2E is a SignedEdgeArray - use .indices and .signs
+    T2E_abs = Src.T2E.indices  # 0-based edge indices
+    T2E_sign = Src.T2E.signs
 
     # Rotation factor for averaging across edge
     omega_at_edges = omega[T2E_abs]  # shape (nf, 3)
@@ -272,9 +271,8 @@ def parametrization_from_scales(
     # edge2 = edge(abs(disk_mesh.T2E(:,2)),:);
     # edge3 = edge(abs(disk_mesh.T2E(:,3)),:);
 
-    # disk_mesh.T2E is signed 1-based encoding
-    T2E_cut = np.asarray(disk_mesh.T2E)
-    T2E_cut_abs = np.abs(T2E_cut) - 1  # 0-based edge indices
+    # disk_mesh.T2E is a SignedEdgeArray - use .indices for 0-based edge indices
+    T2E_cut_abs = disk_mesh.T2E.indices
 
     edge1 = edge[T2E_cut_abs[:, 0], :]  # shape (nf, 3)
     edge2 = edge[T2E_cut_abs[:, 1], :]  # shape (nf, 3)

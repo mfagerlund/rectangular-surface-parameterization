@@ -200,8 +200,8 @@ def preprocess_ortho_param(
         if len(tri_fix) != len(np.unique(tri_fix)):
             # tri = sum(ismember(abs(mesh.T2E), ide_fix) ,2) >= 2;
 
-            # T2E uses 1-based signed encoding, so abs(T2E)-1 gives 0-based edge indices
-            T2E_abs = np.abs(mesh.T2E) - 1
+            # T2E is a SignedEdgeArray - use .indices for 0-based edge indices
+            T2E_abs = mesh.T2E.indices
             tri_mask = np.sum(np.isin(T2E_abs, ide_fix), axis=1) >= 2
 
             # b = (mesh.vertices(mesh.triangles(tri,1),:)+mesh.vertices(mesh.triangles(tri,2),:)+mesh.vertices(mesh.triangles(tri,3),:))/3;

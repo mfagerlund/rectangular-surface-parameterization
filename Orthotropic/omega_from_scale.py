@@ -64,9 +64,9 @@ def omega_from_scale(
     ne = mesh.num_edges
     nf = mesh.num_faces
 
-    # Decode signed edge indices: edge_idx = abs(T2E) - 1, sign = sign(T2E)
-    edge_idx = np.abs(T2E) - 1  # (nf x 3)
-    edge_sign = np.sign(T2E)  # (nf x 3)
+    # T2E is a SignedEdgeArray - use .indices and .signs
+    edge_idx = T2E.indices  # (nf x 3)
+    edge_sign = T2E.signs  # (nf x 3)
 
     # J = repmat(reshape((1:3*mesh.num_faces)', [mesh.num_faces,3]), [1,3]);
     # Creates (nf x 9) matrix with columns: [corner1, corner1, corner1, corner2, corner2, corner2, corner3, corner3, corner3]

@@ -191,8 +191,8 @@ def dec_tri(mesh: MeshInfo) -> DEC:
     cot_reordered = mesh.cot_corner_angle[:, [2, 0, 1]]  # shape (nf, 3)
 
     # Flatten in column-major order to match MATLAB vec()
-    # T2E uses 1-based signed encoding, so abs(T2E)-1 gives 0-based edge indices
-    T2E_flat = (np.abs(mesh.T2E) - 1).flatten('F')  # shape (3*nf,), 0-based edge indices
+    # T2E is a SignedEdgeArray - use .indices for 0-based edge indices
+    T2E_flat = mesh.T2E.indices.flatten('F')  # shape (3*nf,), 0-based edge indices
     cot_flat = cot_reordered.flatten('F') / 2  # shape (3*nf,)
 
     # Accumulate cotangent weights to edges
@@ -240,8 +240,8 @@ def dec_tri(mesh: MeshInfo) -> DEC:
     # Note: flatten() uses row-major order, so row_idx must use np.repeat (not np.tile)
     # to get [0,0,0, 1,1,1, ...] matching [T2E[0,0], T2E[0,1], T2E[0,2], T2E[1,0], ...]
     row_idx = np.repeat(np.arange(nf), 3)  # [0,0,0, 1,1,1, ..., nf-1,nf-1,nf-1]
-    col_idx = (np.abs(mesh.T2E) - 1).flatten()  # 0-based edge indices
-    data = np.sign(mesh.T2E).flatten()  # edge orientations
+    col_idx = mesh.T2E.indices.flatten()  # 0-based edge indices
+    data = mesh.T2E.signs.flatten()  # edge orientations
     d1p = csr_matrix((data, (row_idx, col_idx)), shape=(nf, ne))
 
     # assert(norm(d1p*d0p, 'fro') == 0, 'Assembling DEC: Orinetation problems');
@@ -295,15 +295,15 @@ def dec_tri(mesh: MeshInfo) -> DEC:
     # deg_ed = accumarray(abs(mesh.T2E(:)), 1);
 
     # Count how many times each edge appears (edge degree)
-    # T2E uses 1-based signed encoding, so abs(T2E)-1 gives 0-based edge indices
-    T2E_abs_flat = (np.abs(mesh.T2E) - 1).flatten()
+    # T2E is a SignedEdgeArray - use .indices for 0-based edge indices
+    T2E_abs_flat = mesh.T2E.indices.flatten()
     deg_ed = np.bincount(T2E_abs_flat, minlength=ne)
 
     # I = abs(mesh.T2E(:,[1 2 3]));
 
     # MATLAB [1 2 3] -> Python [0, 1, 2] (same order)
-    # T2E uses 1-based signed encoding
-    I = np.abs(mesh.T2E[:, [0, 1, 2]]) - 1  # shape (nf, 3), 0-based edge indices
+    # T2E is a SignedEdgeArray - use .indices for 0-based edge indices
+    I = mesh.T2E[:, [0, 1, 2]].indices  # shape (nf, 3), 0-based edge indices
 
     # J = reshape((1:3*nf),[nf,3]);
 
@@ -313,8 +313,8 @@ def dec_tri(mesh: MeshInfo) -> DEC:
     # S = sign(mesh.T2E(:,[1 2 3]))./deg_ed(abs(mesh.T2E));
 
     # Sign of edge divided by edge degree
-    T2E_sign = np.sign(mesh.T2E[:, [0, 1, 2]])  # shape (nf, 3)
-    T2E_abs = np.abs(mesh.T2E[:, [0, 1, 2]]) - 1  # shape (nf, 3), 0-based edge indices
+    T2E_sign = mesh.T2E[:, [0, 1, 2]].signs  # shape (nf, 3)
+    T2E_abs = mesh.T2E[:, [0, 1, 2]].indices  # shape (nf, 3), 0-based edge indices
     S = T2E_sign / deg_ed[T2E_abs]  # shape (nf, 3)
 
     # d0p_tri = sparse([I, I], [J, J(:,[2 3 1])], [-S, S], ne, 3*nf);

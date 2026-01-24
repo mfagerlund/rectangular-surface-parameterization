@@ -134,9 +134,9 @@ def oracle_integrability_condition(
     lambda_full = np.zeros(mesh.num_edges)
     lambda_full[ide_free] = lam[:len(ide_free)]
 
-    # T2E uses signed encoding: decode with abs(T2E)-1 for index, sign(T2E) for sign
-    T2E_idx = np.abs(mesh.T2E) - 1  # Convert to 0-based edge indices
-    T2E_sign = np.sign(mesh.T2E)
+    # T2E is a SignedEdgeArray - use .indices and .signs
+    T2E_idx = mesh.T2E.indices  # 0-based edge indices
+    T2E_sign = mesh.T2E.signs
     le = T2E_sign * lambda_full[T2E_idx]
 
     #     dthS = 2*le(:,1).*cot_ang(:,3).*(-sin_2ff1.*(cot_ang(:,2).*(vt3 - vt1) + cot_ang(:,1).*(vt3 - vt2)) - cos_2ff1.*(vt2 - vt1)) + ...
