@@ -70,7 +70,7 @@ jobs:
         run: |
           cd libQEx
           mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_CXX_STANDARD=11
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/openmesh-install -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_CXX_FLAGS="-std=c++11"
           cmake --build . --config Release -j$(nproc 2>/dev/null || sysctl -n hw.ncpu)
 
       - name: Build libQEx (Windows)
@@ -86,7 +86,18 @@ jobs:
       - name: Find and copy binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          find libQEx/build -name "qex_extract" -type f -executable | head -1 | xargs -I{} cp {} ./qex_extract
+          # List all executables to debug
+          find libQEx/build -type f -executable -name "*" | head -20
+          # Try qex_extract first, fall back to cmdline_tool
+          binary=$(find libQEx/build -name "qex_extract" -type f -executable | head -1)
+          if [ -z "$binary" ]; then
+            binary=$(find libQEx/build -name "cmdline_tool" -type f -executable | head -1)
+          fi
+          if [ -z "$binary" ]; then
+            echo "No qex binary found!"
+            exit 1
+          fi
+          cp "$binary" ./qex_extract
           chmod +x ./qex_extract
           ls -la ./qex_extract
 
@@ -94,7 +105,16 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          # List all exe files to debug
+          Get-ChildItem -Path libQEx/build -Recurse -Filter "*.exe" | ForEach-Object { Write-Host "Found: $($_.FullName)" }
+          # Try qex_extract first, fall back to cmdline_tool
           $binary = Get-ChildItem -Path libQEx/build -Recurse -Filter "qex_extract.exe" | Select-Object -First 1
+          if (-not $binary) {
+            $binary = Get-ChildItem -Path libQEx/build -Recurse -Filter "cmdline_tool.exe" | Select-Object -First 1
+          }
+          if (-not $binary) {
+            throw "No qex binary found!"
+          }
           Copy-Item $binary.FullName -Destination ./qex_extract.exe
           Get-Item ./qex_extract.exe
 
