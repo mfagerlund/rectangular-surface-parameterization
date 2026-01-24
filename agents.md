@@ -51,7 +51,7 @@ Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) fo
 
 ### Sphere - Quad Mesh
 ![Sphere Quads](docs/examples/sphere320_smooth/sphere320_quads.png)
-*Extracted quad mesh: 400 quads with 16 triangular hole-fills at singularities.*
+*Extracted quad mesh: 908 quads*
 
 ### Torus (genus 1) - UV Layout
 ![Torus UV Layout](docs/images/torus_uv_layout.png)

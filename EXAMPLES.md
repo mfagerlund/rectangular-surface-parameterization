@@ -26,7 +26,7 @@ python run_RSP.py Mesh/sphere320.obj --frame-field smooth -v
 *Distortion analysis showing area, conformal, Jacobian, and orthogonality metrics*
 
 ![Sphere Smooth Quads](docs/examples/sphere320_smooth/sphere320_quads.png)
-*Extracted quad mesh: 400 quads, 16 triangular hole-fills at singularities*
+*Extracted quad mesh: 908 quads*
 
 ### Curvature-Aligned Cross Field
 
@@ -38,7 +38,7 @@ python run_RSP.py Mesh/sphere320.obj --frame-field curvature -v
 *Curvature-aligned field on a sphere (uniform curvature, so similar to smooth)*
 
 ![Sphere Curvature Quads](docs/examples/sphere320_curvature/sphere320_quads.png)
-*Extracted quad mesh: 102 quads*
+*Extracted quad mesh: 927 quads*
 
 ---
 
@@ -172,8 +172,8 @@ python run_RSP.py Mesh/SquareMyles.obj --frame-field smooth --energy chebyshev -
 
 | Mesh | Faces | Cross Field | Energy | Flipped | Rate | Quads |
 |------|-------|-------------|--------|---------|------|-------|
-| sphere320 | 320 | smooth | distortion | 0 | 0.0% | 400 |
-| sphere320 | 320 | curvature | distortion | 0 | 0.0% | 102 |
+| sphere320 | 320 | smooth | distortion | 0 | 0.0% | 908 |
+| sphere320 | 320 | curvature | distortion | 0 | 0.0% | 927 |
 | torus | 1152 | smooth | distortion | 0 | 0.0% | 887 |
 | B36 | 4556 | smooth | distortion | 0 | 0.0% | N/A* |
 | B36 | 4556 | curvature | distortion | 0 | 0.0% | N/A* |
