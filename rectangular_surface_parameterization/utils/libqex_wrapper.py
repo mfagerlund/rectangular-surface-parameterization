@@ -17,11 +17,22 @@ from pathlib import Path
 import os
 import sys
 import urllib.request
+import json
 import platform
 
 # GitHub release info
 GITHUB_REPO = "mfagerlund/rectangular-surface-parameterization"
-RELEASE_TAG = "v0.1.0"  # Update when releasing
+
+
+def _get_cache_dir():
+    """Get user-writable cache directory for downloaded binaries."""
+    if os.name == "nt":
+        # Windows: use %LOCALAPPDATA%\rsp
+        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    else:
+        # Unix: use ~/.cache/rsp
+        base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+    return base / "rsp" / "bin"
 
 
 def _get_platform_binary_name():
@@ -42,17 +53,37 @@ def _get_platform_binary_name():
         return None, None
 
 
+def _get_latest_release_tag():
+    """Fetch the latest release tag from GitHub API."""
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+            return data.get("tag_name")
+    except Exception:
+        return None
+
+
 def _download_binary(bin_dir, verbose=True):
     """Download qex_extract binary from GitHub Releases."""
     artifact_name, exe_name = _get_platform_binary_name()
     if artifact_name is None:
         raise RuntimeError(f"No pre-built binary available for {platform.system()} {platform.machine()}")
 
-    url = f"https://github.com/{GITHUB_REPO}/releases/download/{RELEASE_TAG}/{artifact_name}"
+    # Get latest release tag
+    tag = _get_latest_release_tag()
+    if tag is None:
+        raise FileNotFoundError(
+            f"Could not fetch latest release from GitHub.\n"
+            f"Download manually from: https://github.com/{GITHUB_REPO}/releases\n"
+            f"Or build from source - see bin/BINARIES.txt for instructions."
+        )
+
+    url = f"https://github.com/{GITHUB_REPO}/releases/download/{tag}/{artifact_name}"
     exe_path = bin_dir / exe_name
 
     if verbose:
-        print(f"Downloading qex_extract from {url}...")
+        print(f"Downloading qex_extract ({tag}) from GitHub Releases...")
 
     try:
         bin_dir.mkdir(parents=True, exist_ok=True)
@@ -71,7 +102,7 @@ def _download_binary(bin_dir, verbose=True):
         if e.code == 404:
             raise FileNotFoundError(
                 f"Binary not found at {url}\n"
-                f"Release {RELEASE_TAG} may not exist yet.\n"
+                f"The release may not include pre-built binaries.\n"
                 f"Build from source - see bin/BINARIES.txt for instructions."
             ) from e
         raise
@@ -80,39 +111,45 @@ def _download_binary(bin_dir, verbose=True):
 def _find_qex_exe(auto_download=True):
     """Find the qex_extract executable.
 
-    Looks in repo root bin/ directory. If not found and auto_download=True,
-    attempts to download from GitHub Releases.
-    """
-    # Repo root is two levels up from this file (utils/ -> rectangular_surface_parameterization/ -> repo root)
-    repo_root = Path(__file__).parent.parent.parent
-    bin_dir = repo_root / "bin"
+    Search order:
+    1. Repo bin/ directory (for development)
+    2. Current working directory
+    3. User cache directory (~/.cache/rsp/bin or %LOCALAPPDATA%\\rsp\\bin)
 
-    # Platform-specific executable name
+    If not found and auto_download=True, downloads from GitHub Releases to cache.
+    """
     _, exe_name = _get_platform_binary_name()
     if exe_name is None:
         exe_name = "qex_extract.exe" if os.name == "nt" else "qex_extract"
 
-    exe_path = bin_dir / exe_name
+    # 1. Check repo bin/ (for development installs)
+    repo_root = Path(__file__).parent.parent.parent
+    repo_bin = repo_root / "bin" / exe_name
+    if repo_bin.exists():
+        return str(repo_bin)
 
-    if exe_path.exists():
-        return str(exe_path)
-
-    # Check current directory as fallback
+    # 2. Check current directory
     if Path(exe_name).exists():
         return exe_name
 
-    # Try to download if not found
+    # 3. Check user cache directory
+    cache_dir = _get_cache_dir()
+    cache_exe = cache_dir / exe_name
+    if cache_exe.exists():
+        return str(cache_exe)
+
+    # 4. Try to download to cache directory
     if auto_download:
         try:
-            return _download_binary(bin_dir)
-        except Exception as e:
-            # Fall through to error message
-            pass
+            return _download_binary(cache_dir)
+        except Exception:
+            pass  # Fall through to error message
 
     raise FileNotFoundError(
-        f"Could not find {exe_name}. Expected at {exe_path}\n"
+        f"Could not find {exe_name}.\n"
         f"Download pre-built binaries from GitHub Releases:\n"
         f"  https://github.com/{GITHUB_REPO}/releases\n"
+        f"Place in: {cache_dir}\n"
         f"Or build from source - see bin/BINARIES.txt for instructions."
     )
 
