@@ -173,8 +173,20 @@ class SignedEdgeArray:
         return np.sign(self._data)
 
     def __getitem__(self, key):
-        """Index access returns (index, sign) tuple or new SignedEdgeArray."""
-        ...
+        """Index access returns new SignedEdgeArray (not tuple).
+
+        Slicing/indexing preserves the abstraction:
+            arr[0]      -> SignedEdgeArray with single element
+            arr[mask]   -> SignedEdgeArray with filtered elements
+            arr[:, 0]   -> SignedEdgeArray for column 0
+
+        To get raw values, use .indices and .signs properties.
+        """
+        return SignedEdgeArray(self._data[key])
+
+    def __array__(self) -> np.ndarray:
+        """Allow np.asarray() to get raw internal data if needed."""
+        return self._data
 ```
 
 ### Migration
@@ -229,6 +241,17 @@ corman_crane/
     cli.py               # Entry point (was run_RSP.py)
 ```
 
+### pyproject.toml Updates Required
+When reorganizing, update `pyproject.toml`:
+```toml
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["corman_crane*"]
+
+[project.scripts]
+rsp = "corman_crane.cli:main"
+```
+
 ---
 
 ## Cross-Platform CI for libQEx
@@ -253,7 +276,15 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest, macos-14]  # macos-14 = ARM
+        include:
+          - os: ubuntu-latest
+            artifact_path: libQEx/build/qex_extract
+          - os: windows-latest
+            artifact_path: libQEx/build/Release/qex_extract.exe
+          - os: macos-latest
+            artifact_path: libQEx/build/qex_extract
+          - os: macos-14  # ARM
+            artifact_path: libQEx/build/qex_extract
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -261,7 +292,7 @@ jobs:
         run: |
           git clone https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
           cd OpenMesh && mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF -DCMAKE_INSTALL_PREFIX=../install
           cmake --build . --config Release
           cmake --install . --config Release
       - name: Build libQEx
@@ -273,7 +304,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: libqex-${{ matrix.os }}
-          path: libQEx/build/qex_extract*
+          path: ${{ matrix.artifact_path }}
 ```
 
 ### Benefits
@@ -341,10 +372,14 @@ Focus on **algorithmic** improvements instead:
 3. [ ] Rename local folder from `Corman-Crane` to `rectangular-surface-parameterization`
 
 **Reference commit for MATLAB translation:** `7d1aab4`
-When stripping comments, add this header to each Python file:
-```python
-# For the original line-by-line MATLAB translation with interleaved comments,
-# see commit 7d1aab4 or https://github.com/mfagerlund/rectangular-surface-parameterization/tree/7d1aab4
+
+**Approach used:** Python script (`scripts/strip_matlab_comments.py`, now deleted) handled
+cross-platform comment stripping and header insertion. Verified with:
+```bash
+# Confirm no MATLAB comments remain
+rg "# %" --type py
+# Confirm all files have reference header
+rg "commit 7d1aab4" --type py
 ```
 
 ### Phase 2: Type Safety (2-3 sessions)
