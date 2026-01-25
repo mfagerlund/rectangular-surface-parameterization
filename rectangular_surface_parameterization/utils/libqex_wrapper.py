@@ -11,146 +11,28 @@ Usage:
 """
 
 import numpy as np
-import subprocess
-import tempfile
-from pathlib import Path
-import os
-import sys
-import urllib.request
-import json
-import platform
+from collections import defaultdict
 
-# GitHub release info
-GITHUB_REPO = "mfagerlund/rectangular-surface-parameterization"
+# Try to import pyqex, provide helpful error if not installed
+_pyqex = None
+_pyqex_error = None
 
-
-def _get_cache_dir():
-    """Get user-writable cache directory for downloaded binaries."""
-    if os.name == "nt":
-        # Windows: use %LOCALAPPDATA%\rsp
-        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    else:
-        # Unix: use ~/.cache/rsp
-        base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-    return base / "rsp" / "bin"
+try:
+    import pyqex as _pyqex
+except ImportError as e:
+    _pyqex_error = str(e)
 
 
-def _get_platform_binary_name():
-    """Get the binary name for the current platform."""
-    system = platform.system().lower()
-    machine = platform.machine().lower()
-
-    if system == "windows":
-        return "qex_extract-windows-x64", "qex_extract.exe"
-    elif system == "darwin":
-        if machine == "arm64":
-            return "qex_extract-macos-arm64", "qex_extract"
-        else:
-            return "qex_extract-macos-x64", "qex_extract"
-    elif system == "linux":
-        return "qex_extract-linux-x64", "qex_extract"
-    else:
-        return None, None
-
-
-def _get_latest_release_tag():
-    """Fetch the latest release tag from GitHub API."""
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
-    try:
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            data = json.loads(resp.read().decode())
-            return data.get("tag_name")
-    except Exception:
-        return None
-
-
-def _download_binary(bin_dir, verbose=True):
-    """Download qex_extract binary from GitHub Releases."""
-    artifact_name, exe_name = _get_platform_binary_name()
-    if artifact_name is None:
-        raise RuntimeError(f"No pre-built binary available for {platform.system()} {platform.machine()}")
-
-    # Get latest release tag
-    tag = _get_latest_release_tag()
-    if tag is None:
-        raise FileNotFoundError(
-            f"Could not fetch latest release from GitHub.\n"
-            f"Download manually from: https://github.com/{GITHUB_REPO}/releases\n"
-            f"Or build from source - see bin/BINARIES.txt for instructions."
+def _ensure_pyqex():
+    """Ensure pyqex is available, raise helpful error if not."""
+    if _pyqex is None:
+        raise ImportError(
+            f"pyqex is not installed ({_pyqex_error}).\n\n"
+            "Install it with:\n"
+            "    python scripts/install_pyqex.py\n\n"
+            "Or manually from: https://github.com/mfagerlund/pyqex/releases"
         )
-
-    url = f"https://github.com/{GITHUB_REPO}/releases/download/{tag}/{artifact_name}"
-    exe_path = bin_dir / exe_name
-
-    if verbose:
-        print(f"Downloading qex_extract ({tag}) from GitHub Releases...")
-
-    try:
-        bin_dir.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(url, exe_path)
-
-        # Make executable on Unix
-        if os.name != "nt":
-            exe_path.chmod(exe_path.stat().st_mode | 0o755)
-
-        if verbose:
-            print(f"Downloaded to {exe_path}")
-
-        return str(exe_path)
-
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            raise FileNotFoundError(
-                f"Binary not found at {url}\n"
-                f"The release may not include pre-built binaries.\n"
-                f"Build from source - see bin/BINARIES.txt for instructions."
-            ) from e
-        raise
-
-
-def _find_qex_exe(auto_download=False):
-    """Find the qex_extract executable.
-
-    Search order:
-    1. Repo bin/ directory (for development)
-    2. Current working directory
-    3. User cache directory (~/.cache/rsp/bin or %LOCALAPPDATA%\\rsp\\bin)
-    """
-    _, exe_name = _get_platform_binary_name()
-    if exe_name is None:
-        exe_name = "qex_extract.exe" if os.name == "nt" else "qex_extract"
-
-    # 1. Check repo bin/ (for development installs)
-    repo_root = Path(__file__).parent.parent.parent
-    repo_bin = repo_root / "bin" / exe_name
-    if repo_bin.exists():
-        return str(repo_bin)
-
-    # 2. Check current directory
-    if Path(exe_name).exists():
-        return exe_name
-
-    # 3. Check user cache directory
-    cache_dir = _get_cache_dir()
-    cache_exe = cache_dir / exe_name
-    if cache_exe.exists():
-        return str(cache_exe)
-
-    # Platform-specific error message
-    system = platform.system().lower()
-    if system == "windows":
-        raise FileNotFoundError(
-            f"Could not find {exe_name}.\n"
-            f"Windows binaries should be included in bin/ directory.\n"
-            f"If missing, reinstall or build from source - see docs/libqex_setup.md"
-        )
-    else:
-        raise FileNotFoundError(
-            f"Could not find {exe_name}.\n"
-            f"Linux/macOS binaries must be built from source.\n"
-            f"See docs/libqex_setup.md for build instructions.\n"
-            f"Place the built binary in: {cache_dir}"
-        )
+    return _pyqex
 
 
 def _fill_holes_with_triangles(vertices, quads, verbose=True):
@@ -177,8 +59,6 @@ def _fill_holes_with_triangles(vertices, quads, verbose=True):
     new_vertices : ndarray
         New centroid vertices added for hole filling.
     """
-    from collections import defaultdict
-
     # Build undirected edge counts
     edge_count = defaultdict(int)
     for quad in quads:
@@ -409,7 +289,7 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None, fi
         UV coordinates for each corner of each triangle.
         uv_per_triangle[i, j, :] is the UV for the j-th corner of triangle i.
     vertex_valences : ndarray, shape (n_verts,), optional
-        Expected valence at each vertex. Currently ignored (not passed to exe).
+        Expected valence at each vertex (passed to libQEx).
     fill_holes : bool
         If True (default), fill holes at irregular vertices with triangles.
     verbose : bool
@@ -424,7 +304,7 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None, fi
     tri_faces : ndarray, shape (n_tris, 3) or None
         Triangle indices for hole fills (0-based), or None if fill_holes=False.
     """
-    exe_path = _find_qex_exe()
+    pyqex = _ensure_pyqex()
 
     vertices = np.asarray(vertices, dtype=np.float64)
     triangles = np.asarray(triangles, dtype=np.uint32)
@@ -437,69 +317,21 @@ def extract_quads(vertices, triangles, uv_per_triangle, vertex_valences=None, fi
     assert triangles.shape == (n_tris, 3), f"triangles shape {triangles.shape}"
     assert uv_per_triangle.shape == (n_tris, 3, 2), f"uv shape {uv_per_triangle.shape}"
 
-    # Build input string
-    lines = [f"{n_verts} {n_tris}"]
-
-    # Vertices
-    for i in range(n_verts):
-        lines.append(f"{vertices[i, 0]:.17g} {vertices[i, 1]:.17g} {vertices[i, 2]:.17g}")
-
-    # Triangles with UVs
-    for i in range(n_tris):
-        t = triangles[i]
-        uv = uv_per_triangle[i]
-        lines.append(
-            f"{t[0]} {t[1]} {t[2]} "
-            f"{uv[0, 0]:.17g} {uv[0, 1]:.17g} "
-            f"{uv[1, 0]:.17g} {uv[1, 1]:.17g} "
-            f"{uv[2, 0]:.17g} {uv[2, 1]:.17g}"
+    # Call pyqex
+    if vertex_valences is not None:
+        vertex_valences = np.asarray(vertex_valences, dtype=np.uint32)
+        quad_vertices, quad_faces = pyqex.extract_quads(
+            vertices, triangles, uv_per_triangle, vertex_valences
+        )
+    else:
+        quad_vertices, quad_faces = pyqex.extract_quads(
+            vertices, triangles, uv_per_triangle
         )
 
-    input_data = "\n".join(lines) + "\n"
-
-    # Run the executable
-    result = subprocess.run(
-        [exe_path],
-        input=input_data,
-        capture_output=True,
-        text=True
-    )
-
-    if result.returncode != 0:
-        raise RuntimeError(f"qex_extract failed: {result.stderr}")
-
-    # Parse output - strip ANSI escape codes first
-    import re
-    ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
-    clean_output = ansi_escape.sub('', result.stdout)
-    output_lines = clean_output.strip().split("\n")
-
-    # Filter out non-numeric lines (warnings, etc.)
-    output_lines = [line for line in output_lines if line and not line.startswith('Skipping')]
-
-    if len(output_lines) < 1:
-        raise RuntimeError("qex_extract produced empty output")
-
-    header = output_lines[0].split()
-    n_quad_verts = int(header[0])
-    n_quads = int(header[1])
-
-    quad_vertices = np.zeros((n_quad_verts, 3), dtype=np.float64)
-    quad_faces = np.zeros((n_quads, 4), dtype=np.int32)
-
-    # Read vertices
-    for i in range(n_quad_verts):
-        parts = output_lines[1 + i].split()
-        quad_vertices[i, 0] = float(parts[0])
-        quad_vertices[i, 1] = float(parts[1])
-        quad_vertices[i, 2] = float(parts[2])
-
-    # Read quads (filter out invalid quads)
+    # Filter out invalid quads
     valid_quads = []
-    for i in range(n_quads):
-        parts = output_lines[1 + n_quad_verts + i].split()
-        q = [int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3])]
-
+    n_quad_verts = len(quad_vertices)
+    for q in quad_faces:
         # Skip degenerate quads (all zeros or any duplicates)
         if q[0] == q[1] == q[2] == q[3] == 0:
             continue
@@ -556,12 +388,12 @@ def save_quad_obj(filepath, vertices, quads, tris=None):
 
 
 if __name__ == "__main__":
-    # Simple test with two triangles forming a quad
+    # Simple test
     print("Testing libQEx wrapper...")
 
     try:
-        exe_path = _find_qex_exe()
-        print(f"Found qex_extract at: {exe_path}")
+        pyqex = _ensure_pyqex()
+        print(f"pyqex version: {pyqex.__version__ if hasattr(pyqex, '__version__') else 'unknown'}")
 
         # Create a simple test case: 4 vertices, 2 triangles
         vertices = np.array([

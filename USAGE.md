@@ -307,49 +307,17 @@ flip_count = result.n_flips  # Number of flipped triangles
 The **parameterization** (`run_RSP.py`) works on all platforms (Windows, Linux, macOS) -
 it's pure Python with NumPy/SciPy.
 
-**Quad extraction** (`extract_quads.py`) requires libQEx binaries:
-- **Windows x64**: Pre-built binaries included in `bin/`
-- **Linux/macOS**: Build from source (see below)
+**Quad extraction** (`extract_quads.py`) requires the `pyqex` package:
 
-### Building libQEx from Source
-
-libQEx is open source and can be built from source:
-
-**Requirements:**
-- CMake 3.10+
-- C++ compiler (g++ on Linux, clang on macOS)
-- OpenMesh library
-
-**Build steps:**
 ```bash
-# Clone dependencies
-git clone https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
-git clone https://github.com/hcebke/libQEx.git
-
-# Build OpenMesh
-cd OpenMesh && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF
-make -j4
-sudo make install
-cd ../..
-
-# Build libQEx
-cd libQEx && mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j4
-
-# Copy binary to repo
-cp qex_extract /path/to/rectangular-surface-parameterization/bin/
+python scripts/install_pyqex.py
 ```
 
-See `docs/libqex_setup.md` for detailed instructions.
+This downloads pre-built wheels for Windows, macOS (Intel/ARM), and Linux from
+[mfagerlund/pyqex](https://github.com/mfagerlund/pyqex/releases).
 
-> **Note:** A pure Python port of QEx is also available that doesn't require binaries.
-> See `docs/qex_python_port_plan.md` for details.
+Alternatively, build pyqex from source:
 
-### CI-Built Binaries
-
-Binaries for all platforms are built automatically via GitHub Actions when a new release
-tag is created. See `.github/workflows/build-libqex.yml` for the build configuration.
-The workflow builds from the latest commits of libQEx and OpenMesh and records the
-exact commit hashes in the run summary for GPL compliance.
+```bash
+pip install git+https://github.com/mfagerlund/pyqex.git
+```

@@ -1,73 +1,36 @@
-# Pre-built Binaries for Quad Extraction (libQEx)
+# Quad Extraction via pyqex
 
-## Included Binaries
+Quad mesh extraction is now handled by the `pyqex` package, which provides
+Python bindings for libQEx.
 
-Windows x64 binaries are included in this directory:
-- `qex_extract.exe` - Quad extraction command-line tool
-- `QEx.dll` - libQEx library
+## Installation
 
-## Linux/macOS
+Run the install script:
 
-Build from source - see instructions below or `docs/libqex_setup.md`.
+```bash
+python scripts/install_pyqex.py
+```
+
+Or install manually from: https://github.com/mfagerlund/pyqex/releases
+
+## Usage
+
+The `libqex_wrapper` module automatically uses pyqex:
+
+```python
+from rectangular_surface_parameterization.utils.libqex_wrapper import extract_quads
+
+quad_verts, quad_faces, tri_faces = extract_quads(vertices, triangles, uvs)
+```
 
 ## License Information
 
-These binaries are built from open source software. License texts are included
-in the `LICENSES/` subdirectory for compliance with binary redistribution terms.
+pyqex is licensed under GPL-3.0-or-later. See the pyqex repository for details:
+https://github.com/mfagerlund/pyqex
 
-### libQEx (GPL-3.0-or-later)
-- Source: https://github.com/hcebke/libQEx
-- License: GNU General Public License v3.0 or later
-- License text: `LICENSES/GPL-3.0.txt`
+### Dependencies
 
-### OpenMesh (BSD-3-Clause)
-- Source: https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh
-- License: BSD 3-Clause License
-- License text: `LICENSES/BSD-3-Clause.txt`
+- libQEx (GPL-3.0-or-later): https://github.com/hcebke/libQEx
+- OpenMesh (BSD-3-Clause): https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh
 
-**GPL Compliance:** The qex_extract binary links against libQEx (GPL-3.0).
-Per GPL Section 6, the complete corresponding source code is available at:
-- libQEx: https://github.com/hcebke/libQEx
-- OpenMesh: https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh
-
-The binaries are built automatically by GitHub Actions from these public sources.
-See `.github/workflows/build-libqex.yml` for the build process. The workflow records
-the exact commit hashes used in the GitHub Actions run summary for each release.
-
-## Build from Source
-
-If you prefer to build from source:
-
-### Prerequisites
-- CMake 3.10+
-- C++ compiler with C++11 support
-- Git
-
-### Build Steps
-
-1. Clone and build OpenMesh:
-   ```bash
-   git clone https://gitlab.vci.rwth-aachen.de:9000/OpenMesh/OpenMesh.git
-   cd OpenMesh && mkdir build && cd build
-   cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_APPS=OFF
-   cmake --build . --config Release
-   cmake --install . --config Release --prefix ../install
-   ```
-
-2. Clone and build libQEx:
-   ```bash
-   git clone https://github.com/hcebke/libQEx.git
-   cd libQEx && mkdir build && cd build
-   cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=/path/to/openmesh/install
-   cmake --build . --config Release
-   ```
-
-3. Copy the `qex_extract` binary to this `bin/` directory.
-
-See `.github/workflows/build-libqex.yml` for platform-specific build details.
-
-## Note
-
-These binaries are for the optional quad extraction step (Stage 6), which is
-beyond the scope of the Corman-Crane paper but included for completeness.
-The core RSP parameterization (Stages 1-5) works without these binaries.
+License texts are included in the `LICENSES/` subdirectory.
