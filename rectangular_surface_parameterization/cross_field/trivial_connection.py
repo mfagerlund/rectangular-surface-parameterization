@@ -225,20 +225,26 @@ def trivial_connection(
     # sing_loop2 = wrapToPi(param.Icycle*(omega - param.para_trans))/(2*pi);
     # assert(norm(sing_loop - sing_loop2) < 1e-5, 'Failing cycle constraints.');
 
-    # Verify cycle constraints
+    # Verify cycle constraints (compare modulo 1 for branch-cut safety)
     sing_loop = wrap_to_pi(om_cycle - param.Icycle @ param.para_trans) / (2 * np.pi)
     sing_loop2 = wrap_to_pi(param.Icycle @ (omega - param.para_trans)) / (2 * np.pi)
-    assert np.linalg.norm(sing_loop - sing_loop2) < 1e-5, \
+    diff_loop = sing_loop - sing_loop2
+    diff_loop = diff_loop - np.round(diff_loop)
+    assert np.linalg.norm(diff_loop) < 1e-5, \
         'Failing cycle constraints.'
 
     # sing_link = wrapToPi(om_cycle - param.Ilink*param.para_trans)/(2*pi);
     # sing_link2 = wrapToPi(param.Ilink*(omega - param.para_trans))/(2*pi);
     # assert(norm(sing_link - sing_link2) < 1e-5, 'Failed to prescribe constraints between feature curves.');
 
-    # Verify link constraints (note: MATLAB uses om_cycle here, likely a typo - should be om_link)
+    # Verify link constraints (MATLAB uses om_cycle here - a copy-paste typo; we use om_link)
+    # Compare modulo 1 since singularity indices are integer-valued up to rounding,
+    # and wrap_to_pi has a branch cut at ±pi causing ±0.5 mismatch.
     sing_link = wrap_to_pi(om_link - param.Ilink @ param.para_trans) / (2 * np.pi)
     sing_link2 = wrap_to_pi(param.Ilink @ (omega - param.para_trans)) / (2 * np.pi)
-    assert np.linalg.norm(sing_link - sing_link2) < 1e-5, \
+    diff_link = sing_link - sing_link2
+    diff_link = diff_link - np.round(diff_link)
+    assert np.linalg.norm(diff_link) < 1e-5, \
         'Failed to prescribe constraints between feature curves.'
 
     return omega, ang, sing

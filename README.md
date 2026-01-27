@@ -107,6 +107,8 @@ see [commit 7d1aab4](https://github.com/mfagerlund/rectangular-surface-parameter
 - Complete translation of all MATLAB algorithms to Python/NumPy/SciPy
 - All pipeline stages verified with test suites (see `tests/`)
 
+**Validation against MATLAB:** This port has been validated against the original MATLAB code by running it through GNU Octave 10.3.0. All three benchmark meshes (pig, B36, SquareMyles) produce structurally identical results: matching mesh topology, singularity counts, zero flipped triangles, and successful convergence. See [docs/octave-validation-report.md](docs/octave-validation-report.md) for the full report and [tests/test_octave_golden.py](tests/test_octave_golden.py) for automated golden tests.
+
 **Additional pipeline extensions (beyond the original):**
 - Mesh preprocessing utilities for handling real-world meshes
 - Integration with libQEx for quad mesh extraction

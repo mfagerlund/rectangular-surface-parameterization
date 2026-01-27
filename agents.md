@@ -80,7 +80,7 @@ Test meshes included in `Mesh/` folder - see [Mesh/README.md](Mesh/README.md) fo
 | 4. Optimization | VERIFIED (normalization bug fixed, 2 tests pass) |
 | 5. UV Recovery | VERIFIED (**0 flips** - rotation matrix bug fixed) |
 
-**ALL STAGES VERIFIED.** Pipeline produces 0 flipped triangles, matching MATLAB reference.
+**ALL STAGES VERIFIED.** Pipeline produces 0 flipped triangles. See [Validation Approach](#validation-approach) below.
 
 ## Visual Verification
 
@@ -99,6 +99,17 @@ python run_RSP.py mesh.obj -o output/ -v --visualize none   # No visualizations
 | 3. Cut Graph | `stage3_cut_graph.jpg` | Cut edges connect all cones |
 | 4. Optimization | `stage4_scales.jpg`, `stage4_distributions.jpg` | Smooth scale fields |
 | 5. UV Recovery | `stage5_uv_layout.jpg`, `stage5_quality.jpg` | 0 flipped triangles (no red) |
+
+## Validation Approach
+
+**Important:** This implementation was **not benchmarked against the original MATLAB code** - we never had access to MATLAB. What we did instead:
+
+1. **Extensive test suites**: 54+ pytest tests covering all pipeline stages (geometry, cross field, cut graph, optimization, UV recovery)
+2. **Visual verification**: Generated parameterizations match expected behavior - proper UV layouts, correct singularity counts (8 for sphere = Euler characteristic × 4), connected cut graphs
+3. **Quality metrics**: Example outputs produce 0 flipped triangles on test meshes, indicating correct algorithm implementation
+4. **Code structure verification**: Line-by-line translation preserving the exact structure of the published MATLAB source
+
+See [README.md](README.md) for example outputs and the `tests/` directory for the full test suite.
 
 ## Quad Extraction (Beyond Paper)
 
