@@ -110,7 +110,7 @@ Examples:
     parser.add_argument('--no-seamless', action='store_true',
                         help='Disable seamlessness constraint')
     parser.add_argument('--quantization', action='store_true',
-                        help='Enable integer quantization (requires external QuantizationYoann binary)')
+                        help='Enable integer quantization (requires pyquantization package)')
 
     # Energy options
     parser.add_argument('--energy', type=str, default='distortion',

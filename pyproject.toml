@@ -54,6 +54,9 @@ dev = [
 preprocessing = [
     "pymeshlab>=2022.2"
 ]
+quantization = [
+    "pyquantization>=0.1.0"
+]
 
 [project.urls]
 Homepage = "https://github.com/mfagerlund/rectangular-surface-parameterization"

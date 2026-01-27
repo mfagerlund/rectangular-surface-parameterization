@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 from typing import Optional
 import warnings
-import subprocess
 
 from rectangular_surface_parameterization.io.write_obj import writeObj
 
@@ -90,34 +89,24 @@ def save_param(
     # end
 
     if ifquantization:
-        # Resolve path relative to repo root, with OS-specific executable suffix
-        repo_root = Path(__file__).parent.parent.parent
-        exe_name = 'Quantization.exe' if os.name == 'nt' else 'Quantization'
-        quantize_exe = repo_root / 'QuantizationYoann' / 'build' / exe_name
-
-        if not quantize_exe.exists():
-            warnings.warn(
-                f'Quantization executable not found at {quantize_exe}. '
-                'Skipping quantization step. '
-                'To enable, build the QuantizationYoann program (requires Gurobi).'
-            )
-            return
-
-        quantize_exe = str(quantize_exe)
-
-        quantiz_path = os.path.join(path_save, f'{mesh_name}_quantiz.obj')
-        cmd = [
-            quantize_exe,
-            '-s', 'a',
-            '-sa', '1',
-            '-r',
-            '-o', quantiz_path,
-            param_path
-        ]
-
         try:
-            result = subprocess.run(cmd, check=False)
-            if result.returncode != 0:
-                warnings.warn('Quantization: Yoann failed me :(')
+            from rectangular_surface_parameterization.utils.quantization_wrapper import quantize_mesh
+
+            out_verts, out_faces, out_uvs, out_uv_tris, out_feats = quantize_mesh(
+                X, T, UV, TUV,
+                feature_edges=E2V_hardedge,
+                scale=-1.0, scale_auto=1.0,
+                mode="reembed"
+            )
+
+            quantiz_path = os.path.join(path_save, f'{mesh_name}_quantiz.obj')
+            writeObj(quantiz_path, out_verts, out_faces, out_uvs, out_uv_tris,
+                     None, None, out_feats if len(out_feats) > 0 else None)
+
+        except ImportError:
+            warnings.warn(
+                'pyquantization not installed. Skipping quantization step.\n'
+                'Install with: python scripts/install_pyquantization.py'
+            )
         except Exception as e:
             warnings.warn(f'Quantization failed: {e}')
