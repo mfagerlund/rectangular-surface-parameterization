@@ -571,7 +571,7 @@ def preprocess_ortho_param(
     euler_char = mesh.num_faces - mesh.num_edges + mesh.num_vertices
     curvature_error = np.abs(np.sum(K) - 2 * np.pi * euler_char)
     if curvature_error >= 1e-5:
-        warnings.warn(f'Gaussian curvature does not match topology (error={curvature_error:.2e}, χ={euler_char}). Mesh may have issues.')
+        warnings.warn(f'Gaussian curvature does not match topology (error={curvature_error:.2e}, chi={euler_char}). Mesh may have issues.')
 
     # edge = mesh.vertices(mesh.edge_to_vertex(:,2),:) - mesh.vertices(mesh.edge_to_vertex(:,1),:);
     # edge = edge./sqrt(sum(edge.^2,2));

@@ -184,7 +184,7 @@ def verify_geometry(Src: MeshInfo, output_dir: Path) -> dict:
     print(f"  Faces: {Src.num_faces}")
     print(f"  Edges: {Src.num_edges}")
     print(f"  Euler characteristic: {euler_char} (V - E + F = {Src.num_vertices} - {Src.num_edges} + {Src.num_faces} = {Src.num_vertices - Src.num_edges + Src.num_faces})")
-    print(f"  Total curvature: {total_curvature:.6f} rad (expected: {2*np.pi*euler_char:.6f} for χ={euler_char})")
+    print(f"  Total curvature: {total_curvature:.6f} rad (expected: {2*np.pi*euler_char:.6f} for chi={euler_char})")
 
     return metrics
 
@@ -654,7 +654,7 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
     ax2.set_xlabel('Singularity index')
     ax2.set_ylabel('Vertex count')
     ax2.set_title(f'Singularity Index Distribution\n'
-                  f'Sum of indices: {index_sum:.4f} (expected: χ/4 = {index_sum:.4f})')
+                  f'Sum of indices: {index_sum:.4f} (expected: chi/4 = {index_sum:.4f})')
     ax2.legend()
 
     fig.suptitle('Stage 2: Cross Field - Singularities', fontsize=12)
@@ -676,7 +676,7 @@ def verify_cross_field(Src: MeshInfo, param, ang: np.ndarray, sing: np.ndarray,
     print(f"  Negative singularities (-1/4): {n_sing_neg}")
     print(f"  Total singularities: {n_sing_pos + n_sing_neg}")
     print(f"  Sum of indices: {index_sum:.4f}")
-    print(f"  Expected (χ/4 for cross field): Euler char / 4")
+    print(f"  Expected (chi/4 for cross field): Euler char / 4")
 
     return metrics
 

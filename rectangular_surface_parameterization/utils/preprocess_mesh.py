@@ -298,7 +298,7 @@ def check_mesh_quality(mesh_path: str, verbose: bool = True) -> dict:
         print(f"  Vertices: {result['vertices']}, Faces: {result['faces']}")
         print(f"  Manifold: {result['is_manifold']}, Closed: {result['is_closed']}")
         if result.get('genus') is not None:
-            print(f"  Genus: {result['genus']}, Euler χ: {result['euler_characteristic']}")
+            print(f"  Genus: {result['genus']}, Euler char: {result['euler_characteristic']}")
         if result['issues']:
             print(f"  Issues:")
             for issue in result['issues']:
