@@ -114,7 +114,7 @@ see [commit 7d1aab4](https://github.com/mfagerlund/rectangular-surface-parameter
 - Integration with libQEx for quad mesh extraction
 - Visualization and verification tools
 
-For implementation details, see [CLAUDE.md](CLAUDE.md).
+For implementation details, see [agents.md](agents.md).
 
 ## Citation
 

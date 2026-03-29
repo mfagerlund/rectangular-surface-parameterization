@@ -1,4 +1,4 @@
-# CLAUDE.md
+# Project Instructions
 
 ## Overview / Goal
 - Corman & Crane rectangular parameterization (SIGGRAPH 2025) for quad meshing.
@@ -102,12 +102,7 @@ python run_RSP.py mesh.obj -o output/ -v --visualize none   # No visualizations
 
 ## Validation Approach
 
-**Important:** This implementation was **not benchmarked against the original MATLAB code** - we never had access to MATLAB. What we did instead:
-
-1. **Extensive test suites**: 54+ pytest tests covering all pipeline stages (geometry, cross field, cut graph, optimization, UV recovery)
-2. **Visual verification**: Generated parameterizations match expected behavior - proper UV layouts, correct singularity counts (8 for sphere = Euler characteristic × 4), connected cut graphs
-3. **Quality metrics**: Example outputs produce 0 flipped triangles on test meshes, indicating correct algorithm implementation
-4. **Code structure verification**: Line-by-line translation preserving the exact structure of the published MATLAB source
+This implementation has been **validated against the original MATLAB code** via GNU Octave 10.3.0. All three benchmark meshes (pig, B36, SquareMyles) produce structurally identical results. See [docs/octave-validation-report.md](docs/octave-validation-report.md).
 
 See [README.md](README.md) for example outputs and the `tests/` directory for the full test suite.
 
@@ -130,7 +125,7 @@ Output: `Results/<mesh>_quads.obj`
 **Note:** Triangular holes at singularities are expected (where cross field has +90° or -90° rotation).
 
 ### 1. Quantization
-Move singularities to integer UV coordinates. The MATLAB reference uses an external C++ tool (`QuantizationYoann/`) which is not ported.
+Snap singularities to integer UV coordinates. Uses [pyquantization](https://github.com/mfagerlund/pyquantization) (Python bindings for Coudert-Osmont et al., 2024). Install: `pip install pyquantization` or `pip install C:/Dev/pyquantization`.
 
 ### 2. Quad Extraction with libQEx
 We use [libQEx](https://github.com/hcebke/libQEx) (GPL, SIGGRAPH Asia 2013) for robust quad mesh extraction from integer-grid maps.
@@ -176,13 +171,11 @@ See `docs/robustness-improvements.md` for details.
 ## Future Work
 
 ### Medium Priority
-- **Port quantization**: MATLAB uses `QuantizationYoann/` (C++ Gurobi) to snap singularities to integer UVs
 - **Auto-detect preprocessing needs**: Check mesh quality and auto-preprocess if needed
 
 ### Lower Priority
 - **Boundary support**: Handle meshes with holes (teapot fails on Gaussian curvature check)
 - **Mixed Voronoi/barycentric areas**: True mixed area computation for obtuse triangles
-- **Alternative quantization**: Integer optimization without Gurobi dependency
 - **Mesh decimation**: Auto-simplify very large meshes before processing
 
 ### Known Limitations
