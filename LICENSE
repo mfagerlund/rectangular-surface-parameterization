@@ -1,21 +1,25 @@
-SPDX-License-Identifier: AGPL-3.0-or-later
+MIT License
 
-Corman-Crane Rectangular Surface Parameterization (Python)
-Copyright (C) 2025 Etienne Corman and Keenan Crane (original algorithm and MATLAB implementation)
-Copyright (C) 2025 Mattias Fagerlund (Python conversion and pipeline extensions)
+Copyright (c) 2025 Etienne Corman and Keenan Crane (original algorithm and MATLAB implementation)
+Copyright (c) 2025 Mattias Fagerlund (Python conversion and pipeline extensions)
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ---
 
@@ -60,8 +64,19 @@ original authors.
 
 ---
 
-COMMERCIAL LICENSING
+LICENSE HISTORY
 
-For commercial licensing inquiries, please contact the original authors:
-- Etienne Corman: etienne.corman@cnrs.fr
-- Keenan Crane: kmcrane@cs.cmu.edu
+This project was originally released under AGPL-3.0-or-later to match the
+original MATLAB repository's license. It was re-licensed to MIT with explicit
+written permission from the original authors (Keenan Crane, March 2026).
+
+The optional quantization dependency (pyquantization) remains under AGPL-3.0
+as it wraps third-party code with that license.
+
+---
+
+NOTE ON OPTIONAL DEPENDENCIES
+
+The optional `pyquantization` package (installed via `pip install .[quantization]`)
+is licensed under AGPL-3.0-or-later. If you use the quantization feature, the
+AGPL terms apply to that component. The core RSP code in this repository is MIT.

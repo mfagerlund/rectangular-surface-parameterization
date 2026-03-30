@@ -7,7 +7,7 @@ name = "rectangular-surface-parameterization"
 version = "0.1.0"
 description = "Rectangular (orthogonal) surface parameterization for quad meshing - Python port of Corman & Crane SIGGRAPH 2025"
 readme = "README.md"
-license = {text = "AGPL-3.0-or-later"}
+license = {text = "MIT"}
 authors = [
     {name = "Etienne Corman", email = "etienne.corman@cnrs.fr"},
     {name = "Keenan Crane", email = "kmcrane@cs.cmu.edu"},
@@ -27,7 +27,7 @@ keywords = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",

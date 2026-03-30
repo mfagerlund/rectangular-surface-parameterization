@@ -135,12 +135,15 @@ If you use this software in academic work, please cite the original paper:
 
 ## License
 
-AGPL-3.0-or-later
+MIT
 
 Copyright (C) 2025 Etienne Corman and Keenan Crane (original algorithm)
 Copyright (C) 2025 Mattias Fagerlund (Python conversion)
 
-See [LICENSE](LICENSE) for full terms. Commercial licensing available from the original authors.
+Re-licensed from AGPL-3.0 to MIT with written permission from the original authors.
+The optional `pyquantization` dependency remains AGPL-3.0.
+
+See [LICENSE](LICENSE) for full terms.
 
 ## Acknowledgments
 
