@@ -256,6 +256,46 @@ def preprocess_ortho_param(
         ide_hard = _intersect_rows(E2V_sorted, Ehard2V_sorted)
         tri_hard = mesh.edge_to_triangle[ide_hard, :2]
 
+        n_provided = len(Ehard2V_sorted)
+        n_found = len(ide_hard)
+        if n_found < n_provided:
+            warnings.warn(f'Ehard2V: only {n_found}/{n_provided} provided edges found in mesh. '
+                          f'Check that vertex indices are 0-based and match the mesh.')
+
+        # Remesh if needed (same logic as dihedral path): split triangles that have
+        # more than one constrained edge so each triangle has at most one.
+        ide_bound_pre, _ = boundary_indices(mesh)
+        ide_fix = np.concatenate([ide_hard, ide_bound_pre])
+        tri_fix = np.concatenate([tri_hard.ravel('F'),
+                                  mesh.edge_to_triangle[ide_bound_pre, 0] if len(ide_bound_pre) > 0
+                                  else np.array([], dtype=int)])
+
+        if len(tri_fix) != len(np.unique(tri_fix)):
+            # Some triangles have multiple constrained edges — need to split them
+            T2E_abs = mesh.T2E.indices
+            tri_mask = np.sum(np.isin(T2E_abs, ide_fix), axis=1) >= 2
+            tri_indices = np.where(tri_mask)[0]
+            b = (mesh.vertices[mesh.triangles[tri_mask, 0], :] +
+                 mesh.vertices[mesh.triangles[tri_mask, 1], :] +
+                 mesh.vertices[mesh.triangles[tri_mask, 2], :]) / 3
+            Xs = np.vstack([mesh.vertices, b])
+            new_verts = mesh.num_vertices + np.arange(len(b))
+            Ttri = np.vstack([
+                np.column_stack([mesh.triangles[tri_mask, 0], mesh.triangles[tri_mask, 1], new_verts]),
+                np.column_stack([mesh.triangles[tri_mask, 1], mesh.triangles[tri_mask, 2], new_verts]),
+                np.column_stack([mesh.triangles[tri_mask, 2], mesh.triangles[tri_mask, 0], new_verts])
+            ])
+            Ts = np.delete(mesh.triangles, tri_indices, axis=0)
+            Ts = np.vstack([Ts, Ttri])
+            mesh = mesh_info(Xs, Ts)
+            dec = dec_tri(mesh)
+
+            # Re-find the hard edges in the remeshed mesh
+            # Original hard edges are preserved (centroid splits don't break existing edges)
+            E2V_sorted = np.sort(mesh.edge_to_vertex, axis=1)
+            ide_hard = _intersect_rows(E2V_sorted, Ehard2V_sorted)
+            tri_hard = mesh.edge_to_triangle[ide_hard, :2]
+
     # else
     #     ide_hard = [];
     #     tri_hard = mesh.edge_to_triangle(ide_hard,1:2);
@@ -309,6 +349,14 @@ def preprocess_ortho_param(
             E2T = mesh.edge_to_triangle[:, :2].copy()
             E2V = mesh.edge_to_vertex.copy()
 
+            # Initialize hard edge pair tracking for split propagation
+            if len(ide_hard) > 0:
+                preprocess_ortho_param._hard_pairs = [
+                    list(mesh.edge_to_vertex[e, :]) for e in ide_hard
+                ]
+            else:
+                preprocess_ortho_param._hard_pairs = []
+
             # while ~isempty(ide) % while there are edges to split
 
             while len(ide) > 0:
@@ -360,6 +408,22 @@ def preprocess_ortho_param(
                 # ide = find(all(ismember(E2V, idx_fix), 2));
                 # ide = setdiff(ide, ide_fix);
 
+                # Track which hard edges were split: replace (v1,v2) with (v1,v_mid),(v_mid,v2)
+                split_v1, split_v2 = E2V[id_edge, 0], E2V[id_edge, 1]
+                v_mid = nv - 1  # the midpoint vertex we just added
+                if hasattr(preprocess_ortho_param, '_hard_pairs'):
+                    new_pairs = []
+                    for pair in preprocess_ortho_param._hard_pairs:
+                        p0, p1 = pair
+                        if (min(p0,p1) == min(split_v1,split_v2) and
+                            max(p0,p1) == max(split_v1,split_v2)):
+                            # This hard edge was split — replace with two child edges
+                            new_pairs.append([p0, v_mid])
+                            new_pairs.append([v_mid, p1])
+                        else:
+                            new_pairs.append(pair)
+                    preprocess_ortho_param._hard_pairs = new_pairs
+
                 # Store vertex pairs of fixed edges before recomputing connectivity
                 if len(ide_fix) > 0:
                     idx_pairs = np.sort(E2V[ide_fix, :], axis=1)
@@ -384,9 +448,11 @@ def preprocess_ortho_param(
                 else:
                     ide = np.array([], dtype=int)
 
-            # idx_hard = sort(mesh.edge_to_vertex(ide_hard,:),2);
-
-            if len(ide_hard) > 0:
+            # Recover hard edges, accounting for any splits that occurred
+            if hasattr(preprocess_ortho_param, '_hard_pairs') and len(preprocess_ortho_param._hard_pairs) > 0:
+                idx_hard = np.sort(np.array(preprocess_ortho_param._hard_pairs), axis=1)
+                del preprocess_ortho_param._hard_pairs
+            elif len(ide_hard) > 0:
                 idx_hard = np.sort(mesh.edge_to_vertex[ide_hard, :], axis=1)
             else:
                 idx_hard = np.zeros((0, 2), dtype=int)

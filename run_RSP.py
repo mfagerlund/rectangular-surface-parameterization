@@ -126,6 +126,9 @@ Examples:
                         help='Maximum solver iterations (default: 200)')
     parser.add_argument('--dihedral-tol', type=float, default=40.0,
                         help='Dihedral angle threshold for hard edges in degrees (default: 40)')
+    parser.add_argument('--hard-edges', type=str, default=None,
+                        help='File with explicit hard edge vertex pairs (one "v1 v2" per line, 0-indexed). '
+                             'These edges will be treated as hard edges in addition to dihedral-detected ones.')
 
     # Visualization
     parser.add_argument('--plot', action='store_true',
@@ -164,6 +167,10 @@ def main():
     itmax = args.itmax
     ifplot = args.plot
     verbose = args.verbose
+
+    # Load explicit hard edges if provided
+    Ehard2V = None
+    hard_edge_path = Path(args.hard_edges) if args.hard_edges else None
 
     path_save = args.output
 
@@ -223,11 +230,61 @@ def main():
     Src = mesh_info(X, T)
     dec = dec_tri(Src)
 
+    # Resolve position-based hard edges to vertex index pairs
+    if hard_edge_path is not None:
+        if not hard_edge_path.exists():
+            print(f"Error: hard edges file not found: {hard_edge_path}")
+            return
+        lines = hard_edge_path.read_text().splitlines()
+        use_positions = any('# positions' in l for l in lines)
+
+        if use_positions:
+            # Position-based format: x1 y1 z1 x2 y2 z2
+            from scipy.spatial import cKDTree
+            tree = cKDTree(X)
+            # Use adaptive tolerance: 50% of mean nearest-neighbor distance
+            nn_dists = tree.query(X, k=2)[0][:, 1]  # distance to 2nd nearest (self=0)
+            pos_tol = 0.5 * np.mean(nn_dists)
+            edges = []
+            n_missed = 0
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                parts = line.split()
+                if len(parts) >= 6:
+                    p1 = np.array([float(parts[0]), float(parts[1]), float(parts[2])]) / scale_factor
+                    p2 = np.array([float(parts[3]), float(parts[4]), float(parts[5])]) / scale_factor
+                    d1, i1 = tree.query(p1)
+                    d2, i2 = tree.query(p2)
+                    if d1 < pos_tol and d2 < pos_tol and i1 != i2:
+                        edges.append([i1, i2])
+                    else:
+                        n_missed += 1
+            if edges:
+                Ehard2V = np.array(edges, dtype=int)
+            if verbose:
+                print(f"Loaded {len(edges)} hard edges from positions ({n_missed} unmatched) from {hard_edge_path}")
+        else:
+            # Index-based format: v1 v2
+            edges = []
+            for line in lines:
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                parts = line.split()
+                if len(parts) >= 2:
+                    edges.append([int(parts[0]), int(parts[1])])
+            if edges:
+                Ehard2V = np.array(edges, dtype=int)
+            if verbose:
+                print(f"Loaded {len(edges)} hard edges (vertex indices) from {hard_edge_path}")
+
     if verbose:
         print(f"  Edges: {Src.num_edges}")
         print("Preprocessing for orthotropic parameterization...")
 
-    param, Src, dec = preprocess_ortho_param(Src, dec, ifboundary, ifhardedge, tol_dihedral_deg)
+    param, Src, dec = preprocess_ortho_param(Src, dec, ifboundary, ifhardedge, tol_dihedral_deg, Ehard2V=Ehard2V)
 
     if verbose:
         print(f"  Hard edges: {len(param.ide_hard)}")
