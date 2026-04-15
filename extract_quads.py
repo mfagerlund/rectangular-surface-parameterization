@@ -163,6 +163,9 @@ def main():
                         help='Skip RSP step, use existing _param.obj file')
     parser.add_argument('--preprocess', action='store_true',
                         help='Preprocess mesh with PyMeshLab before running RSP')
+    parser.add_argument('--max-hole-size', type=int, default=None,
+                        help='Max boundary loop size to fill (larger holes stay open). '
+                             'E.g., 6 fills singularity holes but preserves eyes/nostrils.')
 
     args = parser.parse_args()
 
@@ -208,7 +211,7 @@ def main():
     # Extract quads
     print("Extracting quad mesh with libQEx...")
     try:
-        quad_verts, quad_faces, tri_faces = extract_quads(X, T, uv_per_tri)
+        quad_verts, quad_faces, tri_faces = extract_quads(X, T, uv_per_tri, max_hole_size=args.max_hole_size)
         n_tris = len(tri_faces) if tri_faces is not None else 0
         print(f"Result: {len(quad_verts)} vertices, {len(quad_faces)} quads" +
               (f", {n_tris} hole-fill triangles" if n_tris > 0 else ""))
