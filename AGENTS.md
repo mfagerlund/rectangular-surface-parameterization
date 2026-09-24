@@ -206,3 +206,9 @@ AGPL-3.0-or-later (GNU Affero General Public License v3.0 or later)
 This is a derivative work of the original MATLAB implementation by Etienne Corman
 and Keenan Crane. See LICENSE file for full attribution and terms.
 
+## Project card
+
+`project-card/` holds this project's one-liner, tags and image for the cross-project index.
+When the purpose or the look of the project changes materially, regenerate it with
+`/project-index Corman-Crane`.
+
